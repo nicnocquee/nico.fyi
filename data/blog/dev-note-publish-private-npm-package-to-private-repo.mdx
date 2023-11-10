@@ -1,0 +1,67 @@
+---
+title: '[Dev Note] Publish private NPM package to private git repo'
+date: '2019-02-12'
+summary: A tutorial on publishing private NPM packages to private GitHub repositories, reflecting on GitHub's unlimited private repos policy
+---
+
+Have you heard that [github is giving unlimited private repositories to all github users](https://github.blog/2019-01-07-new-year-new-github/)? Thanks, [Microsoft](https://github.blog/2018-10-26-github-and-microsoft/)! Unlimited private repositories is the only reason I put all my hobby projects in Gitlab. But now I can probably put some projects in Github as well.
+
+Speaking of private thing, have you ever wanted to publish a private npm package for internal use? You can use [npm private registry for $7/month](https://www.npmjs.com/pricing). Or you can also use private git repository (in Github, Gitlab, own server, etc) for **free**.
+
+The (probably) not-so-secret ingredient is [publish-to-git](https://github.com/Rush/publish-to-git).
+
+# Installation
+
+Install publish-to-git locally as dev dependency
+
+```
+npm i --save-dev publish-to-git
+```
+
+or globally
+
+```
+npm i -g publish-to-git
+```
+
+# Usage
+
+Edit your package.json file in your project
+
+```
+"scripts": {
+// ... other scripts
+  "publish": "publish-to-git"
+}
+```
+
+Now if you run `npm run publish`, it will run `npm pack`, then it will create a new tag based on your project's version and push the content to remote repository. For example, if your project's version as indicated in package.json file is "0.0.1", it will create a `v0.0.1` tag in the remote repository.
+
+Once you publish the package, you can use it as dependency in another project by adding it in package.json file:
+
+```
+"dependencies": {
+  "secret-package": "organization_or_user_name_in_github/secret-package#v0.0.1"
+}
+```
+
+## Compilation
+
+If you need to compile the project first using [Babel](https://babeljs.io/), for example, you need to run the compilation before publishing it. For example, you can run babel to all js files in `src` directory and put the output in `dist` directory. We can tell publish-to-git that only `dist` directory that needs to be published and to be used by other projects, by specifying it in the "files" option in package.json
+
+```
+// package.json file
+"private": true,
+"main": "dist/index.js",
+"version": "0.0.1",
+"files": [
+  "dist"
+],
+"scripts": {
+  / ... other scripts
+  "build": "babel src --out-dir dist,
+  "publish": "npm run build && publish-to-git"
+}
+```
+
+Now only your `dist` directory is published to `v0.0.1` tag in your private repository.

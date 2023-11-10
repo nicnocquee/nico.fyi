@@ -1,0 +1,117 @@
+---
+title: Type-Safe Localization for React App Using Flow
+date: '2018-12-02'
+summary: Discusses creating type-safe localization for React apps with Flow, motivated by Switzerland's multilingual context and focusing on popular React internationalization libraries.
+tags: ['dev', 'react']
+---
+
+## The Challenge
+
+Switzerland has four national languages: German, French, Italian, and Romansh. The first three languages are the languages which are used by the majority of the people. For that reason most web apps I made here need to support at least those three and English in some.
+
+When developing our first web app, I explored the popular React library for internationalization, [React Intl](https://github.com/yahoo/react-intl). But I decided not to use it since it's overkill for our simple requirement: we just need to display different strings based on the selected language.
+
+## Keep it simple!
+
+Our solution was just to use a simple Javascript object which contains the strings for each of the languages.
+
+```javascript
+// @flow
+// locales.js file
+// you can separate the translations object into different files if you want
+
+export const de = {
+  title: 'iTheorie Online-Lernen',
+  welcomeTo: 'Willkommen bei $title',
+  // and so on ...
+}
+export type StringsType = typeof de
+
+export const fr: StringsType = {
+  title: 'Apprentissage en ligne iTheorie',
+  welcomeTo: 'Bienvenue chez $title',
+}
+```
+
+To use the translation, we just need to pass the object to the components that need them.
+
+```javascript
+export const TitleComponent = ({
+  strings = require('./locales').default,
+}: {
+  strings: StringsType,
+}) => <p>{strings.siteTitle}</p>
+```
+
+We use [Flow](https://flow.org/) to add type annotation for our translation object. By using it, not only we can prevent missing translation strings, we can also get autocompletion in editor, like [Code](https://code.visualstudio.com/), when using it in our React components.
+
+![Type safety localization in React](/static/images/articles/typesafety-localization-in-react.png)
+
+![Auto completion for localization in React](/static/images/articles/autocomplete-localization-in-react.png)
+
+To handle language switching, we can use [Redux](https://redux.js.org/) or [React's built-in Context](https://reactjs.org/docs/context.html). When using Redux, we can create a reducer that will return the translations object based on the selection language.
+
+```javascript
+export const defaultState = {
+  selected: 'de',
+  messages: require('./locales').de,
+}
+
+export default (
+  state: StringsType = defaultState,
+  action: {
+    type: 'SET_LANGUAGE_ACTION',
+    payload: {
+      selected: string,
+      messages: StringsType,
+    },
+  }
+): LanguageState => {
+  switch (action.type) {
+    case 'SET_LANGUAGE_ACTION': {
+      return {
+        ...state,
+        ...action.payload,
+      }
+    }
+    default:
+  }
+  return state
+}
+```
+
+To support formatted message, we created a small function to replace certain placeholder strings with the actual string.
+
+```javascript
+const escapeRegex = (value: string) =>
+  value.replace(/[\-\[\]{}()*+?.,\\\^$|#\s]/g, '\\$&')
+
+export const formatted = (text: string, replacement: Object): string => {
+  var newText = text
+  Object.keys(replacement).forEach(key => {
+    let regex = new RegExp(escapeRegex(key), 'g')
+
+    newText = newText.replace(regex, replacement[key])
+  })
+  return newText
+}
+```
+
+For example, we have a translation string with key `welcomeTo` and value `Willkommen bei $title` in the translation object for German. We use the `formatted` function to replace `$title` with `iTheorie Online-Lernen`
+
+```javascript
+export const Greeting = ({ strings }: { strings: StringsType }) => {
+  const stringToUse = formatted(strings.welcomeTo, {
+    $title: 'iTheorie Online-Lernen',
+  })
+  return <p>{stringToUse}</p>
+}
+```
+
+## Conclusion
+
+This solution is satisfying for several reasons:
+
+- No need for 3rd party dependency
+- Prevent missing translation
+- Auto completion in code editor.

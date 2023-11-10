@@ -1,0 +1,108 @@
+---
+title: '[Dev Note] Using Environment Variables in NextJS Safely and Conveniently'
+date: '2020-05-05'
+summary: A developer's guide on using environment variables in NextJS effectively, updated for version 9.4.
+tags: ['nextjs', 'dev', 'react']
+---
+
+---
+
+**UPDATE May 11, 2020**
+
+As of version 9.4, [NextJS finally has proper environment variables support](https://nextjs.org/blog/next-9-4#new-environment-variables-support). Simply put the variables in `.env` file:
+
+- Environment variables are only available in the Node.js environment by default.
+- Environment variables prefixed with NEXT*PUBLIC* are exposed to the browser.
+
+---
+
+# Problem
+
+I really like [nextjs](https://nextjs.org/). But their recommendation to [add environment variable to the Javascript bundle](https://nextjs.org/docs/api-reference/next.config.js/environment-variables) is not appropriate in my opinion. According to the documentation, you need to add the environment variables in the `next.config.js` file.
+
+```javascript
+module.exports = {
+  env: {
+    customKey: 'my-value',
+  },
+}
+```
+
+However, this next.config.js file is usually commited to the project's repository. So if some of the environment variables are sensitive information (e.g., API keys), that information could leak to public.
+
+# Solution #1
+
+If you use Vercel to host your app, you can [add environment variables from the Project Settings](https://vercel.com/docs/v2/build-step#environment-variables) in vercel dashboard. Environment Variables are accessible during both Build Step and Runtime, and can be configured for Production, Preview, and Development Environments individually.
+
+Once you add your environment variables to Vercel, you need to add the name of the environment variables to next.config.js file:
+
+```javascript
+module.exports = {
+  env: {
+    SECRET_SOMETHING: process.env.SECRET_SOMETHING,
+  },
+}
+```
+
+# Solution #2
+
+The most popular way to use environment variables is using [dotenv](https://github.com/motdotla/dotenv). To use dotenv in nextjs app, first install it
+
+```
+# with npm
+npm install dotenv
+
+# or with Yarn
+yarn add dotenv
+```
+
+Then define the environment variables in `.env` file in the root directory of the project. Usually, you can ignore this file in your repository.
+
+```
+SECRET_SOMETHING=XXXXXX
+```
+
+Then expose it to your nextjs app in next.config.js file,
+
+```javascript
+require('dotenv').config()
+
+module.exports = {
+  env: {
+    SECRET_SOMETHING: process.env.SECRET_SOMETHING,
+  },
+}
+```
+
+But adding the variables one by one is such a chore. So I wrote this small function to filter environment variables with certain prefixes.
+
+```javascript
+// next.config.js file
+require('dotenv').config()
+
+const getEnvWithPrefixes = (prefixes = ['REACT_APP_', 'FIREBASE_']) => {
+  return Object.keys(process.env).reduce((prev, curr) => {
+    if (prefixes.some((p) => curr.startsWith(p))) {
+      return {
+        ...prev,
+        [curr]: process.env[curr],
+      }
+    }
+
+    return prev
+  }, {})
+}
+
+module.exports = {
+  env: getEnvWithPrefixes(),
+}
+```
+
+Using this `getEnvWithPrefixes` function, you need to define your environment variables' names with certain prefixes. In the above example, the names can be prefixed with either `REACT_APP_` or `FIREBASE_` like the following:
+
+```
+REACT_APP_SECRET=XXXXXX
+FIREBASE_KEYS=XXXXXX
+```
+
+We use prefixes to prevent unrelated environment variables from leaking to your project. This way, we don't need to update next.config.js whenever we add a new environment variable to `.env` file.

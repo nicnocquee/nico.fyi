@@ -1,0 +1,37 @@
+---
+title: Coparrot - Mock server without installation and without configuration
+date: '2022-01-18'
+images: /static/images/articles/coparrot-03.jpg
+summary: Introduction to Coparrot, a no-install, no-config mock server project for mobile and front-end web developers.
+tags: ['project']
+---
+
+![coparrot-dev](/static/images/articles/coparrot-03.jpg)
+
+If you missed it, today I finally released this project called [Coparrot](https://coparrot.dev), a no-install and no-config mock server for mobile and front-end web developers (and probably designers too!). Check it out here
+
+The idea came from an open source project from Hyperjump called [HTTPTarget](https://github.com/hyperjumptech/httptarget). My colleague made it to help in one of our projects. But I had some trouble installing and running it due to not knowing Go.
+
+My frustration bore fruit to the idea of Coparrot. I wanted a mock server that I didn't need to install or configure. Then I also thought, when I developed a web page or an app screen that needs data from a server, I know exactly what kind of response I want from the server.
+
+So what if I can just specify what response I want when sending a request to the server, and that server will return exactly that response. I wanted an echo server. And you know what animal that echoes what you said? A parrot! 🦜
+
+Then I thought, this tool will become a companion for mobile/frontend devs. It'll be like the co-pilot in a plane. 👩‍✈️👨‍✈️
+
+So I had a parrot. And a co-pilot. It became the Coparrot. 😆
+
+I was so excited about the name, I looked around for graphic designers or illustrators to make a logo or avatar for Coparrot. Then I found [@senikurni](https://twitter.com/senikurni) who then made the Coparrot logo. Isn't awesome?? 🤩
+
+I had the name, the domain, and the logo. Now I just needed to make the service! That was almost a year ago. 😮‍💨 I procrastinated by trying different kinds of tools and platforms for Coparrot. AWS, Cloudflare, Serverless, etc. Wasted a lot of time to decide the tech stacks to use.
+
+Then few weeks ago I started reading [The Minimalist Entrepreneur](https://www.minimalistentrepreneur.com/) by [@shl](https://twitter.com/shl). I haven't finished the whole book but it gave me clarity on what to do to finally release Coparrot. I listed down the minimum features for Coparrot, then worked on it last weekend.
+
+I decided to use the tech with which I've been familiar, the [Next.js](https://nextjs.org/) with TypeScript. For the subscription, I was thinking of using Stripe but I don't want to write any payment code for this MVP yet. Turned out, what I needed is provided by [Gumroad](https://gumroad.com)! No need to write any code 🤑
+
+For hosting the app, I went with [Fly.io](https://fly.io/) because of the attractive free allowances and my app will be served close to the users. I was thinking to use a droplet in DigitalOcean or similar, but I really don't want to maintain (and pay) my own servers. 😅 The landing page uses [Tailwind CSS](https://tailwindcss.com/). And for analytics, I decided to avoid Google Analytics due to privacy reason and uses [Matomo](https://matomo.org/) instead.
+
+The first person I showed Coparrot was of course [@jmathai](https://twitter.com/jmathai) who gave me great advice to simplify the landing page. Then to few other friends, to the [Swift Study Group Indonesia](https://swiftid.dev) members, and finally today in [Product Hunt](https://www.producthunt.com/posts/coparrot) and [Indie Hackers](https://www.indiehackers.com/product/coparrot).
+
+I don't know if this project can be successful or even make money, but I'm glad I am finally able to show it to the world. It's one less side project's idea in my mind 😆
+
+Coparrot is not done yet. I still have many ideas. I hope you'll find it useful too. Feedback are welcomed! 😇

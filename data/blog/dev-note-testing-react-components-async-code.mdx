@@ -1,0 +1,176 @@
+---
+title: '[Dev Note] Testing React component which contains async code'
+date: '2019-10-06'
+summary: Discusses testing React components with asynchronous code, focusing on fetching data upon first component mount.
+tags: ['react', 'dev']
+---
+
+# Scenario
+
+Say we need to make a React component that has following requirements:
+
+- Fetch data from network when it's first mounted and show the fetched data if succeeds
+- Show loading indicator while fetching
+- Show error message if fetch fails
+- Show a button when it's not fetching to refetch the data when user clicks on it.
+
+Following those requirements, we make use of the [new and shiny React hooks](https://reactjs.org/docs/hooks-intro.html) and come up with the following component
+
+```javascript
+import React, { useState, useEffect } from 'react'
+
+const App = () => {
+  const [isLoading, setIsLoading] = useState(false)
+  const [lastChecked, setLastChecked] = useState(Date.now())
+  const [data, setData] = useState(null)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    setIsLoading(true)
+
+    fetch('SOME URL')
+      .then((response) => response.json())
+      .then((result) => {
+        setIsLoading(false)
+        setData(result.results)
+      })
+      .catch((error) => {
+        setIsLoading(false)
+        setError(error)
+      })
+  }, [lastChecked])
+
+  return (
+    <div>
+      {isLoading && <p data-testid="loading">Loading ...</p>}
+      {error && <p data-testid="error">Error</p>}
+      {data && <p data-testid="data">{JSON.stringify(data, null, 2)}</p>}
+      {!isLoading && (
+        <button data-testid="check" onClick={() => setLastChecked(Date.now())}>
+          Check
+        </button>
+      )}
+    </div>
+  )
+}
+
+export default App
+```
+
+# Testing
+
+Now we need to make automated tests to ensure this component follows the requirements. We can use [React testing library](https://testing-library.com/docs/react-testing-library/intro) to help us write the test code.
+
+## Requirement #1: Fetch and show data on mounted
+
+Our App component uses `fetch` to fetch data from network. To test this first requirement, we need to mock `fetch` to return successfully. Then we check if an element with "data" test ID is rendered.
+
+```javascript
+test('should render data', async () => {
+  // mock fetch
+  global.fetch = jest.fn().mockResolvedValue({
+    json: jest.fn().mockResolvedValue({ results: 'something' }),
+  })
+
+  const { getByTestId } = render(<App />)
+
+  await wait(() => expect(getByTestId('data')).toBeTruthy())
+})
+```
+
+## Requirement #2: Show error message when fetch fails
+
+To test this requirement, we need to mock `fetch` to return unsuccessfully by rejecting the promise. Then we check if an element with "error" test ID is rendered.
+
+```javascript
+test('should render error', async () => {
+  // mock fetch
+  global.fetch = jest.fn().mockRejectedValue({
+    message: 'Something',
+  })
+
+  const { getByTestId } = render(<App />)
+
+  await wait(() => expect(getByTestId('error')).toBeTruthy())
+})
+```
+
+## Requirement #3: Show loading when fetch is running
+
+To test this requirement, we need to mock `fetch` in a way that it will resolve when we tell it to. So before we tell it to resolve, we check if an element with "loading" test ID is rendered. After we tell it to resolve, we check again if an element with "loading" test ID is not rendered.
+
+```javascript
+test('should render loading', async () => {
+  var shouldResolve = false
+
+  // mock fetch
+  global.fetch = jest.fn().mockImplementation(() => {
+    return new Promise((resolve) => {
+      const waitUntilShouldResolve = () => {
+        if (shouldResolve) {
+          resolve({
+            json: jest.fn().mockResolvedValue({ results: 'something' }),
+          })
+        } else {
+          setImmediate(waitUntilShouldResolve)
+        }
+      }
+
+      waitUntilShouldResolve()
+    })
+  })
+
+  const { getByTestId, queryByTestId } = render(<App />)
+
+  await wait(() => expect(getByTestId('loading')).toBeTruthy())
+
+  shouldResolve = true
+
+  await wait(() => expect(queryByTestId('loading')).toBeNull())
+})
+```
+
+## Requirement #4: Refetch when button is clicked
+
+To test this requirement, we need to mock `fetch` to first reject the promise. Then we simulate the button click to trigger the re-fetch and tell the mocked `fetch` to resolve successfully. Then we check if an element with "data" test ID is rendered.
+
+```javascript
+test('should reload on button click', async () => {
+  var shouldResolve = false
+  var shouldReject = true
+
+  // mock fetch
+  global.fetch = jest.fn().mockImplementation(() => {
+    return new Promise((resolve, reject) => {
+      const waitUntilShouldResolve = () => {
+        if (shouldReject) {
+          reject({ message: 'something' })
+        } else if (shouldResolve) {
+          resolve({
+            json: jest.fn().mockResolvedValue({ results: 'something' }),
+          })
+        } else {
+          setImmediate(waitUntilShouldResolve)
+        }
+      }
+
+      waitUntilShouldResolve()
+    })
+  })
+
+  const { getByTestId } = render(<App />)
+
+  await wait(() => expect(getByTestId('error')).toBeTruthy())
+
+  shouldResolve = true
+  shouldReject = false
+  const button = getByTestId('check')
+  fireEvent.click(button)
+
+  await wait(() => expect(getByTestId('data')).toBeTruthy())
+})
+```
+
+# Repo
+
+With those tests, we can make sure that App component will always follow the requirements even if we make some changes in the future. You can checkout the complete code in this [repo](https://github.com/nicnocquee/react-jest-async-test-sample). Let me know what you think of this way of testing on [Twitter](https://twitter.com/2co_p).

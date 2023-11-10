@@ -1,0 +1,41 @@
+---
+title: '[Dev Note] Edit Git Commit Message and Cypress test crashes with Droneio'
+date: '2019-02-09'
+summary: Practical tips on editing Git commit messages and addressing Cypress test crashes with Drone.io.
+tags: ['dev', 'cypress']
+---
+
+# Edit Git Commit Message
+
+Few days ago I needed to edit a commit message. If the commit had been the last commit, I could've run
+
+```
+git commit --amend
+```
+
+But it was not. Found out I could use git rebase instead:
+
+```
+git rebase -i <hash>^
+```
+
+`-i` means interactive. Don't forget to add the carret (^) after the commit hash. It will then open the text editor where it shows a list of commits and the actions for each of them. The default is `pick` action. You just need to change the action of the commit whose message you want to edit with `reword`. Save the file then it will open another text editor where you can actually edit the commit message.
+
+The commit I made had been pushed to github. So I needed to forcefully push the message by `git push origin --force`
+
+# Cypress Crash with DroneIO
+
+In the company I set up a continuous integration server for our projects using [DroneIO](https://drone.io/). And for the landing page of [itheorie.ch](https://itheorie.ch) website, I am using [Cypress](https://www.cypress.io/) for end-to-end testing. It has been working pretty well and has helped me catch some bugs before the website went live. Unfortunately, it kept intermittently crash in one specific test. The test is not complex and it doesn't take a long time when it runs successfully.
+
+After trying many different solutions offered by the internet, this solution to set `shm_size` at the pipeline step of drone.yml seems to fix the problem.
+
+```
+ test:
+    images: cypress/browsers
+    shm_size: 4096000000
+    commands:
+      - yarn install
+      - yarn test
+```
+
+Haven't had any crashes so far. 🤞

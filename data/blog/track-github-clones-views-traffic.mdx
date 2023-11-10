@@ -1,0 +1,37 @@
+---
+title: 'How to track the traffic of views and clones of Github Repository'
+date: '2020-12-07'
+images: '/static/images/articles/statistics.jpg'
+summary: Tips and methods for tracking views and clones traffic on GitHub repositories.​
+tags: ['dev']
+---
+
+![](/static/images/articles/statistics.jpg)
+
+# Problem
+
+I wanted, actually needed, to track the number of times some of our repositories in Github got cloned by others. Fortunately, Github provides the clones traffic data from the repository's Insights. If you are the owner of the repository, or you are an administrator of the github organization, you'd find the "Traffic" link in the sidebar of Insights page.
+
+![](/static/images/articles/github-clones-views.png)
+
+Unfortunately, this page only shows the data of the last two weeks and it cannot be exported. Another problem is that there are few repositories that I need to track. Opening the repository pages one by one is such a hassle.
+
+# Solution
+
+So I made a small command line interface (CLI) script, called [export-github-clones-views](https://github.com/hyperjumptech/export-github-clones-views), to fetch the traffic of the git clones and views from multiple repositories then optionally store them in a mongo database. You can read the instructions on how to install and to use the script in the README.md file.
+
+To execute the script regularly, I created a workflow in the Github Actions since a workflow in [Github Actions can be triggered automatically at a scheduled time](https://docs.github.com/en/free-pro-team@latest/actions/reference/events-that-trigger-workflows#schedule). Check out an example of the workflow file to run the export-github-clones-views script every week [here](https://github.com/hyperjumptech/export-github-clones-views/blob/main/.github/workflows/cron.yml).
+
+Finally I created a mongo database in [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) to store the data fetched by the script. Since I will be the only one who is using the database, the **free** shared clusters plan in Atlas is more than enough. The cool thing about using MongoDB Atlas is I can easily create the chart from the data.
+
+![](/static/images/articles/mongo-atlas.png)
+
+# Cost
+
+For those who wonder how much this costs, it doesn't even cost one banana, Lucille. It's all FREE!
+
+![](/static/images/articles/lucille.gif)
+
+# Contributing
+
+The script is open source and is written in TypeScript. So if you found a bug or wanted a new feature, your contribution is welcomed. It's using [oclif](https://oclif.io/) to make it easy to build CLI. The project is also equipped with some tests which will be run automatically whenever a Pull Request is opened.

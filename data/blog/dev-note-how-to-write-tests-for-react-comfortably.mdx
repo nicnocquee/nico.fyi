@@ -1,0 +1,213 @@
+---
+title: '[Dev Note] How to Write Tests for React App Comfortably'
+date: '2020-04-17'
+summary: Insights into comfortable and effective test-writing for React applications, highlighting various use cases.
+tags: ['dev', 'test', 'react']
+---
+
+# Why write tests
+
+As a software developer, it is always exciting to see the code I wrote runs on the desktop browser or on the iPhone/android devices. The excitement (and the deadline) often makes me forget that there are many use cases that could happen when a user uses my app. A single screen/page could have many different use cases. For example, in a login page/screen, user could enter an invalid email address, the username and password doesn't match those in the server, a loading indicator could be visible when submitting the login credentials, and so on. We could, of course, test all these use cases manually ourselves. But it wouldn't scale as the app grows bigger. Because remember, we have to test all the cases every time we release a new update to the users.
+
+![nobody-got-time-to-test-manually](/static/images/articles/aintnobody.gif)
+
+# Why some don't write tests
+
+I admit that writing tests is sometimes vexatious. It takes time to write tests since most of the time you will end up writing more test codes than the app code itself. For example, say we have a validation rule for username in a signup form where a username must only contain alphanumeric string that may include \_ (underscore) and - (dash), and must have a length of 7 to 20 characters. We could implement the validation function using regular expression as follows
+
+```javascript
+function validateUsername(username) {
+  const regex = new RegExp(/^[-_a-z0-9]{7,20}$/)
+  return regex.test(username)
+}
+```
+
+The implementation only takes 2 line of code. But to make sure this function works as expected, we need to write a test that will cover many different use cases. For example,
+
+```javascript
+function testValidation() {
+  const testData = [
+    ['abcdefg', true], // 1. 7 alphabets should be valid
+    ['abcdefg1', true], // 2. 8 alphabets should be valid
+    ['abcdefg1-', true], // 3. Alphabets, number, and a dash should be valid
+    ['ab', false], // 4. 2 alphabets should be invalid
+    ['', false], // 5. Empty string should be invalid
+    ['ab**', false], // 6. Symbols aside from _ and - should be invalid
+    ['Abcdefg', true], // 7. Alphabets with mixed case should be valid
+  ]
+
+  // just for an example, we use console.assert here. in your project you could use jest, mocha, etc.
+  testData.forEach((data) => {
+    console.assert(validateUsername(data[0]) === data[1], data[0])
+  })
+}
+```
+
+![](/static/images/articles/loc.jpg)
+
+The test has more line of codes than the validation function itself. And if you call the `testValidation` function, the test actually will fail because there is a bug in the implementation of `validateUsername` function. We prevent the bug from going to production thanks to the test.
+
+The above example is a simple one. In reality, the functions in our app will have dependencies from standard library, 3rd party libraries, or even other modules/functions we wrote ourselves. And since **tests have to be consistent and predictable**, we have to prepare the environment first before verifying the test cases. The preparations may include mocking the database, server responses, etc. All of these will stretch the development time significantly.
+
+# How to be comfortable writing tests
+
+Developers have different styles and preferences. As such, I don't think there is only one correct way to write tests. You may have heard of Test Driven Development (TDD) where one writes the tests first before the implementation. If you have tried it and are comfortable with it, keep on doing it. But if you are like me who likes to write the implementation first and see it runs on the browser or mobile devices, I have 7 tips I can share with you.
+
+1. **Start with small and simple functions.**
+
+   Start writing tests for part of your app that doesn't have (or a few) dependencies. Usually functions that simply accept inputs as arguments, do some calculations or have conditional flows, and return an output. Form validation is a good example for this: there are many possible inputs (entered by users) and we know exactly what output to expect.
+
+   Functions or modules that calculate numbers should have tests too. For example, calculating the number of points a user will get after they topped up their credits. This can be considered the business logic of your apps. You don't want it to be buggy.
+
+2. **Don't be obsessed with code coverage.**
+
+   The goal is not to achieve 100% code coverage. The purpose of using code coverage is to figure out which parts of your code that hasn't been tested. You, as developer, then need to decide if it needs to have tests.
+
+   Not all functions/components/modules need to have tests. For example, a react component that is simply a wrapper for a dom element with custom styles:
+
+   ```javascript
+   function SquareImage({ src }) {
+     return (
+       <img
+         src={src}
+         style={{
+           width: 100,
+           height: 100,
+           borderRadius: 10,
+           // ...
+           // any other styles
+         }}
+       />
+     )
+   }
+   ```
+
+3. **Every bug is an opportunity to write test.**
+
+   No apps/softwares are without bugs. But when a bug is reported, take that chance to add tests to the project. A bug means the app doesn't work as expected. So create tests to ensure the expected behaviour appear in the next update of the app and the bug will not appear anymore.
+
+   ![](/static/images/articles/liam-neeson.jpg)
+
+4. **Avoid snapshot tests.**
+
+   Snapshot tests are useful when the UI of the app doesn't change often. But in my experience, app evolves and keeps changing.
+
+   With snapshot tests, the tests will fail when you change, even the slightest, the UI of the component, say the color of the text. The snapshot's diff is usually meaningless too. You will just end up updating the snapshots blindly.
+
+   Testing how the app looks doesn't give much benefit.
+
+5) **Test existence, not how they look.**
+
+   Instead of how it looks, it is better to test if a certain element appears (or not) in a component. For example, a login button should show a loading indicator when the state is `loading` and show `Login` title when state is not `loading`.
+
+   ```javascript
+   function LoginButton({ title, isLoading, onClick }) {
+     return (
+       <div>
+         <button onClick={onClick}>{title}</button>
+         {isLoading && <span data-testid="loading-indicator">Loading ...</span>}
+       </div>
+     )
+   }
+   ```
+
+   Then we can write the tests with the help of [react testing library](https://testing-library.com/docs/react-testing-library/intro) as follows
+
+   ```javascript
+   import React from 'react'
+   import { render } from '@testing-library/react'
+
+   describe('LoginButton', () => {
+     it('shows title', () => {
+       const expectedTitle = 'Login'
+       const { getByText } = render(
+         <LoginButton title={expectedTitle} isLoading={false} onClick={() => {}} />
+       )
+
+       expect(getByText(expectedTitle)).toBeVisible()
+     })
+
+     it('shows loading', () => {
+       const expectedTitle = 'Login'
+       const { getByTestId } = render(
+         <LoginButton title={expectedTitle} isLoading={false} onClick={() => {}} />
+       )
+
+       expect(getByTestId('loading-indicator')).toBeVisible()
+     })
+   })
+   ```
+
+   In the test above, we test the existence of the title and the loading indicator given different values of `isLoading` prop. We use `getByTestId` to find the loading indicator instead of the text `Loading` so that if we change the indicator in the future, we don't need to change the test. We don't care if the indicator is text or any other element as long as they exists when `isLoading` is `true`.
+
+6. **Make sure the test fails.**
+
+   Once all the tests have passed, you have to make sure that the tests fail when you make a breaking change in the component/function.
+
+   Let's go back to the `validateUsername` function above. Say we fixed the bug and now the function allows upper case letters too:
+
+   ```javascript
+   function validateUsername(username) {
+     const regex = new RegExp(/^[-_a-zA-Z0-9]{7,20}$/)
+     return regex.test(username)
+   }
+   ```
+
+   With that change, the tests will now all pass. But say another developer (or future you!) accidentally change `validateUsername` function and add a single character, an asterisk, to the regular expression:
+
+   ```javascript
+   function validateUsername(username) {
+     const regex = new RegExp(/^[-_*a-zA-Z0-9]{7,20}$/)
+     return regex.test(username)
+   }
+   ```
+
+   The tests will still pass! It shouldn't because in the 6th test data, we make sure that an asterisk character should make `validateUsername` returns false.
+
+   ```javascript
+    ['ab**', false], // 6. Symbols aside from _ and - should be invalid
+   ```
+
+   This happens because the 6th test data is mistakenly testing the occurance of non-dash and non-underscore characters. The minimum username's length, which is 7, validates the test string early. The correct test data should be
+
+   ```javascript
+   ['abcdefg**', false], // 6. Symbols aside from _ and - should be invalid
+   ```
+
+   Now the test will fail.
+
+7. **Create snippet to quickly write tests**.
+
+   To save a little bit of time, you can create your own custom snippet for writing tests. Find the piece of code that you need to write over and over again when writing tests, then turn them into code snippet. In my case, I'm using VSCode, so I made this custom snippet.
+
+   ```json
+   "Test for react component": {
+     "prefix": "testrea",
+     "body": [
+       "import React from 'react';",
+       "import {render} from '@testing-library/react';",
+       "import ${1:Component} from './${2:ComponentPath}';",
+       "",
+       "describe('Button', () => {",
+       "  it('render given text', () => {",
+       "    const expectedTitle = '${3:TextContent}';",
+       "    const {getByTestId} = render(",
+       "      <${1:Component} />,",
+       "    );",
+       "",
+       "    expect(getByTestId('${4:TestID}')).toHaveTextContent(expectedTitle);",
+       "  });",
+       "});",
+       ""
+     ],
+     "description": "Test for react component"
+   }
+   ```
+
+   ![vscode-snippet-react-testing](/static/images/articles/vscode-snippet.gif)
+
+   You can find out how to make and add custom snippet to VSCode [here](https://code.visualstudio.com/docs/editor/userdefinedsnippets). But since the snippet needs to be in JSON format, I used this [snippet generator app](https://snippet-generator.app/) to convert my snippet to JSON format.
+
+# Release Confidently
+
+The main goal to write tests is so that we can release our app **confidently**. Remember that goal whenever you feel tedious when writing tests. Hopefully the tips I shared here could make you more comfortable writing tests for your app.

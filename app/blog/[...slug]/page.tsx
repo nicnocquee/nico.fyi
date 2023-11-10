@@ -13,6 +13,7 @@ import PostBanner from '@/layouts/PostBanner'
 import { Metadata } from 'next'
 import siteMetadata from '@/data/siteMetadata'
 import { notFound } from 'next/navigation'
+import { getPublishedBlogs } from '../blogs'
 
 const defaultLayout = 'PostLayout'
 const layouts = {
@@ -83,7 +84,7 @@ export const generateStaticParams = async () => {
 export default async function Page({ params }: { params: { slug: string[] } }) {
   const slug = decodeURI(params.slug.join('/'))
   // Filter out drafts in production
-  const sortedCoreContents = allCoreContent(sortPosts(allBlogs))
+  const sortedCoreContents = allCoreContent(getPublishedBlogs())
   const postIndex = sortedCoreContents.findIndex((p) => p.slug === slug)
   if (postIndex === -1) {
     return notFound()
