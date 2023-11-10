@@ -21,7 +21,6 @@ import rehypePrismPlus from 'rehype-prism-plus'
 import rehypePresetMinify from 'rehype-preset-minify'
 import siteMetadata from './data/siteMetadata'
 import { allCoreContent, sortPosts } from 'pliny/utils/contentlayer.js'
-import { getPublishedBlogs } from 'app/blog/blogs'
 
 const root = process.cwd()
 const isProduction = process.env.NODE_ENV === 'production'
@@ -70,7 +69,7 @@ function createSearchIndex(allBlogs) {
   ) {
     writeFileSync(
       `public/${siteMetadata.search.kbarConfig.searchDocumentsPath}`,
-      JSON.stringify(allCoreContent(getPublishedBlogs()))
+      JSON.stringify(allCoreContent(sortPosts(allBlogs)))
     )
     console.log('Local search index generated...')
   }
