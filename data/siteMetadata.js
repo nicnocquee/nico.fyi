@@ -6,7 +6,7 @@ const siteMetadata = {
   description: '',
   language: 'en-us',
   theme: 'system', // system, dark or light
-  siteUrl: 'https://nico.fyi',
+  siteUrl: process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://nico.fyi',
   siteRepo: 'https://github.com/nicnocquee/nico.fyi',
   siteLogo: '/static/images/logo.png',
   socialBanner: '/static/images/twitter-card.png',
