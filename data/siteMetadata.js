@@ -8,7 +8,7 @@ const siteMetadata = {
   theme: 'system', // system, dark or light
   siteUrl: process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://nico.fyi',
   siteRepo: 'https://github.com/nicnocquee/nico.fyi',
-  siteLogo: '/static/images/logo.png',
+  siteLogo: '/static/images/logo.webp',
   socialBanner: '/static/images/twitter-card.png',
   mastodon: '',
   email: 'hi@nico.fyi',
