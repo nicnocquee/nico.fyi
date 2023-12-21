@@ -1,0 +1,42 @@
+---
+title: Reduce video size with ffmpeg
+date: '2023-12-21'
+summary: "You don't need to download any app, just use FFMPEG"
+tags: ['mac']
+---
+
+Recently there's some people on [Twitter](https://twitter.com/2co_p) sharing a free Mac app that can compress video significantly while maintaining quality. After giving away my e-mail address, I downloaded the app and ran it. First thing I saw was a window asking me to enter the path for [ffmpeg](https://ffmpeg.org). Guess it's using ffmpeg under the hood.
+
+So I asked [ChatGPT](https://chat.openai.com) for an ffmpeg command to reduce video size while maintaining the quality. It gave me this:
+
+```shell
+ffmpeg -i input.mp4 -vcodec libx264 -crf 37 output.mp4
+```
+
+I can set the `crf` value between 1 - 51 to adjust the quality of the video where higher number means worse quality. And turned out it's correct. I could reduce a 17 MB MP4 video down to 1.9 MB or less depends on the `crf` value.
+
+Afterwards, I could add that command to [Forklift](https://binarynights.com) so that I don't need to open terminal to compress video files.
+
+```shell
+#!/bin/sh
+
+/opt/homebrew/bin/ffmpeg -i $SOURCE_SELECTION_PATHS  -vcodec libx264 -crf 27 "$SOURCE_SELECTION_PATHS"-compressed.mp4
+```
+
+![](/static/images/articles/forklift-ffmpeg-command.png)
+
+Here's a demo video how easy it is to compress videos in Forklift with that command:
+
+<iframe
+  src="https://player.cloudinary.com/embed/?public_id=kevtqwy7tfbajgxljyhf&cloud_name=swiftid"
+  width="640"
+  height="360"
+  style={{
+    height: 'auto',
+    width: '100%',
+    aspectRatio: 640 / 360,
+  }}
+  allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+  allowFullScreen
+  frameBorder="0"
+></iframe>
