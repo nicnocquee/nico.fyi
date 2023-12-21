@@ -22,7 +22,6 @@ export async function GET(request: Request) {
             flexDirection: 'column',
             alignItems: 'flex-start',
             justifyContent: 'center',
-            fontFamily: 'Inter',
             padding: '40px 80px',
           }}
         >
@@ -96,6 +95,7 @@ export async function GET(request: Request) {
       }
     )
   } catch (e: unknown) {
+    console.log('here')
     console.error(e)
     return new Response(`Failed to generate the image`, {
       status: 500,
