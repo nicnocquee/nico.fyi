@@ -1,0 +1,22 @@
+---
+title: 'Check your website with Lighthouse CLI'
+date: '2023-11-23'
+summary: 'No matter what framework you use, your website is terrible in this simulated environment'
+tags: ['dev']
+draft: true
+---
+
+```shell
+npm install -g lighthouse
+```
+
+```shell
+lighthouse --throttling-method=devtools \
+  --throttling.requestLatencyMs=200 \
+  --throttling.downloadThroughputKbps=256 \
+  --throttling.uploadThroughputKbps=280 \
+  --throttling.cpuSlowdownMultiplier=10 \
+  --preset=desktop \
+  --view \
+  https://www.nothelferambahnhof.ch
+```
