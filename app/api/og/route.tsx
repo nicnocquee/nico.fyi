@@ -5,13 +5,10 @@ export const runtime = 'edge'
 
 export async function GET(request: Request) {
   try {
-    console.log(`huh`)
     const { searchParams } = new URL(request.url)
 
     const hasTitle = searchParams.has('title')
     const title = hasTitle ? searchParams.get('title')?.slice(0, 100) : 'Default title'
-
-    console.log('ok')
 
     return new ImageResponse(
       (
@@ -95,6 +92,7 @@ export async function GET(request: Request) {
       {
         width: 1200,
         height: 630,
+        debug: true,
       }
     )
   } catch (e: unknown) {
