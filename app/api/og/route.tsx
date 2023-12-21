@@ -4,10 +4,6 @@ import { ImageResponse } from 'next/server'
 export const runtime = 'edge'
 
 export async function GET(request: Request) {
-  const interExtrabold = fetch(
-    new URL('../../../public/Inter-ExtraBold.otf', import.meta.url)
-  ).then((res) => res.arrayBuffer())
-
   try {
     const { searchParams } = new URL(request.url)
 
@@ -97,14 +93,6 @@ export async function GET(request: Request) {
       {
         width: 1200,
         height: 630,
-        fonts: [
-          {
-            name: 'Inter',
-            data: await interExtrabold,
-            style: 'normal',
-            weight: 800,
-          },
-        ],
       }
     )
   } catch (e: unknown) {
