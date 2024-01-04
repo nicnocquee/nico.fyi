@@ -1,0 +1,51 @@
+---
+title: Must remember when using Next.js App Router
+date: '2024-01-04'
+summary: Here's one thing you must never forget when using Next.js App Router.
+tags: ['dev', 'open source', 'nextjs']
+---
+
+Here's one thing you must always remember when making website with Next.js with [App Router](https://nextjs.org/docs/app). By default, every page component undergoes **static rendering**, which means HTML files are generated at build time. Take a look at this example to grasp the importance of this detail.
+
+```typescript
+// app/support/page.tsx
+export default async function SupportPage() {
+    const now = new Date()
+    return (
+        <div>
+            <form action="/api/support" method="POST">
+                <input type="text" name="comment" >
+                <input type="hidden" name="date" value={now} />
+                <button type="submit">Submit</button>
+            </form>
+        </div>
+    )
+}
+```
+
+This code might seem fine, but there's a hidden issue. Did you spot it? The `SupportPage` component, lacking any [dynamic functions](https://nextjs.org/docs/app/building-your-application/rendering/server-components#dynamic-functions) or a [`dynamic` constant set to `force-dynamic`](https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config) as per Next.js documentation, _gets rendered at build time_. As a result, the `now` variable remains static, leading to outdated date values on the `/support` page, potentially causing data inconsistency in your database.
+
+To address this, you should enable dynamic rendering. This can be achieved by exporting a `dynamic` constant set to `force-dynamic`:
+
+```typescript
+// app/support/page.tsx
+
+export const dynamic = 'force-dynamic'
+
+export default async function SupportPage() {
+    const now = new Date()
+    return (
+        <div>
+            <form action="/api/support" method="POST">
+                <input type="text" name="comment" >
+                <input type="hidden" name="date" value={now} />
+                <button type="submit">Submit</button>
+            </form>
+        </div>
+    )
+}
+```
+
+---
+
+By the way, [I' making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
