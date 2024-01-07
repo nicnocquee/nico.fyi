@@ -1,0 +1,101 @@
+---
+title: 'Another day, another React Hydration error'
+date: '2024-01-08'
+summary: This time because of timezone
+tags: ['dev', 'pull request', 'react', 'next.js', 'typescript']
+---
+
+Last week in one of our projects in Hyperjump, we discovered a [React hydration error](https://nextjs.org/docs/messages/react-hydration-error) in one of our pull request changes. It happened in the registration page where one of our developers added a select input that displays a list of timezones. Before I jumped into what caused the error and how we fixed it, let's talk about hydration error first.
+
+## Wat de hek is Hydration Error?
+
+Imagine you've built a really cool LEGO castle. You carefully followed the instructions, placing each LEGO brick exactly where it's supposed to go. Now, your friend comes along and tries to add more LEGO bricks to your castle, but they don't follow the instructions. They put bricks in the wrong places or use the wrong pieces. The castle starts to look different than what the instructions show. That's sort of like a hydration error in React.
+
+When you use server-side rendering in React, your app is like the LEGO castle. The server builds the initial webpage (the castle) following specific instructions (your React code). Then, the browser tries to add interactivity to the page, like adding more LEGO bricks. This process is called "hydration".
+
+A hydration error happens when the browser's version of the webpage (the way it tries to add LEGO bricks) doesn't match the server's version (the original castle instructions). Maybe the server sent some HTML that the browser didn't expect, or the browser's JavaScript changed something it shouldn't have. When they don't match up, React gets confused, just like you would if your LEGO castle didn't look like the instructions anymore.
+
+## The culprit is ...
+
+This is how our page component looks, where the hydration error occurred. I've omitted a lot of code for brevity.
+
+```typescript
+// pages/register/index.tsx
+import { getTimeZones } from '@vvo/tzdb';
+
+const Register = (props: any) => {
+  // get the list of time zones from @vvo/tzdb package
+  const timeZones = getTimeZones({ includeUtc: true });
+  // map it to get only the label and value
+  const dataSource = timeZones.map(({ name, currentTimeFormat }) => ({
+    label: `UTC${currentTimeFormat}`,
+    value: name
+  }));
+
+  return (
+    <>
+      <Controller
+            name="timezone"
+            control={control}
+            render={({ field }) => (
+              <>
+                <InputSelect
+                  id="timezone"
+                  label="Timezone"
+                  options={dataSource}
+                  {...field}
+                />
+                <span className="text-red-500">
+                  {errors.timezone?.message}
+                </span>
+              </>
+            )}
+          />
+    </>
+  )
+}
+```
+
+And here's the hydration error that occurred:
+
+![react hydration error](/static/images/articles/react-hydration-error-1.png.webp)
+
+Do you understand the error message? For some reason, the `West Greenland Time - Nuuk` time offset is UTC-3 when the component is rendered on the server, but it's UTC-2 when rendered in the browser. This means that the list of time zones returned by the `getTimeZones` function is different when called on the server and in the browser. When in doubt, I used `console.log` to print out the values of `dataSource` and confirmed that the printed values in my terminal and the browser's console are different.
+
+```typescript
+// pages/register/index.tsx
+import { getTimeZones } from '@vvo/tzdb'
+
+const Register = (props: any) => {
+  // get the list of time zones from @vvo/tzdb package
+  const timeZones = getTimeZones({ includeUtc: true })
+  // map it to get only the label and value
+  const dataSource = timeZones.map(({ name, currentTimeFormat }) => ({
+    label: `UTC${currentTimeFormat}`,
+    value: name,
+  }))
+
+  // the output of this console.log will appear in the Terminal (server side) and browser's console
+  console.log(dataSource)
+}
+```
+
+Since the [tzdb package](https://github.com/vvo/tzdb) is open source, I found out in [this line that it's not a bug but by design](https://github.com/vvo/tzdb/blob/e69fa353ea28aa8b19ca7b86afb3f49fa3b2657a/lib/getTimeZones.js#L18).
+
+## The fix
+
+Now that we know the cause of the error, fixing it is not so difficult. We can either call the `getTimeZones` function inside `useEffect` so that it's only executed in the browser or in `getServerSideProps` and pass the value to the page component so that it's only executed on the server.
+
+## Lesson learned
+
+React hydration errors often cause confusion for many developers. This time, the error was a bit helpful in figuring out what caused it. However, it's not rare to encounter unclear hydration errors. My advice is:
+
+- Read the errors carefully.
+- Add `console.log` statements in many places to help you find differences between the server (Terminal) and the client (Browser's console).
+- Turn on network throttling to see the server-rendered page before hydration runs in the browser. Sometimes, you can actually see the change from the server content to the client content.
+
+One thing that made me proud of encountering this error was that it was caught by our end-to-end Cypress test. This wasn't the first time a bug got caught by our comprehensive Cypress tests, but when it did, it felt really good!
+
+---
+
+By the way, [I' making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!

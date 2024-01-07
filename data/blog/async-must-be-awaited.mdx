@@ -1,0 +1,32 @@
+---
+title: 'What is async must be awaited'
+date: '2024-01-09'
+summary: Subtle bug that could cause you headache
+tags: ['dev', 'typescript']
+---
+
+Several months back, I experienced a sudden crash in [my pull request on the Monika project](https://github.com/hyperjumptech/monika/pull/1165), which caught my team off guard during the PR review, as noted in this [issue comment](https://github.com/hyperjumptech/monika/pull/1165#issuecomment-1803105597). I was surprised because I expected any errors to be intercepted by the try-catch blocks already in place. However, the error slipped through.
+
+After extensive debugging, I realized the root cause: the error was originating from an `async` function that wasn't invoked with `await`. Here's an illustration:
+
+```typescript
+const main = async () => {
+  try {
+    await doSomething()
+  } catch (error) {
+    console.log('here?')
+  }
+}
+
+const doSomething = async () => {
+  throw new Error(`Error from doSomething`)
+}
+
+main()
+```
+
+The issue arose because the function, though marked as `async`, didn’t actually perform any asynchronous operations, making the `async` designation unnecessary. **To ensure errors in async functions are captured by try-catch blocks, these functions must be invoked with an `await`**.
+
+---
+
+By the way, [I' making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
