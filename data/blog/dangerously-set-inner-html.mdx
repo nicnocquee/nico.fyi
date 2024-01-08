@@ -1,0 +1,34 @@
+---
+title: "Understanding dangerouslySetInnerHTML in React: Use Cases and Risks"
+date: '2024-01-12'
+summary: "Is it really dangerous?"
+tags: ['dev', 'typescript', 'react']
+---
+
+In the world of React development, handling HTML content requires a careful approach, particularly when it comes to injecting raw HTML into the DOM. One of React's features, `dangerouslySetInnerHTML`, often becomes a topic of discussion due to its potential risks and specific use cases. In this blog post, we'll explore what `dangerouslySetInnerHTML` is, why it's considered dangerous, and the scenarios where its use might be acceptable.
+
+## What is `dangerouslySetInnerHTML`?
+
+React's `dangerouslySetInnerHTML` is a property that allows developers to set HTML content directly into the DOM from within a React component. It's analogous to using `innerHTML` in plain JavaScript but comes with an explicit warning in its name, indicating the potential risks associated with its use.
+
+## Why is `dangerouslySetInnerHTML` Dangerous?
+
+The primary risk associated with `dangerouslySetInnerHTML` lies in its ability to bypass React's built-in [Cross-Site Scripting (XSS)](https://owasp.org/www-community/attacks/xss/) protections. React automatically escapes string values to ensure that anything rendered is treated as text rather than executable HTML or JavaScript. However, `dangerouslySetInnerHTML` circumvents this security measure, potentially allowing harmful scripts to be executed in the browser.
+
+For example, if a user inputs a string like `"<script>alert('Hacked!');</script>"`, and it's passed directly via `dangerouslySetInnerHTML`, the script will execute when the page loads. This vulnerability can lead to severe security issues like data theft, session hijacking, and other malicious activities.
+
+## When is Using `dangerouslySetInnerHTML` Acceptable?
+
+Despite its risks, there are scenarios where using `dangerouslySetInnerHTML` is acceptable, primarily when dealing with trusted or sanitized content. Here are some use cases:
+
+1. **Trusted CMS Content**: If the HTML is sourced from a CMS controlled by your organization, `dangerouslySetInnerHTML` can be used, ideally with additional sanitization.
+
+2. **Third-Party Widgets**: For embedding content from trusted third-party services, like social media widgets or video players.
+
+3. **Markdown/Rich Text Editor Output**: When displaying content from markdown or rich text editors, where the output is sanitized.
+
+4. **Performance Optimization**: In rare cases, for performance reasons, you might use `dangerouslySetInnerHTML` to update the inner HTML directly. This should be done cautiously.
+
+---
+
+While `dangerouslySetInnerHTML` offers a straightforward way to inject HTML into your React application, it's crucial to use it judiciously. Always ensure that any HTML content is either from a trusted source or has been thoroughly sanitized to prevent XSS attacks. Remember, the name itself is a cautionary label, signaling developers to think twice before using it.
