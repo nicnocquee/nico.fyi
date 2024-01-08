@@ -1,0 +1,34 @@
+---
+title: 'Async Local Storage in Node.js'
+date: '2024-01-10'
+summary: "It's like React's Context but for Node.js"
+tags: ['dev', 'typescript']
+---
+
+Recently, a developer's tweet sparked a debate about Next.js's approach to simplifying its API, particularly regarding the [headers](https://nextjs.org/docs/app/api-reference/functions/headers#headers) and [cookies](https://nextjs.org/docs/app/api-reference/functions/cookies) functions. This tweet resonated with a significant number of developers who favored having the request object universally accessible.
+
+Personally, I find myself agreeing with these viewpoints to some extent. However, the convenience offered by these functions cannot be overlooked. This led me to delve into how the `headers` and `cookies` functions are actually implemented in Next.js. Thanks to the open-source nature of the [Next.js repository](https://github.com/vercel/next.js), I was able to locate the [implementation of the headers function](https://github.com/vercel/next.js/blob/cfb75b77ea16a02bcc70ffe2e0f560701b814d7a/packages/next/src/client/components/headers.ts#L12). The key here seems to be the use of [AsyncLocalStorage](https://github.com/vercel/next.js/blob/cfb75b77ea16a02bcc70ffe2e0f560701b814d7a/packages/next/src/client/components/async-local-storage.ts#L1).
+
+Async Local Storage, in essence, is Node.js's counterpart to [React's Context](https://react.dev/learn/passing-data-deeply-with-context). It allows data to be stored and retrieved from any point within the execution context, eliminating the need to pass arguments from one function to another.
+
+This example will show how to set and retrieve a value within the same asynchronous context.
+
+```javascript
+const { AsyncLocalStorage } = require('async_hooks')
+const asyncLocalStorage = new AsyncLocalStorage()
+```
+
+Next, use the run method to establish a new asynchronous context. Within this context, you can set and retrieve values using the storage.
+
+```javascript
+asyncLocalStorage.run(new Map(), () => {
+  // Set a value in the storage
+  asyncLocalStorage.getStore().set('key', 'value')
+
+  // Retrieve the value later in the same asynchronous context
+  const value = asyncLocalStorage.getStore().get('key')
+  console.log(value) // Output: 'value'
+})
+```
+
+I haven't tried but it seems to be possible to use [Async Local Storage in Next.js](https://ogzhanolguncu.com/blog/als-with-examples) for example to make the request object available in every functions called within an API handler.
