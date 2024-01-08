@@ -2,7 +2,9 @@ import ListLayout from '@/layouts/ListLayoutWithTags'
 import { allCoreContent } from 'pliny/utils/contentlayer'
 import { genPageMetadata } from 'app/seo'
 import { displayablePosts } from '@/data/blogsData'
+
 const POSTS_PER_PAGE = 5
+export const revalidate = 60
 
 export const metadata = genPageMetadata({ title: 'Blog' })
 

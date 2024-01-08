@@ -6,6 +6,8 @@ import { genPageMetadata } from 'app/seo'
 
 export const metadata = genPageMetadata({ title: 'Tags', description: 'Things I blog about' })
 
+export const revalidate = 60
+
 export default async function Page() {
   const tagCounts = tagData as Record<string, number>
   const tagKeys = Object.keys(tagCounts)

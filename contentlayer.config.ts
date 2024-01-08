@@ -48,7 +48,7 @@ const computedFields: ComputedFields = {
 function createTagCount(allBlogs) {
   const tagCount: Record<string, number> = {}
   allBlogs.forEach((file) => {
-    if (file.tags && (!isProduction || file.draft !== true || new Date(file.date) < new Date())) {
+    if (file.tags && file.draft !== true && new Date(file.date) < new Date()) {
       file.tags.forEach((tag) => {
         const formattedTag = GithubSlugger.slug(tag)
         if (formattedTag in tagCount) {

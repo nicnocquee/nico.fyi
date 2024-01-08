@@ -14,6 +14,8 @@ import siteMetadata from '@/data/siteMetadata'
 import { notFound } from 'next/navigation'
 import { displayablePosts } from '@/data/blogsData'
 
+export const revalidate = 60
+
 const defaultLayout = 'PostLayout'
 const layouts = {
   PostSimple,
