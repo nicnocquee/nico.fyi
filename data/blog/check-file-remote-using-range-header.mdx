@@ -1,0 +1,40 @@
+---
+title: "Checking File Existence Efficiently Using Range Requests"
+date: '2024-01-18'
+summary: Just a byte. No need for everything.
+tags: ['dev']
+---
+
+In the modern web, where resources and data are abundant, efficiency is key. One particularly neat trick that web developers and system administrators might find useful is checking the existence of a file on a server without downloading the entire file. This is especially handy for large files, where downloading the whole thing just to check its existence is impractical. The solution? **HTTP range requests**. 
+
+Range requests are a feature of the HTTP protocol that _allow users to request a part of a file from a server_. This is done using the `Range` HTTP header. For example, requesting the first 500 bytes of a file can be done by setting the header to `Range: bytes=0-499`.
+
+When you only need to confirm whether a file exists, downloading the entire file is like using a sledgehammer to crack a nut – overkill. Range requests allow you to request just a small part of the file. This way, you're not wasting bandwidth or time downloading unnecessary data.
+
+The `curl` command-line tool can be used to send a range request. Here's a basic example:
+
+```bash
+curl -I -H "Range: bytes=0-0" [URL]
+```
+
+Replace `[URL]` with the desired file's URL. This command checks for the first byte of the file.
+
+The server then will response with
+
+- **200 OK**: The server might not support range requests and is returning the entire file.
+- **206 Partial Content**: The range request was successful; the file exists.
+- **404 Not Found**: No file exists at the URL.
+- **416 Range Not Satisfiable**: The file exists but is smaller than the requested range.
+
+However, there are several points that need to be considered:
+
+- **Server Support**: Not all servers support range requests. In such cases, you might end up downloading the full file.
+- **Security**: Some servers have security measures preventing range requests.
+- **Accuracy**: This method checks for existence, not file integrity or completeness.
+- **Handling Different Responses**: Be prepared to handle various responses, including servers that don't support range requests.
+
+Using range requests to check file existence is a clever, bandwidth-efficient method. It’s particularly useful for large files where downloading the whole file is impractical. However, remember that this technique relies on server support and the correct handling of HTTP response codes. It's a powerful tool in the right circumstances, but like all tools, it's not universally applicable.
+
+---
+
+By the way, [I' making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
