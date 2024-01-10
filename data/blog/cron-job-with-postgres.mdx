@@ -1,0 +1,56 @@
+---
+title: "Cron job in PostgreSQL"
+date: '2024-01-22'
+summary: When you need to periodically update your database
+tags: ['dev', 'database', 'postgresql']
+---
+
+In the world of database management, automating routine tasks is not just a convenience—it's a necessity. For PostgreSQL users, [`pg_cron`](https://github.com/citusdata/pg_cron) is a powerful tool that allows the scheduling of database jobs directly from the database itself. It's incredibly useful for routine maintenance tasks like data aggregation, cleanup operations, or even triggering complex workflows.
+
+Let's say you want to periodically update `status` of `projects` whose `updatedAt` values are older than certain days. To use pg_cron for this, you'll need to schedule a cron job that executes an SQL update query:
+
+1. **Install pg_cron**: Make sure pg_cron is installed on your PostgreSQL server. If it's not installed, you can find instructions on the [pg_cron](https://github.com/citusdata/pg_cron) GitHub page.
+2. **Enable pg_cron**: Modify your PostgreSQL config file (usually postgresql.conf) to include pg_cron in shared_preload_libraries then restart PostgreSQL to apply the changes.
+
+    ```
+    shared_preload_libraries = 'pg_cron'
+    ```
+
+3. **Set up the cron job**: You need to schedule a cron job that runs an SQL query to update the status. For instance, if you want to mark projects as "inactive" if they haven't been updated in the last 30 days, you can use the following SQL command:
+
+    ```sql
+    SELECT cron.schedule('0 0 * * *', $$UPDATE project SET status = 'inactive' WHERE updatedAt < now() - interval '30 days'$$);
+    ```
+
+4. **Manage and monitor pg_cron jobs**: You can manage and monitor these jobs using functions like `cron.job`, `cron.schedule`, and `cron.unschedule`. You can list all scheduled jobs using:
+
+    ```sql
+    SELECT * FROM cron.job;
+    ```
+
+    To unschedule a job:
+
+    ```sql
+    SELECT cron.unschedule(jobid) FROM cron.job WHERE jobid = [Your Job ID];
+    ```
+
+
+One of the cardinal rules when using `pg_cron` is to avoid running jobs as the superuser. The superuser account in PostgreSQL has unrestricted access, and using it for routine jobs can pose significant risks. Here’s how to mitigate this:
+
+1. Start by creating a user specifically for running `pg_cron` jobs. This user should not have superuser privileges.
+
+    ```sql
+    CREATE USER job_runner WITH PASSWORD 'secure_password';
+    ```
+
+2. Assign only the necessary privileges to this user. For example:
+    
+    ```sql
+    GRANT SELECT, UPDATE ON table_name TO job_runner;
+    ```
+
+`pg_cron` is a fantastic tool for automating tasks in PostgreSQL, but it requires careful setup and management to ensure security and efficiency. By following the practices outlined above, you can harness the power of automated database jobs without compromising on security.
+
+---
+
+By the way, [I' making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
