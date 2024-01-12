@@ -5,6 +5,8 @@ summary: When you need to periodically update your database
 tags: ['dev', 'database', 'postgresql']
 ---
 
+![Cron job anime style according to ChatGPT](/static/images/articles/cronjob.png.webp)
+
 In the world of database management, automating routine tasks is not just a convenience—it's a necessity. For PostgreSQL users, [`pg_cron`](https://github.com/citusdata/pg_cron) is a powerful tool that allows the scheduling of database jobs directly from the database itself. It's incredibly useful for routine maintenance tasks like data aggregation, cleanup operations, or even triggering complex workflows.
 
 Let's say you want to periodically update `status` of `projects` whose `updatedAt` values are older than certain days. To use pg_cron for this, you'll need to schedule a cron job that executes an SQL update query:
