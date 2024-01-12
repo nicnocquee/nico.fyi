@@ -1,0 +1,49 @@
+---
+title: "Enhancing User Experience with Background Tasks in Vercel Edge Middleware"
+date: '2024-01-24'
+summary: "Have you heard of waitUntil?"
+tags: ['dev', 'nextjs']
+---
+
+In the fast-paced world of web development, optimizing user experience is key. One effective strategy is offloading non-critical tasks to run in the background. Vercel's Edge Middleware offers a powerful feature for this: the [waitUntil](https://vercel.com/docs/functions/edge-middleware/middleware-api#waituntil) function. `waitUntil` is a function that allows certain tasks to be executed after sending the response to the user. This means critical response time is not affected by tasks that can be completed later. Let’s dive into how it can be leveraged for background processing, using an online store's inventory update as an example.
+
+Imagine running an online store where it's crucial to keep inventory counts accurate. However, updating the inventory each time a product is viewed shouldn't slow down the page load for the user. Here’s a simplified code snippet demonstrating this concept:
+
+```typescript
+import { NextResponse } from 'next/server';
+
+export default function middleware(request: Request, context: NextFetchEvent) {
+    const response = NextResponse.next();
+
+    // Background inventory update
+    context.waitUntil(
+        (async () => {
+            try {
+                const productId = extractProductId(request.url);
+                await updateInventoryCount(productId);
+                console.log(`Inventory updated for product ${productId}`);
+            } catch (error) {
+                console.error('Failed to update inventory:', error);
+            }
+        })()
+    );
+
+    return response;
+}
+
+function extractProductId(url) {
+    // Logic to extract product ID from URL
+}
+
+async function updateInventoryCount(productId) {
+    // Database call or API interaction to update inventory
+}
+```
+
+The middleware triggers upon a product page visit. The response is then sent immediately using NextResponse.next(). Meanwhile, the `waitUntil` function handles the inventory update asynchronously. This keeps the function running until the `updateInventoryCount` function finishes. The user enjoys a fast page load, while the inventory update happens in the background.
+
+Utilizing waitUntil for background processing in Vercel Edge Middleware is an effective way to enhance user experience. It allows developers to perform necessary tasks without compromising on speed, ensuring a seamless experience for the end user.
+
+---
+
+By the way, [I have a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
