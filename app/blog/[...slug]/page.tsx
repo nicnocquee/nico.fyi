@@ -12,7 +12,7 @@ import PostBanner from '@/layouts/PostBanner'
 import { Metadata } from 'next'
 import siteMetadata from '@/data/siteMetadata'
 import { notFound } from 'next/navigation'
-import { displayablePosts } from '@/data/blogsData'
+import { displayablePosts } from 'app/blogs-data'
 
 export const revalidate = 60
 
