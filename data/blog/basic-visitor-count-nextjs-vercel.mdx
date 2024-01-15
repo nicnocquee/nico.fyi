@@ -1,0 +1,65 @@
+---
+title: "Basic visitor count using Next.js middleware and Vercel KV"
+date: '2024-01-26'
+summary: "Like, very basic"
+tags: ['dev', 'nextjs']
+---
+
+Previously [I mentioned about `waitUntil` function in Next.js](/blog/wait-until-nextjs-vercel) and gave an example of updating inventory views in an e-commerce website.  This time, I'm sharing a real example of using `waitUntil` by adding a visitor count to this blog.
+
+I'm using [Vercel KV](https://vercel.com/docs/storage/vercel-kv) because it's free and relatively easy to integrate. First, go to your project in the Vercel dashboard, then navigate to the Storage tab and click "Connect Store." You need to create a new KV Durable Redis storage. Follow the instructions until you get the environment variables needed to connect to it from your Next.js app.
+
+![Vercel KV](/static/images/articles/vercel-kv.png.webp)
+
+Once you have the environment variables, add the following code to your `middleware.ts`:
+
+```typescript
+import { kv } from '@vercel/kv';
+import { NextFetchEvent, NextResponse } from 'next/server';
+
+export const config = {
+    matcher: [
+      /*
+       * Match all request paths except for the ones starting with:
+       * - api (API routes)
+       * - _next/static (static files)
+       * - _next/image (image optimization files)
+       * - favicon.ico (favicon file)
+       */
+      {
+        source: '/((?!api|_next/static|_next/image|favicon.ico).*)',
+        missing: [
+          { type: 'header', key: 'next-router-prefetch' },
+          { type: 'header', key: 'purpose', value: 'prefetch' },
+        ],
+      },
+    ],
+  }
+
+export default function middleware(request: Request, context: NextFetchEvent) {
+    const response = NextResponse.next();
+
+    // Background visitor count update
+    context.waitUntil(
+        (async () => {
+            try {
+                await kv.incr('all_views')
+            } catch (error) {
+                console.error('Failed to update views:', error);
+            }
+        })()
+    );
+
+    return response;
+}
+```
+
+Finally deploy your app to Vercel. Once deployed, you can check the number of visitors from the CLI in your KV database page in Vercel dashboard.
+
+![](/static/images/articles/get-all-views-kv-vercel.png.webp)
+
+You can display the visitor count by reading it from the KV database. I leave that as an exercise for you. Note that this is a very basic visitor count. You can further improve it by counting visits for each blog post, for example.
+
+---
+
+By the way, [I have a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
