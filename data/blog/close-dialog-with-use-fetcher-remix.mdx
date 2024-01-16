@@ -1,0 +1,55 @@
+---
+title: "How to close a dialog on success or render an error with Remix fetchers"
+date: '2024-01-29'
+summary: "Based on Ryan Florence tweet"
+tags: ['dev', 'remix']
+---
+
+[Ryan Florence of Remix tweeted](https://twitter.com/ryanflorence/status/1746255053357555930) about how to close a dialog on success or to display some error messages after submitting a form with Remix's [useFetcher](https://remix.run/docs/en/main/hooks/use-fetcher).
+
+```typescript
+export async function action({ request }: ActionFunctionArgs) {
+  let formData = await request.formData();
+  let status = formData.get('status');
+  return status === 'success'
+    ? { ok: true, error: null }
+    : { ok: false, error: 'There was a problem' };
+}
+
+function Example() {
+  let ref = useRef<HTMLDialogElement>(null);
+  let fetcher = useFetcher<typeof action>();
+
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data?.ok) {
+      ref.current?.close();
+    }
+  }, [fetcher]);
+
+  return (
+    <div>
+      <button onClick={() => ref.current?.showModal()}>Open Dialog</button>
+      <dialog ref={ref}>
+        <fetcher.Form method="post">
+          <p>{fetcher.state === 'idle' ? 'Make a choice' : 'working...'}</p>
+          <button type="submit" name="status" value="success">
+            Get Success
+          </button>
+          <button type="submit" name="status" value="error">
+            Get Error
+          </button>
+          <p style={{ color: 'red' }}>
+            {(fetcher.state === 'idle' && fetcher.data?.error) || <>&nbsp;</>}
+          </p>
+        </fetcher.Form>
+      </dialog>
+    </div>
+  );
+}
+```
+
+The code looks very simple because of the power of Remix's fetcher. ❤️
+
+---
+
+By the way, [I have a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
