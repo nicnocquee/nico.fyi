@@ -32,3 +32,7 @@ Despite its risks, there are scenarios where using `dangerouslySetInnerHTML` is 
 ---
 
 While `dangerouslySetInnerHTML` offers a straightforward way to inject HTML into your React application, it's crucial to use it judiciously. Always ensure that any HTML content is either from a trusted source or has been thoroughly sanitized to prevent XSS attacks. Remember, the name itself is a cautionary label, signaling developers to think twice before using it.
+
+## Update
+
+[My collegue in Hyperjump](https://twitter.com/dennypradipta_/status/1747078510169248219) mentioned about [DOMPurify](https://github.com/cure53/DOMPurify) library in order to sanitize the HTML and to prevent XSS attacks before assigning the HTML to `dangerouslySetInnerHTML`.
