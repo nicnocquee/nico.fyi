@@ -57,7 +57,14 @@ async function generateRSS(config, allBlogs, page = 'feed.xml') {
 }
 
 const rss = () => {
-  generateRSS(siteMetadata, allBlogs)
+  generateRSS(
+    siteMetadata,
+    allBlogs.filter((b) => {
+      return process.env.NEXT_PUBLIC_SHOW_ALL_POSTS
+        ? true
+        : new Date(b.date) < new Date() && !b.draft
+    })
+  )
   console.log('RSS feed generated...')
 }
 export default rss
