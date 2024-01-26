@@ -1,0 +1,172 @@
+---
+title: 'Reuse include in Prisma Query with TypeScript satisfies'
+date: '2024-01-31'
+summary: 'To avoid repetition!'
+tags: ['dev', 'nextjs', 'typescript']
+---
+
+The `satisfies` operator in TypeScript [has been available since TypeScript 4.9](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-4-9.html#the-satisfies-operator), but I hadn't had the chance to use it in my production websites until a few days ago, when I finally did.
+
+I have the following Prisma models:
+
+```
+model Participant {
+  id                                       String            @id @default(uuid())
+  createdAt                                DateTime          @default(now())
+  participantGroup                         ParticipantGroup  @relation(fields: [participantGroupId], references: [id])
+  participantGroupId                       String
+}
+
+model ParticipantGroup {
+  id           String        @id @default(uuid())
+  participants Participant[]
+  course       Course[]
+
+  @@map("participant_groups")
+}
+```
+
+In one of my functions, I needed to:
+
+1. Fetch a participant, including the `participantGroup`.
+2. Perform some operations and then update the participant.
+3. Pass the updated participant to a function, namely, the `doSomethingWithParticipant` function.
+
+The `doSomethingWithParticipant` function requires the passed participant object to include the `participantGroup`, as follows:
+
+```typescript
+// some-file.ts
+const doSomethingFirst = async () => {
+  let participant = await prismaClient.participant.findFirst({
+    where: {
+      id: 'some-uuid',
+    },
+    include: {
+      participantGroup: {
+        include: {
+          course: true,
+        },
+      },
+    },
+  })
+
+  // do some other operations
+  participant = await prismaClient.participant.update({
+    where: {
+      id: 'some-uuid',
+    },
+    data: {
+      // update participant's data
+    },
+    include: {
+      participantGroup: {
+        include: {
+          course: true,
+        },
+      },
+    },
+  })
+
+  await doSomethingWithParticipant(participant)
+}
+
+// some-file2.ts
+type ParticipantWithGroup = Prisma.ParticipantGetPayload<{
+  include: {
+    participantGroup: true
+  }
+}>
+
+const doSomethingWithParticipant = async (participant: ParticipantWithGroup) => {
+  // access participant.participantGroup here
+}
+```
+
+As you can see, I had to repeat the `include` property in both the `findFirst` and `update` methods. If I didn't, TypeScript would raise an issue near the `doSomethingWithParticipant` function. Let's try to refactor the code by assigning the `include` property to a variable.
+
+```typescript
+const relationToInclude = {
+  participantGroup: {
+    include: {
+      course: true,
+    },
+  },
+}
+const doSomethingFirst = async () => {
+  let participant = await prismaClient.participant.findFirst({
+    where: {
+      id: 'some-uuid',
+    },
+    include: relationToInclude,
+  })
+
+  // do some other operations
+  participant = await prismaClient.participant.update({
+    where: {
+      id: 'some-uuid',
+    },
+    data: {
+      // update participant's data
+    },
+    include: relationToInclude,
+  })
+
+  await doSomethingWithParticipant(participant)
+}
+```
+
+Great, now I no longer have repeating code. Additionally, TypeScript reminds me if I make a typo:
+
+![](/static/images/articles/refactor-include.png.webp)
+
+However, I've lost the autocomplete feature, and I can assign unknown properties to the `relationToInclude` object:
+
+```typescript
+const relationToInclude = {
+  participantGroup: {
+    include: {
+      course: true,
+    },
+  },
+  randomStuff: 'true', // this is not correct
+}
+```
+
+So, my first thought was to type the `relationToInclude` variable directly as `Prisma.ParticipantInclude`:
+
+```typescript
+const relationToInclude: Prisma.ParticipantInclude = {
+  participantGroup: {
+    include: {
+      course: true,
+    },
+  },
+  randomStuff: 'what', // great, TypeScript showed error here!
+}
+```
+
+It worked, and TypeScript threw an error for `randomStuff` because of `randomStuff`. However, TypeScript also generated another error at the line where the `doSomethingWithParticipant` function is called:
+
+![](/static/images/articles/participant-group-error.png.webp)
+
+This issue arose because the exact type of `Prisma.ParticipantInclude` makes `participantGroup` optional, which means it can be undefined, even though the object has `participantGroup` at runtime. Since TypeScript perceives `participantGroup` in `relationToInclude` as potentially undefined, the `findFirst` and `update` queries infer that the returned participant might not include `participantGroup`. Meanwhile, the `doSomethingWithParticipant` function expects `participantGroup` to be defined.
+
+This is where the `satisfies` operator becomes useful. Instead of directly typing `relationToInclude` as `Prisma.ParticipantInclude`, we can use the `satisfies` operator to assert that this object meets the `Prisma.ParticipantInclude` structure.
+
+```typescript
+const relationToInclude = {
+  participantGroup: {
+    include: {
+      course: true,
+    },
+  },
+} satisfies Prisma.ParticipantInclude
+```
+
+This approach allows TypeScript to perform type checking on `relationToInclude`, while also enabling it to infer the exact type of `relationToInclude` in the `findFirst` and `update` queries. Consequently, TypeScript will recognize that the updated participant includes `participantGroup`.
+
+![](/static/images/articles/satisfies-participant.png.webp)
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi)!
