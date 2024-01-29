@@ -1,0 +1,46 @@
+---
+title: 'Identity Helper Type in TypeScript'
+date: '2024-02-01'
+summary: 'To unpack types!'
+tags: ['dev', 'typescript']
+---
+
+Someone on Twitter asked what the following TypeScript custom generic actually does:
+
+```typescript
+type Identity<T> = T extends object ? { [K in keyof T]: T[K] } : T
+```
+
+Can you figure it out? Let me explain. This TypeScript type, `Identity<T>`, is a utility type that takes a generic type `T` and returns a type structurally identical to `T`. Essentially, it's a no-op for TypeScript's type system, meaning it doesn't modify the type in any significant way. Here's a breakdown:
+
+- `T extends object ? { [K in keyof T]: T[K] } : T` uses a conditional type to check if `T` is an object type.
+  - If `T` is an object (i.e., not a primitive type like `string`, `number`, or `boolean`), it maps over all keys of `T` (`keyof T`) and constructs a new type with the same keys and their corresponding types (`T[K]`). This process recreates the original type `T` without modification.
+  - If `T` is not an object, it simply returns `T` as is.
+
+So, what's its actual purpose? One application is to _unpack_ [intersection types](https://www.typescriptlang.org/docs/handbook/2/objects.html#intersection-types). Consider the following code:
+
+```typescript
+import { Blog } from 'contentlayer/generated'
+type Identity<T> = T extends object ? { [K in keyof T]: T[K] } : T
+
+type BlogWithAdditionalData = Blog & { someProp: string }
+const doSomethingWithBlog = async (blog: BlogWithAdditionalData) => {
+  console.log(blog)
+}
+```
+
+The `doSomethingWithBlog` function takes an argument of type `BlogWithAdditionalData`. When I hover over the `blog` argument or the `BlogWithAdditionalData`, I see the intersection type:
+
+![](/static/images/articles/intersection-type.png.webp)
+
+which isn't very helpful because I can't see the properties of the `Blog` type. This is where the `Identity` type comes in handy by unpacking the `Blog` type and combining it with `someProp`:
+
+![](/static/images/articles/identity-type.png.webp)
+
+Now, I can see all the properties of `BlogWithAdditionalData`.
+
+Do you know any other useful applications for the `Identity` type?
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi)!
