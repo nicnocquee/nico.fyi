@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@next/bundle-analyzer": "13.5.6",
+    "@nicnocquee/next-type-safe-routing": "^0.0.4",
     "@tailwindcss/forms": "^0.5.4",
     "@tailwindcss/typography": "^0.5.9",
     "@vercel/kv": "^1.0.1",

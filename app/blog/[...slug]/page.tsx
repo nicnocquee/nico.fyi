@@ -13,6 +13,7 @@ import { Metadata } from 'next'
 import siteMetadata from '@/data/siteMetadata'
 import { notFound } from 'next/navigation'
 import { displayablePosts } from 'app/blogs-data'
+import { routes } from '../routes'
 
 export const revalidate = 60
 export const dynamicParams = true
@@ -83,7 +84,7 @@ export const generateStaticParams = async () => {
   return paths
 }
 
-export default async function Page({ params }: { params: { slug: string[] } }) {
+export default async function Page({ params }: { params: typeof routes.blogPage.params }) {
   const slug = decodeURI(params.slug.join('/'))
   // Filter out drafts in production
   const sortedCoreContents = allCoreContent(displayablePosts())
