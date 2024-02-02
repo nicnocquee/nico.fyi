@@ -1,0 +1,128 @@
+---
+title: 'Make CLI app with React'
+date: '2024-02-05'
+summary: 'Why not right? React is cool!'
+tags: ['dev', 'typescript', 'react', 'cli']
+---
+
+React has been around for a while and has been adopted for many kinds of apps, not only web apps but also mobile native apps. But did you know that you can use React to make a command-line app? Using [ink](https://github.com/vadimdemedes/ink), we can use React to create interactive and sleek-looking command-line apps!
+
+To give an example, I made a small demo CLI app. It's a real-time chat app using [Supabase's Realtime feature](https://supabase.com/docs/guides/realtime). Here is the main React component called `App`:
+
+```typescript
+export default function App({
+  room,
+  nickname,
+  supabaseKey,
+  supabaseUrl,
+}: Props) {
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  const channel = supabase.channel(room);
+
+  const [userInput, setUserInput] = useState('');
+  const [messageToSend, setMessageToSend] = useState('');
+  const [isSending, setIsSending] = useState(false);
+
+  useInput((input, key) => {
+    if (key.return) {
+      setMessageToSend(userInput);
+      setUserInput('');
+    } else if (key.backspace || key.delete) {
+      setUserInput((curr) => curr.slice(0, -1));
+    } else {
+      setUserInput((curr) => curr + input);
+    }
+  });
+
+  useEffect(() => {
+    if (!isSending && messageToSend.trim().length > 0) {
+      if (messageToSend.trim() === '\\quit') {
+        process.exit();
+      }
+      setIsSending(true);
+      channel
+        .send({
+          type: 'broadcast',
+          event: 'test-my-messages',
+          payload: {
+            user: nickname,
+            content: messageToSend,
+            id: nanoid(),
+          },
+        })
+        .then(() => {
+          setMessageToSend('');
+          setIsSending(false);
+        });
+    }
+  }, [messageToSend, isSending, channel]);
+
+  const [messages, setMessages] = useState<Array<Message>>([
+    {
+      user: 'Room',
+      content: room,
+      id: `the-room`,
+    },
+  ]);
+  useEffect(() => {
+    const subscription = channel
+      .on('broadcast', { event: 'test-my-messages' }, ({ payload }) => {
+        setMessages((curr) => {
+          const newMessages = Array.from(
+            new Set([...curr, payload as Message])
+          );
+          return newMessages;
+        });
+      })
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe().then(() => {});
+    };
+  }, []);
+  return (
+    <Box>
+      <Static items={messages}>
+        {(m) => {
+          if (m.id === 'the-room') {
+            return (
+              <Box key={m.id}>
+                <Text color="magenta" bold>
+                  Room:
+                </Text>
+                <Text>: {m.content}</Text>
+              </Box>
+            );
+          }
+          return (
+            <Box key={m.id}>
+              <Text color="green">{m.user === nickname ? 'You' : m.user}</Text>
+              <Text>: {m.content}</Text>
+            </Box>
+          );
+        }}
+      </Static>
+      <Text>{userInput}</Text>
+    </Box>
+  );
+}
+```
+
+I found it really cool that I can use `useEffect` and `useState` to handle events and state in the CLI app. ❤️
+
+Here's the demo video:
+
+<iframe
+  title="video"
+  src="https://player.cloudinary.com/embed/?public_id=ink-chat-cli_aunxs0&cloud_name=dlampxaex&player[muted]=false&player[autoplay]=true&player[loop]=true"
+  width="640"
+  height="360"
+  style={{ height: 'auto', width: '100%', aspectRatio: 640 / 360 }}
+  allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+></iframe>
+
+You can [find the repository here](https://github.com/nicnocquee/ink-chat-cli). Have fun!
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi)!
