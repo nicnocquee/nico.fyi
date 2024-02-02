@@ -1,0 +1,56 @@
+---
+title: "PostgreSQL's Money Type"
+date: '2024-02-06'
+summary: "It's all about the money money money"
+tags: ['dev', 'postgres']
+---
+
+When designing databases for applications that handle money transactions, choosing the right data type for currency values is crucial. PostgreSQL provides a specialized solution for this: the `money` type. Let's explore why the `money` type is a good option for managing currency values and when you should consider other alternatives.
+
+## Understanding the Money Type
+
+The `money` type in PostgreSQL stores currency amounts accurately and formats them according to the locale. Here's what the `money` type offers:
+
+- **Fixed Decimal Precision**: Ideal for financial calculations that require accuracy. The `money` type ensures precise storage and calculation of currency values, avoiding issues with floating-point arithmetic.
+- **Locale-aware Formatting**: This feature automatically adjusts the currency symbol and formatting based on the server's locale settings. It's great for applications serving a localized user base. However, it may cause inconsistencies when the application spans multiple regions with different locale settings.
+- **Arithmetic Operations**: The `money` type supports addition, subtraction, multiplication, and division, making financial calculations straightforward without the need for extra parsing or conversion.
+
+## Practical Use
+
+To see how the `money` type works in action, let's consider a simple table for storing sales information:
+
+```sql
+CREATE TABLE sales (
+    id SERIAL PRIMARY KEY,
+    product_name VARCHAR(255),
+    price MONEY
+);
+
+INSERT INTO sales (product_name, price) VALUES
+('Widget', '$10.00'),
+('Gadget', '$15.50');
+
+SELECT * FROM sales WHERE price > '$12.00';
+```
+
+This example demonstrates how easy it is to define monetary values and query them based on price criteria.
+
+## Considerations and Alternatives
+
+While the `money` type is suitable for money-related applications, there are a few things to consider:
+
+- **Locale Dependency**: The reliance on server locale for formatting can be challenging in globally distributed applications, leading to inconsistent representations.
+- **Precision and Scale Limitations**: For most applications, the precision provided by the `money` type is sufficient. However, financial applications that require maximum precision might find it limiting.
+- **Portability Concerns**: The `money` type is specific to PostgreSQL. If your application may need to support multiple database systems in the future, it's better to choose a more universally supported type like `numeric` or `decimal`.
+
+## When to Use Numeric or Decimal
+
+For applications that need precise control over precision, scale, or database portability, the `numeric` or `decimal` types are preferable. These types allow you to specify exact precision and scale, ensuring consistent arithmetic across different databases and applications.
+
+## Wrapping Up
+
+The `money` type in PostgreSQL offers a good balance of precision, ease of use, and locale-aware formatting, making it a great choice for many applications dealing with money. However, it's important to consider its limitations and alternatives like `numeric` or `decimal` for scenarios that require greater precision or portability. Ultimately, the best decision depends on your project's specific needs and the environment it operates in.
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi)!
