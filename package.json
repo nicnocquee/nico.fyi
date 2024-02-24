@@ -26,6 +26,7 @@
     "next": "^14",
     "next-contentlayer": "0.3.4",
     "next-themes": "^0.2.1",
+    "open-props": "^1.6.19",
     "pliny": "0.1.4",
     "postcss": "^8.4.24",
     "react": "^18.2.0",

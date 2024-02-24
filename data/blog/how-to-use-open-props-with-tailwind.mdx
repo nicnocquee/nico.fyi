@@ -1,0 +1,57 @@
+---
+title: 'How to use Open Props with Tailwind CSS'
+date: '2024-02-26'
+summary: 'Spice up the animation!'
+tags: ['dev', 'tailwind', 'css']
+---
+
+There's a new CSS tool called [Open Props](https://open-props.style), an open-source collection of CSS variables. It's essentially a collection of [CSS variables](https://developer.mozilla.org/en-US/docs/Web/CSS/Using_CSS_custom_properties) that can be utilized anywhere CSS is used.
+
+Since these are merely CSS variables, we can integrate them with [Tailwind CSS](https://tailwindcss.com). We don't even need to utilize everything Open Props offers. For instance, we can selectively use the Easing variables to enhance our CSS animations. As an example, I've added the `ease-spring-5` animation to images when hovered over in the blog posts on this website. Try hovering over the image below.
+
+![](/static/images/articles/open-props-easing.png.webp)
+
+First, let's install Open Props:
+
+```shell
+npm install open-props
+```
+
+Then, we'll update our CSS file. For this website, I updated the [tailwind.css file](https://github.com/nicnocquee/nico.fyi/blob/main/css/tailwind.css):
+
+```css
+@import 'open-props/easings';
+```
+
+Next, we need to update the [tailwind.config.js file](https://github.com/nicnocquee/nico.fyi/blob/main/tailwind.config.js):
+
+```javascript
+  theme: {
+    extend: {
+      transitionTimingFunction: {
+        'spring-1': `var(--ease-spring-1)`,
+        'spring-2': `var(--ease-spring-2)`,
+        'spring-3': `var(--ease-spring-3)`,
+        'spring-4': `var(--ease-spring-4)`,
+        'spring-5': `var(--ease-spring-5)`,
+        'elastic-in-out-1': `var(--ease-elastic-in-out-1)`,
+        'elastic-in-out-2': `var(--ease-elastic-in-out-2)`,
+        'elastic-in-out-3': `var(--ease-elastic-in-out-3)`,
+        'elastic-in-out-4': `var(--ease-elastic-in-out-4)`,
+        'elastic-in-out-5': `var(--ease-elastic-in-out-5)`,
+      },
+```
+
+Finally, we can simply use the added class names in our components. For example, I updated the [image component](https://github.com/nicnocquee/nico.fyi/blob/main/components/Image.tsx) in the blog posts:
+
+```typescript
+const Image = ({ ...rest }: ImageProps) => (
+  <NextImage className="duration-700 ease-spring-4 hover:scale-105" {...rest} />
+)
+```
+
+That's it!
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi)!
