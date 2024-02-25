@@ -7,6 +7,8 @@ tags: ['dev', 'statistics', 'philosophy']
 
 I recently found a paper on Twitter. It's called "[The Power of Two Random Choices: A Survey of Techniques and Results](http://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf)." It explores the big boosts in load balancing that come from making two random choices instead of one.
 
+![](/static/images/articles/balls-bin.jpeg.webp)
+
 Consider the process of distributing balls into bins. **Placing each ball into the emptier of two random bins makes the distribution more balanced. This is better than placing each ball into a random bin**. This principle applies in theory and in real-world uses. These include hashing, shared memory, and low-congestion routing.
 
 This technique enhances task distribution among servers. It offers a better alternative to random server selection for each new task. The logic behind this method is straightforward. Here's how it works:
