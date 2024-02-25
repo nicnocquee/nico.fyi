@@ -1,0 +1,24 @@
+---
+title: 'The power of two random choices'
+date: '2024-02-29'
+summary: 'Better than select one in random'
+tags: ['dev', 'statistics']
+---
+
+I recently found a paper on Twitter. It's called "[The Power of Two Random Choices: A Survey of Techniques and Results](http://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf)." It explores the big boosts in load balancing that come from making two random choices instead of one.
+
+Consider the process of distributing balls into bins. **Placing each ball into the emptier of two random bins makes the distribution more balanced. This is better than placing each ball into a random bin**. This principle applies in theory and in real-world uses. These include hashing, shared memory, and low-congestion routing.
+
+This technique enhances task distribution among servers. It offers a better alternative to random server selection for each new task. The logic behind this method is straightforward. Here's how it works:
+
+1. **Random Selection**: Upon the arrival of a new task, the system randomly selects two servers instead of one.
+2. **Comparative Decision**: It then evaluates the current load (e.g., the queued task number) on these two servers.
+3. **Allocation**: The task is assigned to the server under the lighter load.
+
+The strength of this method lies in its simplicity and efficacy. It evenly distributes the load across servers without requiring knowledge of the system's global state. It can sharply lower the max load on any one server. This is beyond what random or round-robin methods can do. This is due to the lower chance of both picked servers being heavily loaded. This efficiency naturally leads to a more balanced load.
+
+I recently discovered this technique and found it compelling. Are there any tools that currently use the two random choices strategy?
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi)!
