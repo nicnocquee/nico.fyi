@@ -1,0 +1,52 @@
+---
+title: 'Did you know about sparse array in Javascript?'
+date: '2024-02-27'
+summary: "I didn't, but now I know"
+tags: ['dev', 'tailwind', 'css']
+---
+
+I stumbled upon something called a [sparse array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Indexed_collections#sparse_arrays) in the MDN web docs. It's one of those things that makes JavaScript "interesting" 😂.
+
+Sparse arrays are arrays with empty slots. However, these empty slots are not the same as slots filled with `undefined`. There are several ways to create sparse arrays:
+
+```javascript
+// Using the Array constructor:
+const a = Array(5) // [ <5 empty items> ]
+
+// Using consecutive commas in an array literal:
+const b = [1, 2, , , 5] // [ 1, 2, <2 empty items>, 5 ]
+
+// Directly setting a slot with an index greater than the array's length:
+const c = [1, 2]
+c[4] = 5 // [ 1, 2, <2 empty items>, 5 ]
+
+// Elongating an array by directly setting its length:
+const d = [1, 2]
+d.length = 5 // [ 1, 2, <3 empty items> ]
+
+// Deleting an element:
+const e = [1, 2, 3, 4, 5]
+delete e[2] // [ 1, 2, <1 empty item>, 4, 5 ]
+```
+
+Consider the following sparse array: `const arr = [1, 2, , , 5]`. These are important characteristics of a sparse array:
+
+1. Accessing the empty slots returns `undefined`. For example, `console.log(arr[2]); // undefined`.
+2. A new array created by spreading a sparse array will have `undefined` values in the empty slots. For example, `const another = [...arr]; // "another" is [1, 2, undefined, undefined, 5]`.
+3. Array iteration methods like `map`, `filter`, `some`, and `Object.keys` skip the empty slots. For instance:
+
+```javascript
+const mapped = arr.map((i) => i + 1) // [ 2, 3, <2 empty items>, 6 ]
+arr.forEach((i) => console.log(i)) // 1 2 5
+const filtered = arr.filter(() => true) // [ 1, 2, 5 ]
+const hasFalsy = arr.some((k) => !k) // false
+
+// Property enumeration
+const keys = Object.keys(arr) // [ '0', '1', '4' ]
+```
+
+I recommend reading more about how array methods handle empty slots in sparse arrays in the [Array methods and empty slots section of the MDN web docs](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array#array_methods_and_empty_slots).
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi)!
