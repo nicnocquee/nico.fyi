@@ -1,0 +1,58 @@
+---
+title: 'You should start using with and at methods in Javascript'
+date: '2024-02-28'
+summary: "Because it's awesome"
+tags: ['dev', 'javascript']
+---
+
+JavaScript has come a long way, introducing many new APIs that enable us to write less code. For example, I recently discovered two array methods named [with](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/with) and [at](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/at). Suppose you want to create a new array from an existing one, where a certain element in the new array is replaced with a new value. Previously, you might have done something like this:
+
+```javascript
+const arr = [1, 2, 3, 4, 5]
+const newArr = [...arr] // Copy the array
+newArr[1] = 10 // Change the value of index 1
+console.log(newArr) // [1, 10, 3, 4, 5]
+```
+
+However, with the `with` method, we can simply write:
+
+```javascript
+const newArr = arr.with(1, 10)
+```
+
+The `with` method also accepts a negative index, so you can easily change the last element in the array, like so:
+
+```javascript
+const newArr = arr.with(-1, 10) // [1, 2, 3, 4, 10]
+```
+
+And since `with` returns a new array, we can chain it with other array methods:
+
+```javascript
+const newArr3 = arr.with(-1, 10).map((i) => i * 2) // [2, 4, 6, 8, 20]
+```
+
+Next, there's the `at` function to read an element from an array, which is equivalent to the bracket notation when the index is non-negative. Indeed, the convenience of the `at` function becomes apparent when we use it with a negative index. Say we want to get the penultimate item (second to the last) of an array. There are several ways to do this:
+
+```javascript
+// Our array with items
+const colors = ['red', 'green', 'blue']
+
+// Using the length property
+const lengthWay = colors[colors.length - 2]
+console.log(lengthWay) // 'green'
+
+// Using the slice() method. Note an array is returned
+const sliceWay = colors.slice(-2, -1)
+console.log(sliceWay[0]) // 'green'
+
+// Using the at() method
+const atWay = colors.at(-2)
+console.log(atWay) // 'green'
+```
+
+As you can see, the `at` method is the most convenient way to get the value.
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi)!
