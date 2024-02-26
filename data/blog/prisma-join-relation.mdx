@@ -1,0 +1,147 @@
+---
+title: 'The new join relation in Prisma'
+date: '2024-03-05'
+summary: 'Less query to your database'
+tags: ['dev', 'prisma']
+---
+
+Recently, Prisma [released a highly requested feature: support for database-level joins](https://www.prisma.io/blog/prisma-orm-now-lets-you-choose-the-best-join-strategy-preview). Previously, Prisma sent multiple queries to retrieve related data, then combined the results at the application level. However, with this recent release, Prisma now offers the option to choose between the new `join` strategy and the previous `query` strategy.
+
+Currently, this feature is still behind a preview flag, so you need to explicitly enable it in the schema.prisma file:
+
+```
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
+}
+```
+
+Also, note that this feature currently only works with PostgreSQL and MySQL databases. Once you have enabled the feature, you must run `prisma generate` again. Then, you can specify which strategy to use when querying:
+
+```typescript
+const users = await prisma.user.findMany({
+  relationLoadStrategy: 'join', // or 'query'. The default is the new join strategy, so this can actually be omitted
+  take: 10,
+  include: {
+    posts: {
+      take: 3,
+    },
+  },
+})
+```
+
+In the example above, I aim to retrieve 10 users from the database along with 3 of their posts each. When the users query above is executed, we can see that Prisma now sends a single query to the database:
+
+![](/static/images/articles/prisma-join.png.webp)
+
+Conversely, if we use the `query` strategy, Prisma sends two queries to the database:
+
+![](/static/images/articles/prisma-query.png.webp)
+
+In the announcement, the Prisma team mentioned that there are still some cases where using the previous `query` strategy is preferable to the new `join` strategy. That's why they have retained both strategies, allowing developers to choose the one that best suits their needs.
+
+Retrieving 10 users and their respective 3 posts, as shown in the example above, appears straightforward and intuitive with Prisma. We don't need to craft long and complicated queries using LATERAL JOIN, as demonstrated in the image above. I pretty printed the query above and got the following:
+
+```sql
+SELECT
+  "t1"."id",
+  "t1"."user_name",
+  "users_posts"."__prisma_data__" AS "posts"
+FROM
+  "public"."users" AS "t1"
+  LEFT JOIN LATERAL (
+    SELECT
+      COALESCE(
+        JSONB_AGG("__prisma_data__"),
+        '[]'
+      ) AS "__prisma_data__"
+    FROM
+      (
+        SELECT
+          "t4"."__prisma_data__"
+        FROM
+          (
+            SELECT
+              JSONB_BUILD_OBJECT(
+                'id', "t3"."id", 'title', "t3"."title",
+                'author_id', "t3"."author_id"
+              ) AS "__prisma_data__",
+              "t3"."id"
+            FROM
+              (
+                SELECT
+                  "t2".*
+                FROM
+                  "public"."posts" AS "t2"
+                WHERE
+                  "t1"."id" = "t2"."author_id"
+                  /* root select */
+                  ) AS "t3"
+              /* inner select */
+              ) AS "t4"
+        ORDER BY
+          "t4"."id" ASC
+        LIMIT
+          3
+          /* middle select */
+          ) AS "t5"
+      /* outer select */
+      ) AS "users_posts" ON true
+ORDER BY
+  "t1"."id" ASC
+LIMIT
+  10
+```
+
+This led me to wonder if there's another way to achieve this goal using a raw SQL query. Since I'm not an expert in SQL, I consulted ChatGPT. It suggested the following:
+
+```sql
+WITH user_subset AS (
+    SELECT id, user_name
+    FROM "public"."users"
+    ORDER BY id
+    LIMIT 10
+),
+ranked_posts AS (
+    SELECT
+        p.author_id,
+        ROW_NUMBER() OVER (PARTITION BY p.author_id ORDER BY p.id) AS rn,
+        jsonb_build_object(
+            'id', p.id,
+            'title', p.title,
+            'author_id', p.author_id
+        ) AS post_info
+    FROM
+        "public"."posts" p
+    JOIN
+        user_subset u ON p.author_id = u.id
+)
+SELECT
+    u.id AS id,
+    u.user_name,
+    jsonb_agg(rp.post_info ORDER BY rp.rn) AS posts
+FROM
+    user_subset u
+LEFT JOIN ranked_posts rp ON u.id = rp.author_id AND rp.rn <= 3
+GROUP BY
+    u.id, u.user_name
+ORDER
+
+ BY
+    u.id;
+```
+
+Instead of using LATERAL, ChatGPT proposed a query employing [Common Table Expressions](https://www.postgresql.org/docs/current/queries-with.html) (CTEs) and [Window Functions](https://www.postgresql.org/docs/current/tutorial-window.html), as follows:
+
+1. It employs Common Table Expressions (CTEs) to create a temporary result set (`user_subset` and `ranked_posts`) that is then referenced within the main query.
+2. It utilizes the window function `ROW_NUMBER()` to assign a unique sequential integer to rows within each partition of `author_id`, facilitating the limitation of `posts` per user to 3.
+3. The final aggregation into JSON arrays is performed using [jsonb_agg()](https://www.postgresql.org/docs/9.5/functions-aggregate.html), with an `ORDER BY` clause on the row number to ensure the posts are sorted within each user's array.
+4. The `LEFT JOIN` ensures all users are returned, even those without posts, with post information included only for those who have them.
+
+It's intriguing how a task that can be succinctly described in human language (_"Getting 10 users and their respective 3 posts"_) translates into a relatively complex SQL operation. Yet, Prisma simplifies it remarkably. Amazing.
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi)!
+
+![](/static/images/articles/pull-request-best-practices.png)
