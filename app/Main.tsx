@@ -15,6 +15,15 @@ export default function Home({ posts }) {
           <h1 className="text-3xl font-extrabold leading-9 tracking-tight text-gray-900 dark:text-gray-100 sm:text-4xl sm:leading-10 md:text-6xl md:leading-14">
             Latest
           </h1>
+          <p>
+            Have you checked out my new book?{' '}
+            <a
+              className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
+              href="https://pr.nico.fyi"
+            >
+              Pull Request Best Practices &rarr;
+            </a>
+          </p>
           <p className="text-lg leading-7 text-gray-500 dark:text-gray-400">
             {siteMetadata.description}
           </p>

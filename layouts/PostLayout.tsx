@@ -68,7 +68,7 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                           width={38}
                           height={38}
                           alt="avatar"
-                          className="ease-spring-5 h-10 w-10 rounded-full duration-700 hover:scale-150"
+                          className="h-10 w-10 rounded-full duration-700 ease-spring-5 hover:scale-150"
                         />
                       )}
                       <dl className="whitespace-nowrap text-sm font-medium leading-5">
@@ -100,7 +100,7 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                 {` • `}
                 <Link href={editUrl(filePath)}>View on GitHub</Link>
               </div>
-              {siteMetadata.comments && (
+              {siteMetadata.comments && siteMetadata.comments.provider && (
                 <div
                   className="pb-6 pt-6 text-center text-gray-700 dark:text-gray-300"
                   id="comment"

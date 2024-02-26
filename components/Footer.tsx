@@ -6,6 +6,13 @@ export default function Footer() {
   return (
     <footer>
       <div className="mb-4 mt-16 flex flex-col items-center">
+        <div className="mb-4 flex flex-col space-y-2 text-center">
+          <p>Boost Your Team's Efficiency with my new book!</p>
+          <p className="text-2xl font-bold text-primary-600 underline">
+            <a href="https://pr.nico.fyi">Pull Request Best Practices</a>
+          </p>
+          <p>Master the Art of Writing & Reviewing Pull Requests!</p>
+        </div>
         <div className="mb-3 flex space-x-4">
           <SocialIcon kind="mail" href={`mailto:${siteMetadata.email}`} size={6} />
           <SocialIcon kind="github" href={siteMetadata.github} size={6} />
