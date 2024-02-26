@@ -68,6 +68,15 @@ module.exports = () => {
     images: {
       domains: ['picsum.photos', 'avatars.githubusercontent.com'],
     },
+    async redirects() {
+      return [
+        {
+          source: '/articles/:path*',
+          destination: '/blog/:path*',
+          permanent: true,
+        },
+      ]
+    },
     async headers() {
       return [
         {
