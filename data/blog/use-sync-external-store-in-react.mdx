@@ -1,0 +1,113 @@
+---
+title: 'useSyncExternalStore is awesome'
+date: '2024-03-04'
+summary: 'And you should start using it!'
+tags: ['dev', 'react', 'nextjs']
+---
+
+Recently, [someone asked on Twitter how to render the user's browser time in Next.js](https://twitter.com/chronark_/status/1762049915847376939), which uses React Server Components, without encountering hydration errors. While [Dan Abramov mentioned it's possible to suppress hydration mismatch errors](https://twitter.com/dan_abramov2/status/1762066351764406575) using the [`suppressHydrationWarning` prop](https://react.dev/reference/react-dom/client/hydrateRoot#suppressing-unavoidable-hydration-mismatch-errors), displaying the browser's time without this workaround is indeed feasible.
+
+[My initial approach](https://twitter.com/2co_p/status/1762063508697448919) was to check for the `window` object on the server:
+
+```javascript
+if (typeof window === 'undefined') {
+  return null
+}
+
+return <>{new Date().toISOString()}</>
+```
+
+However, it was correctly noted that this still leads to hydration mismatches. This led me to utilize `useState` and `useEffect`:
+
+```typescript
+'use client';
+
+import { useEffect, useState } from 'react';
+
+const TimeComponent = () => {
+  const [date, setDate] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    setDate(new Date().toISOString());
+  }, []);
+
+  return <p>{date}</p>;
+};
+
+export default TimeComponent;
+```
+
+I was then reminded that achieving the same result with [useSyncExternalStore](https://react.dev/reference/react/useSyncExternalStore) is also possible. Although I seldom use this API, experimentation confirmed that it works:
+
+```typescript
+'use client';
+
+import { useSyncExternalStore } from 'react';
+
+const TimeComponentWithExternalStore = () => {
+  const date = useSyncExternalStore(
+    () => () => {},
+    () => new Date().toISOString(),
+    () => ''
+  );
+
+  return <p>{date}</p>;
+};
+
+export default TimeComponentWithExternalStore;
+```
+
+We can go a step further by creating a component that renders only in the browser using `useSyncExternalStore`:
+
+```typescript
+'use client';
+import { ReactNode, useSyncExternalStore } from 'react';
+
+const ClientOnly = ({ children }: { children: ReactNode }) => {
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+
+  if (isClient) {
+    return <>{children}</>;
+  }
+
+  return null;
+};
+
+export default ClientOnly;
+```
+
+This component then can be used within a server component:
+
+```typescript
+// /app/something/page.tsx
+import ClientOnly from './client-only';
+
+const ExperimentPage = async () => {
+  return (
+    <div className="flex flex-col space-y-2">
+      <ClientOnly>
+        <p>{new Date().toISOString()}</p>
+      </ClientOnly>
+    </div>
+  );
+};
+
+export default ExperimentPage;
+```
+
+Pretty neat, right? Have you incorporated `useSyncExternalStore` in your projects? I'd love to hear about it!
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi)!
+
+![](/static/images/articles/pull-request-best-practices.png)
+
+![](/static/images/articles/pull-request-best-practices.png)

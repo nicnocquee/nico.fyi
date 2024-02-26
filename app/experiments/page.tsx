@@ -1,3 +1,4 @@
+import ClientOnly from './client-only'
 import TimeComponent from './time'
 import TimeComponentWithExternalStore from './time-external-store'
 
@@ -7,6 +8,10 @@ const ExperimentPage = async () => {
       <TimeComponent />
 
       <TimeComponentWithExternalStore />
+
+      <ClientOnly>
+        <p>{new Date().toISOString()}</p>
+      </ClientOnly>
     </div>
   )
 }
