@@ -1,0 +1,32 @@
+---
+title: 'The Quality That Delights: OTP auto fill input'
+date: '2024-03-06'
+summary: Or as the Japanese said, 魅力的品質
+tags: ['dev', 'philosophy']
+---
+
+I recently read a blog post about the [two types of quality](https://zenorocha.com/the-two-types-of-quality) from Japan's perspective: atarimae hinshitsu (当たり前品質), the obvious quality, and miryokuteki hinshitsu (魅力的品質), the appealing quality. The author, Zeno Rocha, founder of Resend, gave several examples of products that work versus products that inspire across different industries, mostly software-related.
+
+While I agree that adding _something_ beyond the obvious functionalities could make users love the products or be inspired by them, **I'd like to add that this _something_ doesn't always have to be something that looks good**. It can be something small but extremely helpful and useful.
+
+One of the best examples of this is the [OTP](https://en.wikipedia.org/wiki/One-time_password) auto-fill feature in the iOS keyboard. This feature, added by Apple since iOS 15, might be the most publicly loved feature Apple has ever introduced. You might have seen many posts stating that whoever came up with and developed this feature deserves a raise.
+
+![](/static/images/articles/otp.webp)
+
+This small feature delights every iOS user because they no longer need to manually type the code from the SMS. On the other side of the equation, this feature is also a delight for developers who implement it because it's so easy to create a text input that can be auto-filled with the code from the SMS. They only need to set the `textContentType` of a text field to `oneTimeCode`. You can read more in the [Enabling Password AutoFill on a text input view](https://developer.apple.com/documentation/security/password_autofill/enabling_password_autofill_on_a_text_input_view) documentation from Apple.
+
+```swift
+singleFactorCodeTextField.textContentType = .oneTimeCode
+```
+
+For web developers, they can also enable SMS OTP auto-fill by adding `autocomplete="one-time-code"` as documented in [Enabling Password AutoFill on an HTML input element](https://developer.apple.com/documentation/security/password_autofill/enabling_password_autofill_on_an_html_input_element).
+
+```html
+<input id="single-factor-code-text-field" autocomplete="one-time-code" />
+```
+
+In the end, it's the little things that make the biggest difference. Apple's OTP auto-fill is more than just a feature; it's a testament to the power of thoughtful innovation. By focusing on what truly matters to users, we can transform everyday interactions into delightful experiences. Let's not just build products that work—let's create ones that spark joy and make life a bit easier for everyone. This is the essence of true quality, where simplicity meets ingenuity.
+
+---
+
+By the way, [I have a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
