@@ -1,0 +1,36 @@
+---
+title: 'The main problem with Next.js 14 now'
+date: '2024-03-07'
+summary: That makes it feels unstable
+tags: ['dev', 'nextjs', 'react']
+---
+
+Eric Burel recently posted an article about [securing statically rendered paid content in Next.js with the App Router](https://www.ericburel.tech/blog/static-paid-content-app-router). This article raised concerns that [Next.js makes it easy for people to do the wrong thing](https://x.com/TkDodo/status/1765457210694414377?s=20).
+
+![](/static/images/articles/next-easy-to-do-wrong-thing.png.webp)
+
+However, Next.js does not recommend protecting your routes in a layout, as you can read on [the Authentication page in the Next.js documentation](https://nextjs.org/docs/app/building-your-application/authentication#authorization-using-server-components). It is recommended to use middleware for route protection. Yet, Sebastian Markbåge, formerly of the React core team and now at Vercel, tweeted that [middleware shouldn't be used for auth either](https://x.com/sebmarkbage/status/1765414733820129471?s=20), which adds to the confusion.
+
+![](/static/images/articles/middleawre-not-for-auth.png.webp)
+
+Anyway, the article from Eric Burel highlighted **two main problems** from my point of view with Next.js 14 App Router.
+
+## It doesn't prevent you from shooting yourself in the foot
+
+Next.js 14 does not prevent developers from writing bad code that can cause bugs, such as guarding routes in a layout as demonstrated in the article. This is a hard problem to solve. Is it even possible to show warnings when developers do that?
+
+Another issue I encountered personally was when trying to redirect the user from a server action; the cookies I set before the redirection were not preserved after the new page loaded. This might be [a bug](https://github.com/vercel/next.js/issues/61611). I worked around this quirk by redirecting from the browser after receiving the server action's response.
+
+[There was also a build failure problem](https://twitter.com/2co_p/status/1763218498501673260) when I exported the `generateStaticParams` from the layout, which cost me several hours of debugging.
+
+## The documentation doesn't tell you what you should NOT do
+
+These examples lead to the second problem with Next.js 14. The documentation lacks information on what **not** to do. There should be notes advising against protecting routes in the layout, against exporting `generateStaticParams` from the layout, and highlighting that cookies may not be set if you redirect the user in a server action.
+
+This scarcity of information makes Next.js 14 feel unready for production, especially when Vercel markets it as such.
+
+I love using Next.js and have many projects written with it. I hope there is more effort put into improving the documentation and adding stability to the framework by addressing more edge cases.
+
+---
+
+By the way, [I have a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
