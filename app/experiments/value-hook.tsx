@@ -64,21 +64,24 @@ export function useValueAsyncEffect<T>(defaultValue: T): UseValueAsyncEffectRetu
       setValue(newValue.value)
     } else {
       // Immediately try to get the next value if the current value hasn't changed
-      await nextRef.current?.()
+      await nextRef.current()
     }
   }
 
   useEffect(() => {
     // Execute the nextRef function if there is an effect to process
     if (effect.current) {
-      nextRef.current?.()
+      nextRef.current()
     }
   })
 
-  const queue = useCallback((fn: () => AsyncGeneratorYield<T>) => {
-    effect.current = fn()
-    nextRef.current?.()
-  }, [])
+  const queue = useCallback(
+    (fn: () => AsyncGeneratorYield<T>) => {
+      effect.current = fn()
+      nextRef.current()
+    },
+    [effect, nextRef]
+  )
 
   return [value, queue]
 }

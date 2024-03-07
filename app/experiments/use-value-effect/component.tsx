@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode } from 'react'
+import { ReactNode, useEffect, useRef, useState } from 'react'
 import { useValueAsyncEffect } from '../value-hook'
 import TimeComponent from '../time'
 import Image from 'next/image'
@@ -68,51 +68,79 @@ export const TheComponent2 = () => {
 }
 
 export const MovieResult = () => {
-  const [value, setValue] = useValueAsyncEffect<ReactNode[]>([])
+  const cancel = useRef<AbortController | null>(null)
+  const [state, setState] = useState<'idle' | 'loading' | 'cancelling'>('idle')
+  const [value, setValue] = useValueAsyncEffect<{
+    components: ReactNode[] | null
+    status: 'done' | 'cancelled' | 'pending'
+  } | null>(null)
+
+  useEffect(() => {
+    // Set state to 'idle' when the operation is cancelled or done
+    if (
+      (cancel.current?.signal.aborted && value?.status === 'cancelled') ||
+      value?.status === 'done'
+    ) {
+      setState('idle')
+    }
+  }, [value])
+
+  const handleClick = () => {
+    if (state === 'loading') {
+      cancel.current?.abort()
+      setState('cancelling')
+      return
+    }
+    setState('loading')
+    cancel.current = new AbortController()
+    setValue(async function* () {
+      const loading = (
+        <p key="1" className="text-sm text-gray-500">
+          Faking fetching movies ...
+        </p>
+      )
+      yield { components: [loading], status: 'pending' }
+
+      await new Promise<void>((resolve) => {
+        setTimeout(() => resolve(), 3000)
+      })
+
+      if (cancel.current?.signal.aborted) {
+        yield { components: null, status: 'cancelled' }
+        return
+      }
+
+      const movie = <Movie key="2" />
+      yield { components: [movie], status: 'pending' }
+
+      const loadingCasts = (
+        <p key="3" className="text-sm text-gray-500">
+          Faking fetching the movie casts ...
+        </p>
+      )
+
+      yield { components: [movie, loadingCasts], status: 'pending' }
+
+      await new Promise<void>((resolve) => {
+        setTimeout(() => resolve(), 3000)
+      })
+
+      if (cancel.current?.signal.aborted) {
+        yield { components: null, status: 'cancelled' }
+        return
+      }
+
+      const characters = <MovieCasts key="4" />
+      yield { components: [movie, characters], status: 'done' }
+    })
+  }
 
   return (
     <div>
-      <button
-        className="rounded-md bg-green-400 px-4 py-2 text-white"
-        onClick={() => {
-          setValue(async function* () {
-            const loading = (
-              <p key="1" className="text-sm text-gray-500">
-                Faking fetching movies ...
-              </p>
-            )
-            yield [loading]
-
-            // Say we call an API to get a movie based on user's search term. The API returns a movie object that has the ID of the movie.
-            await new Promise<void>((resolve) => {
-              setTimeout(() => resolve(), 3000)
-            })
-
-            const movie = <Movie />
-            yield [movie]
-
-            // next we call another API to get the casts based on the ID of the movie
-            const loadingCasts = (
-              <p key="1" className="text-sm text-gray-500">
-                Faking fetching the movie casts ...
-              </p>
-            )
-
-            yield [movie, loadingCasts]
-
-            // fetch the movie casts
-            await new Promise<void>((resolve) => {
-              setTimeout(() => resolve(), 3000)
-            })
-
-            const characters = <MovieCasts />
-            yield [movie, characters]
-          })
-        }}
-      >
-        Get the movie
+      <button className="rounded-md bg-green-400 px-4 py-2 text-white" onClick={handleClick}>
+        {state === 'loading' ? 'Cancel' : state === 'idle' ? 'Get the movie' : 'Cancelling...'}
       </button>
-      <div className="space-y-4 py-4">{value}</div>
+      {value?.components ? <div className="space-y-4 py-4">{value?.components}</div> : null}
     </div>
   )
 }
@@ -176,6 +204,20 @@ const MovieCasts = () => {
           </div>
         )
       })}
+    </div>
+  )
+}
+
+export const Counter = () => {
+  const [count, setCount] = useState(0)
+  return (
+    <div>
+      <button
+        className="rounded-lg bg-gray-700 px-4 py-2 text-white"
+        onClick={() => setCount((curr) => curr + 1)}
+      >
+        Increment ({count})
+      </button>
     </div>
   )
 }

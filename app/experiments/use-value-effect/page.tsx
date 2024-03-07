@@ -1,5 +1,5 @@
 import ClientOnly from '../client-only'
-import { MovieResult } from './component'
+import { Counter, MovieResult } from './component'
 
 const ExperimentPage = async () => {
   return (
@@ -8,6 +8,7 @@ const ExperimentPage = async () => {
         {/* <TheComponent />
         <TheComponent2 /> */}
         <div className="flex flex-col space-y-4">
+          <Counter />
           <MovieResult />
         </div>
       </ClientOnly>

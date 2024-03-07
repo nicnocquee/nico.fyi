@@ -44,7 +44,7 @@ async function submitMessage(userInput) { // 'What is the weather in SF?'
 
 From what I have gathered, when the user requests the weather for a city, the SDK sends the prompt to OpenAI. OpenAI then "calls" `get_city_weather`, passing the requested city as the `city` parameter. Initially, the SDK "yields" or returns a `Spinner` component to the browser, then it retrieves the weather information from an external service, and finally returns a `Weather` component with the included weather data. Thus, instead of sending the weather data in, say, JSON format for React in the browser to render the `Weather` component, this SDK streams the rendered React components directly to the browser. Quite impressive.
 
-What intrigued me, however, was the use of the generator function, prompting me to search the web to see if anyone has done something similar. I discovered that Tomasz Gil has written about using generator functions to implement dynamic breadcrumbs in the article [Using Generators in React Components](https://blog.tomaszgil.me/using-generators-in-react-components). He introduced a React hook named `useValueEffect`, which calculates how many elements of the breadcrumbs can fit in the available space. Here is the code for `useValueEffect`:
+What intrigued me, however, was the use of the generator function, prompting me to search the web to see if anyone has done something similar. I discovered that Tomasz Gil has written about using generator functions to implement dynamic breadcrumbs in the article [Using Generators in React Components](https://blog.tomaszgil.me/using-generators-in-react-components). He introduced a React hook named `useValueEffect`, which is used to calculate how many elements of the breadcrumbs can fit in the available space. Here is the code for `useValueEffect`:
 
 ```javascript
 function useValueEffect(defaultValue) {
@@ -95,7 +95,7 @@ function useValueEffect(defaultValue) {
 }
 ```
 
-The idea of `useValueEffect` resembles React's `useEffect`, returning the value that changes over time along with the function to set the value. The difference is that `useValueEffect` returns a function into which one can pass a generator function that yields different values. Within the generator function, we can specify the conditions to set the new value over time.
+The idea of `useValueEffect` resembles [React's `useEffect`](https://react.dev/reference/react/useEffect), returning the value that changes over time along with the function to set the value. The difference is that `useValueEffect` returns a function into which one can pass a generator function that yields different values. Within the generator function, we can specify the conditions to set the new value over time.
 
 In his case, he wanted to determine the number of items that could fit into the available width of his breadcrumb component. To achieve this, he first rendered all items, then calculated how many items could fit within the breadcrumb's width, and finally rendered only the visible items, as demonstrated below.
 
@@ -126,10 +126,9 @@ export function Breadcrumbs({ children }) {
 }
 ```
 
-His example is very practical but a bit complicated. Therefore, I created a simpler example using a slightly modified version of his `useValueEffect`. Based on his code, I developed `useValueAsyncEffect` with TypeScript. Unlike his code, this hook can handle async generator functions and uses `useEffect` instead of `useLayoutEffect`, since I don't need the effect to [run before the browser repaints the screen](https://react.dev/reference/react/useLayoutEffect).
+His example is very practical but a bit complicated. Therefore, I created a simpler example using a slightly modified version of his `useValueEffect`. Based on his code, I developed `useValueAsyncEffect` written in TypeScript. Unlike his code, this hook can handle [async generator functions](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncGenerator) and uses `useEffect` instead of `useLayoutEffect`, since I don't need the effect to [run before the browser repaints the screen](https://react.dev/reference/react/useLayoutEffect).
 
 ```typescript
-// Update the type to reflect async generator functions
 type AsyncGeneratorYield<T> = AsyncGenerator<T, void, unknown>
 type UseValueAsyncEffectReturnType<T> = [T, (fn: () => AsyncGeneratorYield<T>) => void]
 
@@ -144,7 +143,6 @@ export function useValueAsyncEffect<T>(defaultValue: T): UseValueAsyncEffectRetu
     const newValue = await effect.current.next() // Await the next value from the async generator
 
     if (newValue.done) {
-      // if the generator function is done, we clear things up
       effect.current = null
       return
     }
@@ -153,22 +151,24 @@ export function useValueAsyncEffect<T>(defaultValue: T): UseValueAsyncEffectRetu
       setValue(newValue.value)
     } else {
       // Immediately try to get the next value if the current value hasn't changed
-      await nextRef.current?.()
+      await nextRef.current()
     }
   }
 
-  // you can use useLayoutEffect instead of useEffect here
   useEffect(() => {
     // Execute the nextRef function if there is an effect to process
     if (effect.current) {
-      nextRef.current?.()
+      nextRef.current()
     }
   })
 
-  const queue = useCallback((fn: () => AsyncGeneratorYield<T>) => {
-    effect.current = fn()
-    nextRef.current?.()
-  }, [])
+  const queue = useCallback(
+    (fn: () => AsyncGeneratorYield<T>) => {
+      effect.current = fn()
+      nextRef.current()
+    },
+    [effect, nextRef]
+  )
 
   return [value, queue]
 }
@@ -182,13 +182,13 @@ Using that hook, I created a simple simulation:
 - The app shows another loading indicator and then fetches the cast of the movie from an external API or database.
 - Finally, the app displays the cast information beneath the movie details.
 
-You can see the [demo on this page](/experiments/use-value-effect). Note that the page doesn't actually make API calls; it simply simulates the pending state with `setTimeout`.
+You can see the [demo on this page](/experiments/use-value-effect) and the [code in the repository of this blog](https://github.com/nicnocquee/nico.fyi/blob/main/app/experiments/use-value-effect/page.tsx). Note that the page doesn't actually make API calls; it simply simulates the pending state with `setTimeout`.
 
 The code implementing the above use case with `useValueAsyncEffect` is provided below.
 
 ```typescript
 export const MovieResult = () => {
-  const [value, setValue] = useValueAsyncEffect<ReactNode[]>([]) // value is an array of React components!
+  const [value, setValue] = useValueAsyncEffect<ReactNode[]>([])
 
   return (
     <div>
@@ -201,15 +201,15 @@ export const MovieResult = () => {
                 Faking fetching movies ...
               </p>
             )
-            yield [loading] // show the loading
+            yield [loading]
 
             // Say we call an API to get a movie based on user's search term. The API returns a movie object that has the ID of the movie.
-            await new Promise<void>((resolve) => { // simulate 3 seconds fetching
+            await new Promise<void>((resolve) => {
               setTimeout(() => resolve(), 3000)
             })
 
             const movie = <Movie />
-            yield [movie] // yield only the movie component because we don't need the loading anymore
+            yield [movie]
 
             // next we call another API to get the casts based on the ID of the movie
             const loadingCasts = (
@@ -218,10 +218,10 @@ export const MovieResult = () => {
               </p>
             )
 
-            yield [movie, loadingCasts] // append the casts loading component
+            yield [movie, loadingCasts]
 
             // fetch the movie casts
-            await new Promise<void>((resolve) => { // simulate 3 seconds fetching
+            await new Promise<void>((resolve) => {
               setTimeout(() => resolve(), 3000)
             })
 
@@ -238,9 +238,94 @@ export const MovieResult = () => {
 }
 ```
 
-As you can see, in the generator function, I yield different values over time, and that value, which is an array of React components, is rendered inside the `MovieResult` component. This is just a simple example to demonstrate the capabilities of `useValueAsyncEffect`. In production, it would be better to use [Suspense](https://react.dev/reference/react/Suspense) and [React Server Components](https://nextjs.org/docs/app/building-your-application/rendering/server-components) to fetch the movie and cast data simultaneously and then render them.
+As you can see, in the generator function, I yield different values over time, and that value, which is an array of React components, is rendered inside the `MovieResult` component.
 
-I rarely use generator functions and find the term `yield` a bit confusing as a non-native speaker. But this stuff is fascinating! Have you tried using generator functions in your React projects? Let me know!
+We can take it further. What if we want to allow the user to cancel the operation? We can use the standard [AbortController](https://developer.mozilla.org/en-US/docs/Web/API/AbortController)! But we also need to define a UI state and the value from `useValueAsyncEffect` should also contain information of the status of the operation.
+
+```typescript
+export const MovieResult = () => {
+  const cancel = useRef<AbortController | null>(null)
+  const [state, setState] = useState<'idle' | 'loading' | 'cancelling'>('idle') // the state of the button. 'idle' is when the operation is not running anymore. 'loading' is when the operation is running. 'cancelling' is when the user just clicks the cancel button. The 'cancelling' statate is needed because the operation isn't immediately stopped when the user cancels it. Once the operation in generator function exits, the state should change to 'idle'.
+  const [value, setValue] = useValueAsyncEffect<{
+    components: ReactNode[] | null
+    status: 'done' | 'cancelled' | 'pending' // status of the operation in the generator function. 'done' is when everything is completed. 'cencelled' when the generator function exits because of AbortController. 'pending' is when the generator function yield something but not the end of the operation
+  } | null>(null)
+
+  useEffect(() => {
+    // Set state to 'idle' when the operation is cancelled or done so that the button's text goes back to Get the movie
+    if (
+      (cancel.current?.signal.aborted && value?.status === 'cancelled') ||
+      value?.status === 'done'
+    ) {
+      setState('idle')
+    }
+  }, [value])
+
+  const handleClick = () => {
+    if (state === 'loading') {
+      // cancel the operation when the operation is running
+      cancel.current?.abort()
+      setState('cancelling')
+      return
+    }
+    setState('loading')
+    cancel.current = new AbortController()
+    setValue(async function* () {
+      const loading = (
+        <p key="1" className="text-sm text-gray-500">
+          Faking fetching movies ...
+        </p>
+      )
+      yield { components: [loading], status: 'pending' }
+
+      await new Promise<void>((resolve) => {
+        setTimeout(() => resolve(), 3000)
+      })
+
+      if (cancel.current?.signal.aborted) {
+        yield { components: null, status: 'cancelled' }
+        return
+      }
+
+      const movie = <Movie key="2" />
+      yield { components: [movie], status: 'pending' }
+
+      const loadingCasts = (
+        <p key="3" className="text-sm text-gray-500">
+          Faking fetching the movie casts ...
+        </p>
+      )
+
+      yield { components: [movie, loadingCasts], status: 'pending' }
+
+      await new Promise<void>((resolve) => {
+        setTimeout(() => resolve(), 3000)
+      })
+
+      if (cancel.current?.signal.aborted) {
+        yield { components: null, status: 'cancelled' }
+        return
+      }
+
+      const characters = <MovieCasts key="4" />
+      yield { components: [movie, characters], status: 'done' }
+    })
+  }
+
+  return (
+    <div>
+      <button className="rounded-md bg-green-400 px-4 py-2 text-white" onClick={handleClick}>
+        {state === 'loading' ? 'Cancel' : state === 'idle' ? 'Get the movie' : 'Cancelling...'}
+      </button>
+      {value?.components ? <div className="space-y-4 py-4">{value?.components}</div> : null}
+    </div>
+  )
+}
+```
+
+This is just a simple example to demonstrate the capabilities of `useValueAsyncEffect`. In production, it would be better to use [Suspense](https://react.dev/reference/react/Suspense) and [React Server Components](https://nextjs.org/docs/app/building-your-application/rendering/server-components) to fetch the movie and cast data simultaneously and then render them. This hook is more useful if you need to perform several actions sequentially and update the UI simultaneously. For example, you might want to update 1000 rows in the database one or several rows at a time because you don't want to exhaust the available database connections. But as each row is processed, you want to show the status in the UI to the user.
+
+I rarely use generator functions and found the term `yield` a bit confusing as a non-native speaker. But this stuff is fascinating! Have you tried using generator functions in your React projects? Let me know!
 
 ---
 
