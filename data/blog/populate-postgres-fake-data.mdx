@@ -1,0 +1,96 @@
+---
+title: 'Populate Postgres database with fake data'
+date: '2024-03-20'
+summary: 'Directly from the database itself'
+draft: true
+tags: ['dev', 'postgres']
+---
+
+During development and testing, it's common for us to set up the environment where our app runs, along with the necessary data. For instance, if we have a web store app and want to create a feature enabling users to receive notifications when an item they try to add to a cart is sold out, we need to efficiently develop this by using fake data that includes items already sold out in the database. This practice not only aids current development but also prepares us for future bug fixes or improvements related to this feature.
+
+In the past, I used scripts with libraries such as [Faker](https://fakerjs.dev) to add fake data to the database. But now, I have found another way to insert data into Postgres using SQL.
+
+**Setting the Stage for a Chat App**
+
+Consider we're building a chat app capable of handling millions of messages daily. To get started, we set up two tables: one for the chats and another for the individual messages. Here's a quick look at the schema:
+
+```sql
+create table chats (
+  id bigserial,
+  created_at timestamptz not null default now(),
+  primary key (id)
+);
+
+create table chat_messages (
+  id bigserial,
+  created_at timestamptz not null,
+  chat_id bigint not null,
+  chat_created_at timestamptz not null,
+  message text not null,
+  primary key (id),
+  foreign key (chat_id) references chats (id)
+);
+```
+
+This setup focuses on simplicity, sidestepping details like sender or receiver identification for clarity's sake.
+
+**Injecting Life with Fake Data**
+
+To make our tables more lively, let's start by filling the 'chats' table with a series of timestamps.
+
+```sql
+INSERT INTO chats (created_at)
+SELECT generate_series(
+  '2023-01-01'::timestamptz,
+  '2023-01-30 23:00:00'::timestamptz,
+  interval '1 hour'
+);
+```
+
+[`generate_series(start, stop, step)`](https://www.postgresql.org/docs/current/functions-srf.html) is a function that generates a set of values, from start to stop, at the interval specified by step. Here, it's used to create a series of timestamps. Each generated timestamp is inserted into the `created_at` column of the chats table. Since `id` is a `bigserial`, it will automatically increment for each row inserted.
+
+Next, we fill the `chat_messages` table with content, ensuring each chat is bustling with activity:
+
+```sql
+INSERT INTO chat_messages (
+	created_at,
+	chat_id,
+	chat_created_at,
+	message
+)
+SELECT
+  mca,
+  chats.id,
+  chats.created_at,
+  (SELECT ($$[0:2]={'hello','goodbye','I would like a sandwich please'}$$::text[])[trunc(random() * 3)::int])
+FROM chats
+CROSS JOIN LATERAL (
+    SELECT generate_series(
+        chats.created_at,
+        chats.created_at + interval '1 day',
+        interval '1 minute'
+		) AS mca
+) b;
+```
+
+This SQL statement inserts data into the `chat_messages` table using a combination of a `SELECT` statement, a `CROSS JOIN LATERAL`, and a subquery to generate the message content. Here's a friendly and simplified explanation of inserting data into the chat_messages table:
+
+1. **Columns to Insert**: Specifies `created_at`, `chat_id`, `chat_created_at`, and `message` as the columns to receive the inserted data in the `chat_messages` table.
+
+2. **Selecting Data**: The `SELECT` statement is used to generate the data to be inserted into these columns.
+
+3. **Generating Message Creation Times**: For each row in the `chats` table, the `generate_series` function is used in conjunction with `CROSS JOIN LATERAL` to create a series of timestamps (aliased as `mca` for "message creation at"). This series starts at the chat's `created_at` time and ends one day later, with one timestamp generated for every minute within that day.
+
+4. **Setting `chat_id` and `chat_created_at`**: For each generated timestamp, the `chats.id` and `chats.created_at` are selected to associate each message with its corresponding chat and to denote when the chat was originally created.
+
+5. **Generating Random Messages**: The `message` column's values are determined by a subquery that selects a random element from a predefined array of texts: `'hello'`, `'goodbye'`, and `'I would like a sandwich please'`. This is accomplished by creating an array of these texts, indexing it with a random number truncated and cast to an integer (`trunc(random() * 3)::int`), which effectively selects an index between 0 and 2 (inclusive). The selected text from the array is then used as the message content.
+
+6. The `CROSS JOIN LATERAL` allows for each row in the `chats` table to be joined with the result of the lateral subquery (`b`). A lateral join enables the subquery to reference columns from the preceding tables in the `FROM` clause (`chats` in this case). This technique is particularly useful for applying operations that need to use values from each row of the `chats` table as input, such as generating a series of timestamps based on each chat's `created_at` time.
+
+Additionally, instead of using random texts, we can explore the possibility of creating more meaningful data using [postgresql_faker](https://gitlab.com/dalibo/postgresql_faker).
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi)!
+
+![](/static/images/articles/pull-request-best-practices.png)
