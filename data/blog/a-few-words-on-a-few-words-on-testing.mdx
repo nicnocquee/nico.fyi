@@ -1,0 +1,32 @@
+---
+title: 'A few words on "A few words on testing"'
+date: '2024-03-19'
+summary: 'Agree on some, disagree on the others'
+tags: ['dev']
+---
+
+Tech Twitter got buzzing a few days back when [Thorsten Ball opened a discussion about the pains of testing](https://registerspill.thorstenball.com/p/a-few-words-on-testing)—how it's a time-suck to write, run, and debug them. Many devs nodded in agreement, finding tests more of a hassle than a help.
+
+I've got some thoughts on that too. While I'm nodding along with the frustration over flaky tests, I don't exactly buy into the "less is more" approach to testing that Thorsten suggests, nor the idea that sheer developer dedication is the magic bullet. Let's dive into where I'm coming from.
+
+First off, it's a fact: tests can be a headache, especially when they fail for no apparent reason. We've had our share of those at Hyperjump. But, more often than not, when our tests do fail, it's on us—they've actually caught something we've missed!
+
+![Hyperjump failure report](/static/images/articles/hyperjump-failure-report.png.webp)
+
+In my experience, when a test fails in CI but works fine on your local machine, it often points to **differences in dependencies, environment variables, or test data**. That's why I've focused on ensuring our team can easily replicate the CI testing environment on their local setups. By using just two commands—`nix-shell` to set up the local database and other services, and `npm run cypress:local` to run the Cypress tests—we've ensured a consistent testing environment throughout. In the second command, we've taken care to set the environment variables specifically for testing and to reset and populate the database with initial test data. Additionally, we've made sure that the Cypress tests are run using the exact same browser and version, maintaining uniformity in our test conditions. This streamlined approach significantly reduces those frustrating "works on my machine" scenarios.
+
+Right now, we're handling 94 Cypress tests that take around 12-15 minutes to complete in Azure DevOps. On our local machines, these tests usually wrap up in just 5-8 minutes. Of course, I'd prefer everything to be faster, but given the number of bugs these tests have helped us catch before they could sneak into production, I'm pretty comfortable with this trade-off.
+
+![Hyperjump test duration](/static/images/articles/hyperjump-test-duration.png.webp)
+
+Now, to the part I disagree with. The article suggests that if developers are really committed, you don't need a ton of tests. That's a nice thought in theory, but let's face it—motivation isn't a constant. **You're not always going to be dialed in 100%, and that's exactly when slips can occur**. Adding to this, the inherent complexity of software development means that even the most meticulous developers can overlook something. It's all too easy to overlook how a tweak in one part of the code might throw off something else, thanks to [proximity blindness](https://dannyozment.com/cant-see-the-forest-for-the-trees-the-dangers-of-proximity-blindness-2/#:~:text=We%20all%20suffer%20from%20proximity,30000%20foot%20view%20of%20things.). That's the beauty of tests; they act as a safety net, catching those oversights.
+
+Thorsten actually highlighted a quote from a Stack Exchange answer suggesting that developers are paid for working code, not for writing tests. While I understand the point, it misses the mark on recognizing the teamwork aspect of development. In a team, your code interacts with work from folks of varying expertise. Without tests, there's a higher risk of missteps.
+
+So, should you write tests? That's your call. But if **you're part of a team, not in a startup running on empty, and you've got users relying on your app**, I'd say it's a good idea. Focus on integration tests—they tend to offer the best bang for your buck.
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi)!
+
+![](/static/images/articles/pull-request-best-practices.png)
