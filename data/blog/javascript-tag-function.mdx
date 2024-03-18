@@ -1,0 +1,70 @@
+---
+title: 'JavaScript Tag Functions'
+date: '2024-03-21'
+summary: 'Have you heard of it?'
+tags: ['dev', 'javascript']
+---
+
+JavaScript is a language that never ceases to astonish with its flexibility and features. One of the lesser-known but incredibly powerful features of JavaScript is the [Tagged Template Literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates), commonly referred to as Tag Functions.
+
+### What Are JavaScript Tag Functions?
+
+JavaScript Tag Functions are an advanced feature introduced in ES6 (ECMAScript 6) that allows you to parse and manipulate template literals through a function. A template literal is a way to concatenate strings in JavaScript, which can include variables and expressions inside `${}` placeholders.
+
+#### Syntax Basics:
+
+```javascript
+tagFunction`string text ${expression} string text`
+```
+
+In the above syntax, `tagFunction` is a function that is called with the processed parts of the template literal. The first argument of this function is an array of strings (the static parts), and the subsequent arguments are related to the expressions.
+
+### Why Use JavaScript Tag Functions?
+
+Tag Functions provide a higher level of control over string manipulation, allowing you to:
+
+- **Preprocess the String**: You can manipulate strings, sanitize inputs, or create DSLs (Domain-Specific Languages).
+- **Localization**: Use them to localize strings, depending on user settings, without cumbersome if-else statements.
+- **Styled Components**: In frontend frameworks like React, tag functions are used to style components using CSS inside JavaScript.
+- **Security**: They can help in preventing injection attacks by escaping expressions.
+
+### How to Implement a Basic Tag Function
+
+Here's a simple example of a tag function that highlights its utility:
+
+```javascript
+function highlight(strings, ...values) {
+  return strings.reduce((result, str, i) => {
+    return `${result}${str}<span class="highlight">${values[i] || ''}</span>`
+  }, '')
+}
+
+const name = 'JavaScript'
+const output = highlight`Learning ${name} Tag Functions is fun!`
+
+console.log(output) // "Learning <span class="highlight">JavaScript</span> Tag Functions is fun!"
+```
+
+In this example, the `highlight` function adds HTML span tags around any interpolated expressions within the template literal, which could be styled using CSS for highlighting.
+
+### Advanced Use-Cases
+
+Advanced users can dive into more complex scenarios such as:
+
+- **Tagged Templates for Styled Components**: Create CSS-in-JS with tagged templates, which parse CSS and apply styles to components dynamically.
+- **SQL/GraphQL Query Builders**: Craft a tag function that safely creates queries from template literals, preventing SQL injection.
+- **Internationalization**: Design a tag function that handles multiple languages and regional formats seamlessly.
+
+### Best Practices
+
+When using JavaScript Tag Functions, keep the following best practices in mind:
+
+- **Keep them Readable**: While it's tempting to show off how clever your code can be, keep tag functions readable and maintainable.
+- **Optimize for Performance**: Tag functions may introduce performance hits if not implemented efficiently, particularly in loops or high-frequency calls.
+- **Security**: Always be vigilant about sanitizing inputs to fend off potential security vulnerabilities.
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi)!
+
+![](/static/images/articles/pull-request-best-practices.png)
