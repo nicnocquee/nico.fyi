@@ -8,7 +8,7 @@ export async function GET() {
     allBlogs.filter((b) => {
       return process.env.NEXT_PUBLIC_SHOW_ALL_POSTS
         ? true
-        : new Date(b.date) < new Date() && !b.draft
+        : new Date(b.date) < new Date() && !b.draft && b.isBlog
     })
   )
 

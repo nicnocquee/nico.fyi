@@ -36,7 +36,7 @@ const generateRss = (config, posts, page = 'feed.xml') => `
 `
 
 async function generateRSS(config, allBlogs, page = 'feed.xml') {
-  const publishPosts = allBlogs.filter((post) => post.draft !== true)
+  const publishPosts = allBlogs.filter((post) => post.draft !== true && post.isBlog)
   // RSS for blog post
   if (publishPosts.length > 0) {
     const rss = generateRss(config, sortPosts(publishPosts))
@@ -62,7 +62,7 @@ const rss = () => {
     allBlogs.filter((b) => {
       return process.env.NEXT_PUBLIC_SHOW_ALL_POSTS
         ? true
-        : new Date(b.date) < new Date() && !b.draft
+        : new Date(b.date) < new Date() && !b.draft && b.isBlog
     })
   )
   console.log('RSS feed generated...')
