@@ -1,0 +1,71 @@
+---
+title: 'Temporal Dead Zone in Javascript'
+date: '2024-03-26'
+summary: 'Or how I learned more about variable declaration in Javascript'
+tags: ['dev', 'javascript']
+---
+
+Recently, I encountered a term on Twitter that piqued my curiosity— the [Temporal Dead Zone](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/let) (TDZ) in JavaScript. Despite its complex-sounding name, the concept behind TDZ is straightforward and plays a crucial role in how JavaScript handles variable declarations.
+
+When you declare variables in JavaScript using `let` and `const`, these declarations introduce a so-called Temporal Dead Zone. But what does that mean? Essentially, **it's a fancy way of saying there's a period where the variable exists but can't be used just yet**. If you try to access the variable in this no-man's land, JavaScript throws a reference error. It's there, but not quite ready for action.
+
+For instance, attempting to log `myVar` before declaring it with `let` causes a `ReferenceError`, showing that you have entered the TDZ:
+
+```javascript
+console.log(myVar) // ReferenceError: Cannot access 'myVar' before initialization
+let myVar = 5
+```
+
+Here, `myVar` is untouchable from the start of the block until the declaration is executed. This illustrates the temporal aspect of TDZ—it's all about timing rather than positioning.
+
+Consider a case where the TDZ's timing plays a crucial role:
+
+```javascript
+{
+  const func = () => console.log(letVar) // TDZ hasn't ended yet but no error here
+  let letVar = 3 // TDZ ends here
+  func() // Called outside TDZ, so it works!
+}
+```
+
+However, TDZ can introduce some confusing scenarios, especially with [lexical scoping](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Closures#lexical_scoping). Take this snippet:
+
+```javascript
+function test() {
+  var foo = 33
+  if (foo) {
+    let foo = foo + 55 // ReferenceError here
+  }
+}
+test()
+```
+
+The `ReferenceError` in the example occurs because the `foo` on the right side of the equation inside the `if` block refers back to the `let foo` declaration. The issue here is that `let foo` hasn't been initialized yet—it's still in the Temporal Dead Zone. This means that although `foo` has been declared, trying to access it before it's officially initialized results in an error because it's still within this so-called dead zone.
+
+Another head-scratcher involves [parameter shadowing](https://en.wikipedia.org/wiki/Variable_shadowing):
+
+```javascript
+function go(n) {
+  console.log(n) // Outputs the object since `n` is not in TDZ
+
+  for (let n of n.a) {
+    console.log(n) // Error: n is in TDZ
+  }
+}
+
+go({ a: [1, 2, 3] })
+```
+
+This error highlights how the `n` within the loop's TDZ shadows the parameter `n`, causing confusion when we try to access `n.a`.
+
+So, why does JavaScript have the TDZ? It's all about reducing errors. Without the TDZ, it'd be easy to accidentally use variables before they're properly set up, leading to subtle bugs. The TDZ encourages cleaner, more predictable coding by enforcing a stricter order of variable declaration and initialization.
+
+If you're wondering how this compares to variables declared with `var`, here's the deal: `var` declarations are [hoisted](https://developer.mozilla.org/en-US/docs/Glossary/Hoisting) to the top of their scope, making them accessible before their actual declaration line, albeit as `undefined`. This lack of a TDZ with `var` can lead to its own pitfalls and confusions.
+
+Knowing about the Temporal Dead Zone (TDZ) in JavaScript is crucial for writing strong, bug-free code. It helps you have a better development process. When you're declaring variables, always keep the TDZ in mind to avoid errors from accessing them too soon.
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi)!
+
+![](/static/images/articles/pull-request-best-practices.png)
