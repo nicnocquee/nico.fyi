@@ -1,0 +1,34 @@
+---
+title: 'Simple guide to Monty Hall problem'
+date: '2024-03-27'
+summary: 'Statistics is not my strength'
+tags: ['philosophy', 'personal', 'thought']
+---
+
+Ever stumbled upon a probability puzzle that seems counterintuitive at first glance but is actually grounded in solid math? Welcome to the Monty Hall Problem. It's named after the host of the game show "Let's Make a Deal," where contestants picked doors to win prizes. Here’s the lowdown on this fascinating problem and why it messes with our intuition.
+
+![](/static/images/articles/monty-hall.png.webp)
+
+Imagine you're on a game show. You're presented with three doors: behind one is a car (the prize you want), and behind the others, goats. You pick a door, say number one. Before revealing what's behind it, the host, who knows what's behind each door, opens another door, say number three, to reveal a goat. He then asks if you'd like to stick with your original choice or switch to the remaining unopened door. What would you do? Stick or switch?
+
+Intuitively, it might seem like it doesn't matter. There are two doors left, so it feels like a 50/50 chance, right? Wrong. And here's why.
+
+When you made your initial choice, the odds of picking the car were 1 in 3. The odds of the car being behind one of the other two doors were 2 in 3. When the host reveals a goat behind one of those two doors, **he hasn't really changed the odds of your initial choice**. It was 1 in 3 then, and it's still 1 in 3. However, he has effectively consolidated the 2 in 3 chance of the car not being behind your chosen door into the one remaining door. So, switching gives you a 2 in 3 chance of winning the car.
+
+Let's break it down further. If you always switch, here are the possible scenarios:
+
+1. **You initially choose the door with the car:** The host shows a goat behind one of the remaining doors. You switch, and now you end up with a goat.
+
+2. **You initially choose a door with a goat:** The host shows the other goat. You switch, and voila, you win the car.
+
+In two out of three scenarios, switching wins you the car. The math is clear: **switching increases your chances of winning from 1/3 to 2/3**.
+
+![](/static/images/articles/goat-car.png.webp)
+
+Why does this puzzle trip us up? It's mainly because our brains are not naturally wired to process probability and statistics intuitively. The Monty Hall Problem is a classic example of how counterintuitive probability can be. It's not just a quirky puzzle but a lesson in critical thinking and questioning our assumptions.
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi)!
+
+![](/static/images/articles/pull-request-best-practices.png)
