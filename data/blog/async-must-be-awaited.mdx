@@ -27,7 +27,7 @@ main()
 
 The issue arose because the function, though marked as `async`, didn’t actually perform any asynchronous operations, making the `async` designation unnecessary. **To ensure errors in async functions are captured by try-catch blocks, these functions must be invoked with an `await`**. Alternatively, I could also remove the `async` from `doSomething` function. This way I don't need to use `await` when calling the function.
 
-You might think that it's so silly to make this mistake. But mind you that the code in the repository had more lines and more complex.  
+You might think that it's so silly to make this mistake. But mind you that the code in the repository had more lines and more complex.
 
 ---
 

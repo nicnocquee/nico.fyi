@@ -1,11 +1,11 @@
 ---
-title: "Checking File Existence Efficiently Using Range Requests"
+title: 'Checking File Existence Efficiently Using Range Requests'
 date: '2024-01-18'
 summary: Just a byte. No need for everything.
 tags: ['dev']
 ---
 
-In the modern web, where resources and data are abundant, efficiency is key. One particularly neat trick that web developers and system administrators might find useful is checking the existence of a file on a server without downloading the entire file. This is especially handy for large files, where downloading the whole thing just to check its existence is impractical. The solution? **HTTP range requests**. 
+In the modern web, where resources and data are abundant, efficiency is key. One particularly neat trick that web developers and system administrators might find useful is checking the existence of a file on a server without downloading the entire file. This is especially handy for large files, where downloading the whole thing just to check its existence is impractical. The solution? **HTTP range requests**.
 
 Range requests are a feature of the HTTP protocol that _allow users to request a part of a file from a server_. This is done using the `Range` HTTP header. For example, requesting the first 500 bytes of a file can be done by setting the header to `Range: bytes=0-499`.
 

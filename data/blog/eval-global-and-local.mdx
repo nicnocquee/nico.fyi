@@ -23,29 +23,29 @@ Understanding the difference between local and global scope execution in `eval` 
 
 - **Local Scope (`eval` Direct Call)**: A direct call to `eval` can access and modify local variables within the function it's called in. For example:
 
-   ```javascript
-   function localEval() {
-     var x = 10;
-     eval('x = 5');
-     return x; // x is modified to 5
-   }
-   console.log(localEval()); // Outputs 5
-   ```
+  ```javascript
+  function localEval() {
+    var x = 10
+    eval('x = 5')
+    return x // x is modified to 5
+  }
+  console.log(localEval()) // Outputs 5
+  ```
 
-   Here, `eval` directly interacts with the local variable `x`.
+  Here, `eval` directly interacts with the local variable `x`.
 
 - **Global Scope (Indirect `eval` Call)**: Indirectly calling `eval`, as in `(1, eval)('x = 5')`, confines its operation to the global scope. It doesn't interact with the local variables of its enclosing function.
 
-   ```javascript
-   function globalEval() {
-     var x = 10;
-     (1, eval)('x = 5');
-     return x; // x remains 10
-   }
-   console.log(globalEval()); // Outputs 10
-   ```
+  ```javascript
+  function globalEval() {
+    var x = 10
+    ;(1, eval)('x = 5')
+    return x // x remains 10
+  }
+  console.log(globalEval()) // Outputs 10
+  ```
 
-   Despite attempting to modify `x`, the indirect call to `eval` doesn't affect the local variable `x`.
+  Despite attempting to modify `x`, the indirect call to `eval` doesn't affect the local variable `x`.
 
 **Conclusion**
 
