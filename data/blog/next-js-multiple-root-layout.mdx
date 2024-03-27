@@ -1,0 +1,33 @@
+---
+title: How to have multiple root layouts in Next.js with App Router
+date: '2024-03-28'
+summary: Different routes in Next.js with App Router can have different root layouts.
+tags: ['dev', 'nextjs']
+---
+
+Recently, [shadcn](https://twitter.com/shadcn) introduced a cool update in Shadcn/ui called [Blocks](https://ui.shadcn.com/blocks), which includes ready-to-use layouts such as admin dashboards with a sidebar, marketing sections, and more. This caught my attention, and I decided to give it a try on this blog. Creating a new page and adding a block is simple. However, there's a slight issue with my blog's root layout. It uses a [SectionContainer](https://github.com/nicnocquee/nico.fyi/blob/60661d8a4403883063d491dfc77b04e39642c31f/components/SectionContainer.tsx#L9) component that restricts the page width to `max-w-3xl`. This constraint caused the blocks to appear off.
+
+![](/static/images/articles/blocks-weird.png.webp)
+
+I figured I needed a different layout for pages showcasing these blocks. There are a couple of ways to handle this. One option is to simplify the root layout and assign the `SectionContainer`-based layout to specific blog routes. But I prefer not to split the blog's layout across multiple files.
+
+Thankfully, Next.js with App Router offers a solution to use [multiple root layouts for various routes through Route Groups](https://nextjs.org/docs/app/building-your-application/routing/route-groups#creating-multiple-root-layouts). My goal is to maintain the current layout for blog routes and introduce a new layout for block displays accessible via [/experiments/shadcn/dashboard-01](/experiments/shadcn/dashboard-01) and others.
+
+So, I set up two route groups named `experiments` and `main`. The `experiments` group has a basic root layout in [`/app/(experiments)/layout.tsx`](<https://github.com/nicnocquee/nico.fyi/blob/main/app/(experiments)/layout.tsx>), while I moved the blog routes to the `main` group with the original layout defined in [`/app/(main)/layout.tsx`](<https://github.com/nicnocquee/nico.fyi/blob/main/app/(main)/layout.tsx>).
+
+![](/static/images/articles/route-groups.png.webp)
+
+Now, the blocks are displayed perfectly on these pages:
+
+- [/experiments/shadcn/dashboard-01](/experiments/shadcn/dashboard-01)
+- [/experiments/shadcn/dashboard-02](/experiments/shadcn/dashboard-02)
+- [/experiments/shadcn/dashboard-03](/experiments/shadcn/dashboard-03)
+- [/experiments/shadcn/dashboard-04](/experiments/shadcn/dashboard-04)
+- [/experiments/shadcn/authentication-01](/experiments/shadcn/authentication-01)
+- [/experiments/shadcn/authentication-02](/experiments/shadcn/authentication-02)
+- [/experiments/shadcn/authentication-03](/experiments/shadcn/authentication-03)
+- [/experiments/shadcn/authentication-04](/experiments/shadcn/authentication-04)
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
