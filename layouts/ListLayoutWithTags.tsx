@@ -10,7 +10,7 @@ import Link from '@/components/Link'
 import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
 import tagData from 'app/tag-data.json'
-import { routes } from 'app/blog/routes'
+import { routes } from '@/app/(main)/blog/routes'
 
 interface PaginationProps {
   totalPages: number
