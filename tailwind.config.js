@@ -45,7 +45,11 @@ module.exports = {
         sans: ['var(--font-space-grotesk)', ...fontFamily.sans],
       },
       colors: {
-        primary: colors.pink,
+        primary: {
+          ...colors.pink,
+          DEFAULT: colors.pink[500],
+          foreground: 'hsl(var(--primary-foreground))',
+        },
         gray: colors.gray,
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
