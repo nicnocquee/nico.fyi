@@ -1,0 +1,56 @@
+---
+title: A Simple Guide to Using section-* in HTML Forms for Autocomplete
+date: '2024-03-29'
+summary: Prevent the browser from mixing up your form fields when using autocomplete.
+tags: ['dev', 'html']
+---
+
+Ever filled out an online form and noticed how it tries to guess the rest of your information? That's autocomplete in action—a handy tool that makes filling out forms faster. But when you have a big form, things can get tricky. That's where "section-\*" comes into play.
+
+## What's This "section-\*" Thing Anyway?
+
+Think of a form on a website. Sometimes, these forms ask for a lot of the same info but in different parts. Let's say you're buying something online. You've got a section for your shipping address and another one for your billing address. Both ask for similar details—where you live, your city, and so on. Without some guidance, your browser might get confused and mix things up.
+
+That's where "section-\*" steps in. It's a simple way to tell your browser, **"Hey, keep these parts separate when you're trying to help out with autocomplete."**
+
+## Breaking It Down
+
+The "section-" part is your cue to the browser that you're starting a new section. The "\*" is where you get to be specific about what the section is for. You could name one section "shipping" and another "billing," for example.
+
+## How to Use It
+
+Let's put this into a real-world scenario. You're setting up a form for an online shop. You want to make sure that when your customers fill out their shipping and billing addresses, the browser knows not to mix up the two.
+
+Here's a snippet of how you might do that:
+
+```html
+<!-- Shipping address section -->
+<div>
+  <input name="shipping-street" autocomplete="section-shipping street-address" />
+  <input name="shipping-city" autocomplete="section-shipping address-level2" />
+</div>
+
+<!-- Billing address section -->
+<div>
+  <input name="billing-street" autocomplete="section-billing street-address" />
+  <input name="billing-city" autocomplete="section-billing address-level2" />
+</div>
+```
+
+Give it a try below. **Note that this works in Chrome but it doesn't seem to work in Safari for macOS. I'm not sure why, but it's something that I'll have to look into.**
+
+<AutocompleteSection />
+
+In this example, we've got two sections: one for shipping and one for billing. By tagging each input with "section-shipping" or "section-billing," we're giving the browser a heads-up on how to handle autocomplete without mixing things up.
+
+## Why Bother?
+
+It makes life easier for your users. They won't have to correct the autocomplete if it gets things wrong because you've already set the boundaries. Happier users, smoother checkout process, and less frustration all around.
+
+## Wrapping Up
+
+"section-\*" might seem like a small thing, but it's all about those little details that make a website pleasant to use. By using it in your forms, you're helping ensure that autocomplete does its job right, making everyone's life a bit easier. Give it a try next time you're working on a form that asks for similar information in different sections. You'll be surprised at how simple and effective it is.
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
