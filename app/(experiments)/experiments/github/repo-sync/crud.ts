@@ -57,7 +57,7 @@ const markdownSchema = z.object({
 
 export const getMarkdownFiles = async () => {
   const { auth, apiVersion, ...rest } = repoConfig
-  const response = await octokit.request(`GET /repos/{owner}/{repo}/contents/{path}`, {
+  const response = await octokit.request(`GET /repos/{owner}/{repo}/contents/{path}?ref={ref}`, {
     ...rest,
     headers: {
       accept: 'application/vnd.github.v3+json',
@@ -72,7 +72,7 @@ export const getMarkdownFiles = async () => {
 
 export const getMarkdownFile = async (file: string) => {
   const { auth, apiVersion, ...rest } = repoConfig
-  const response = await octokit.request(`GET /repos/{owner}/{repo}/contents/{path}`, {
+  const response = await octokit.request(`GET /repos/{owner}/{repo}/contents/{path}?ref={ref}`, {
     ...rest,
     headers: {
       accept: 'application/vnd.github.raw+json',
@@ -81,8 +81,25 @@ export const getMarkdownFile = async (file: string) => {
     path: file,
   })
 
-  const fileContent = z.string().parse(response.data)
-  const fileData = markdownSchema.parse(matter(fileContent))
+  const raw = z.string().parse(response.data)
+  const markdown = markdownSchema.parse(matter(raw))
 
-  return fileData
+  return { markdown, raw }
+}
+
+export const editMarkdownFile = async (file: z.infer<typeof fileSchema>, content: string) => {
+  const { auth, apiVersion, ...rest } = repoConfig
+  const response = await octokit.request(`PUT /repos/{owner}/{repo}/contents/{path}?ref={ref}`, {
+    ...rest,
+    headers: {
+      accept: 'application/vnd.github.v3+json',
+      'X-GitHub-Api-Version': apiVersion,
+    },
+    path: file.path,
+    message: `Update ${file.name}`,
+    content: Buffer.from(content).toString('base64'),
+    sha: file.sha,
+  })
+
+  return response
 }
