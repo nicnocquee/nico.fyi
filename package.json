@@ -51,7 +51,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "cmdk": "^1.0.0",
-    "contentlayer": "0.3.4",
+    "contentlayer2": "0.4.4",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.0.0",
     "esbuild": "0.20.2",
@@ -61,10 +61,10 @@
     "input-otp": "^1.2.3",
     "lucide-react": "^0.363.0",
     "next": "^14",
-    "next-contentlayer": "^0.3.4",
+    "next-contentlayer2": "0.4.4",
     "next-themes": "^0.3.0",
     "open-props": "^1.6.21",
-    "pliny": "^0.1.7",
+    "pliny": "^0.2",
     "postcss": "^8.4.36",
     "react": "^18",
     "react-day-picker": "^8.10.0",
@@ -73,13 +73,13 @@
     "react-resizable-panels": "^2.0.16",
     "reading-time": "1.5.0",
     "rehype-autolink-headings": "^7.1.0",
-    "rehype-citation": "^1",
-    "rehype-katex": "^6",
-    "rehype-preset-minify": "^6",
+    "rehype-citation": "^2",
+    "rehype-katex": "^7",
+    "rehype-preset-minify": "^7",
     "rehype-prism-plus": "^2.0.0",
     "rehype-slug": "^6.0.0",
     "remark": "^15.0.1",
-    "remark-gfm": "^3",
+    "remark-gfm": "^4",
     "remark-math": "^6.0.0",
     "sharp": "^0.33.2",
     "sonner": "^1.4.41",
@@ -122,17 +122,14 @@
     "@opentelemetry/resources": "1.13.0",
     "@opentelemetry/sdk-trace-base": "1.13.0",
     "@opentelemetry/sdk-trace-node": "1.13.0",
-    "@opentelemetry/semantic-conventions": "1.13.0",
-    "contentlayer": "0.3.4",
-    "next-contentlayer": {
-      "next": "$next"
-    }
+    "@opentelemetry/semantic-conventions": "1.13.0"
   },
   "volta": {
     "node": "20.12.0"
   },
   "trustedDependencies": [
     "@vercel/speed-insights",
+    "contentlayer2",
     "protobufjs"
   ]
 }
