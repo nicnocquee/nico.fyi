@@ -130,5 +130,9 @@
   },
   "volta": {
     "node": "20.12.0"
-  }
+  },
+  "trustedDependencies": [
+    "@vercel/speed-insights",
+    "protobufjs"
+  ]
 }
