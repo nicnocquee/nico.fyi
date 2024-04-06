@@ -2,13 +2,18 @@
 
 import { useAtom } from 'jotai'
 import { atomWithStorage, useResetAtom } from 'jotai/utils'
-import { nanoid } from 'nanoid'
 import Image from 'next/image'
-import React from 'react'
+import React, { ComponentProps } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
+
+const title = 'Should you use Vercel?'
+const description = `Vercel recently updated their pricing model which caused some uproar among developers. Answer the following questions to find out if you should use Vercel or not.`
 
 interface NodeBase {
   text?: string
   image?: string
+  info?: string
 }
 
 interface NodeText extends NodeBase {
@@ -66,83 +71,123 @@ const projectTrafficNode: NodeText = {
   type: 'text',
   text: 'Does your project have lots of traffic?',
 }
-
-const useVercelEnd = {
-  content: useVercelNode,
-  id: nanoid(),
-  options: [],
-}
-const dontUseVercelEnd = {
-  content: dontUseVercelNode,
-  id: nanoid(),
-  options: [],
+const mentionedByGuillermoNode: NodeText = {
+  type: 'text',
+  text: 'Do you want to have the chance to have your project mentioned by <a href="https://twitter.com/rauchg">Guillermo Rauch</a>?',
 }
 
-const serverExperienceNodeId = nanoid()
+const vercelEnd = (idSuffix: string, info?: string) => ({
+  content: {
+    ...useVercelNode,
+    info,
+  },
+  id: `use-vercel-${idSuffix}`,
+  options: [],
+})
+const dontUseVercelEnd = (idSuffix: string, info?: string) => ({
+  content: {
+    ...dontUseVercelNode,
+    info,
+  },
+  id: `dont-use-vercel-${idSuffix}`,
+  options: [],
+})
+
+const serverExperienceNodeId = 'server-experience'
 
 // Build the decision tree using the defined nodes
 const decisionTree: DecisionNode = {
   content: usingFrameworkNode,
-  id: nanoid(),
+  id: 'using-framework',
   options: [
     {
       content: yesNode,
-      id: nanoid(),
+      id: 'yes-use-framework',
       next: {
         content: brandNewProjectNode,
-        id: nanoid(),
+        id: 'brand-new-project',
         options: [
           {
             content: yesNode,
-            id: nanoid(),
+            id: 'yes-brand-new-project',
             next: {
               content: trafficScaleNode,
-              id: nanoid(),
+              id: 'traffic-scale',
               options: [
                 {
                   content: trafficConfidenceHighNode,
-                  id: nanoid(),
+                  id: 'traffic-confidence-high',
                   next: {
                     content: serverExperienceNode,
                     id: serverExperienceNodeId,
                     options: [
                       {
                         content: yesNode,
-                        id: nanoid(),
-                        next: dontUseVercelEnd,
+                        id: 'yes-server-experience',
+                        next: {
+                          content: mentionedByGuillermoNode,
+                          id: 'mentioned-by-guillermo',
+                          options: [
+                            {
+                              content: yesNode,
+                              id: 'yes-mentioned-by-guillermo',
+                              next: vercelEnd(
+                                'yes-mentioned-by-guillermo',
+                                `It's <strong>actually</strong> better to host your project on your own server but by hosting it on Vercel, you have the chance to get exposure by having your project mentioned by Guillermo Rauch.`
+                              ),
+                            },
+                            {
+                              content: noNode,
+                              id: 'no-mentioned-by-guillermo',
+                              next: dontUseVercelEnd(
+                                'no-mentioned-by-guillermo',
+                                `If you host it on Vercel, you might be charged a lot because of the high traffic. So host it on your own since you have the resources to do so.`
+                              ),
+                            },
+                          ],
+                        },
                       },
                       {
                         content: noNode,
-                        id: nanoid(),
-                        next: useVercelEnd,
+                        id: 'no-server-experience',
+                        next: vercelEnd(
+                          'no-server-experience',
+                          `Maintaining a server is not an easy task. You have to take care of software upgrade, security, traffic management, etc. Better to focus on your project by deploying it on Vercel.`
+                        ),
                       },
                     ],
                   },
                 },
                 {
                   content: trafficConfidenceLowNode,
-                  id: nanoid(),
-                  next: useVercelEnd,
+                  id: 'traffic-confidence-low',
+                  next: vercelEnd(
+                    'traffic-confidence-low',
+                    `Vercel has an attractive free plan so you can try it out to see if there's a product market fit.`
+                  ),
                 },
               ],
             },
           },
           {
             content: noNode,
-            id: nanoid(),
+            id: 'no-use-framework',
             next: {
               content: projectTrafficNode,
-              id: nanoid(),
+              id: 'project-traffic',
               options: [
                 {
                   content: yesNode,
-                  id: nanoid(),
+                  id: 'yes-project-traffic',
                   next: serverExperienceNodeId,
                 },
                 {
                   content: noNode,
-                  id: nanoid(),
-                  next: useVercelEnd,
+                  id: 'no-project-traffic',
+                  next: vercelEnd(
+                    'no-project-traffic',
+                    `It's better deploy to Vercel so that you can focus on your project instead of maintaining a server.`
+                  ),
                 },
               ],
             },
@@ -152,8 +197,8 @@ const decisionTree: DecisionNode = {
     },
     {
       content: noNode,
-      id: nanoid(),
-      next: dontUseVercelEnd,
+      id: 'no-framework',
+      next: dontUseVercelEnd('no-framework', `Why are you even thinking about using Vercel?`),
     },
   ],
 }
@@ -173,8 +218,7 @@ function findNodeById(
     for (const option of node.options) {
       if (option.next) {
         if (typeof option.next === 'string') {
-          const found = findNodeById(rootNode, option.next, rootNode)
-          if (found) return found
+          continue
         } else {
           const found = findNodeById(option.next, id, rootNode)
           if (found) return found
@@ -195,12 +239,15 @@ type OnSelect = (
 const OptionNodeComponent = ({
   node,
   onSelect,
+  variant,
 }: {
   node: DecisionNode['options'][number]
+  variant?: ComponentProps<typeof Button>['variant']
   onSelect: OnSelect
 }) => {
   return (
-    <button
+    <Button
+      variant={variant}
       onClick={() => {
         if (node.next) {
           onSelect(node.id, typeof node.next === 'string' ? node.next : node.next.id)
@@ -211,21 +258,40 @@ const OptionNodeComponent = ({
         <Image alt="" src={node.content.image} width={100} height={100} />
       ) : null}
       {node.content.text ? <div>{node.content.text}</div> : null}
-    </button>
+    </Button>
   )
 }
 
 const DecisionNodeComponent = ({ node, onSelect }: { node: DecisionNode; onSelect: OnSelect }) => {
   return (
-    <div>
-      {node.content.image ? (
-        <Image alt="" src={node.content.image} width={100} height={100} />
-      ) : null}
-      {node.content.text ? <div>{node.content.text}</div> : null}
-      {node.options.map((option) => (
-        <OptionNodeComponent key={option.id} node={option} onSelect={onSelect} />
-      ))}
-    </div>
+    <Card className="max-w-md">
+      <CardHeader>
+        {node.content.image ? (
+          <Image alt="" src={node.content.image} width={100} height={100} />
+        ) : null}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {node.content.text ? <div dangerouslySetInnerHTML={{ __html: node.content.text }} /> : null}
+        <div className="flex flex-row-reverse justify-between">
+          {node.options.map((option, i) => (
+            <OptionNodeComponent
+              key={option.id}
+              node={option}
+              onSelect={onSelect}
+              variant={i === 0 ? 'default' : 'outline'}
+            />
+          ))}
+        </div>
+      </CardContent>
+      <CardFooter>
+        {node.content.info ? (
+          <div
+            className="text-sm text-gray-500"
+            dangerouslySetInnerHTML={{ __html: node.content.info }}
+          />
+        ) : null}
+      </CardFooter>
+    </Card>
   )
 }
 
@@ -233,7 +299,7 @@ const userAnswers = atomWithStorage<UserAnswers>('answers', [])
 const answeredNodes = atomWithStorage<DecisionNode['id'][]>('answeredNodes', [decisionTree.id])
 
 const FlowchartPage = () => {
-  const [answers, setAnswers] = useAtom(userAnswers)
+  const [, setAnswers] = useAtom(userAnswers)
   const [answeredNodeIds, setAnsweredNodeIds] = useAtom(answeredNodes)
   const resetAnswers = useResetAtom(userAnswers)
   const resetAnswered = useResetAtom(answeredNodes)
@@ -245,28 +311,38 @@ const FlowchartPage = () => {
 
   const currentDecisionNode = findNodeById(decisionTree, lastNode, decisionTree)
 
-  if (!currentDecisionNode) {
-    return <div>No node found</div>
-  }
-
   return (
-    <div>
-      <DecisionNodeComponent
-        node={currentDecisionNode}
-        onSelect={(id, nextId) => {
-          setAnsweredNodeIds((prev) => [...prev, nextId])
-          setAnswers((prev) => [...prev, id])
-        }}
-      />
-      <button
-        onClick={() => {
-          resetAnswered()
-          resetAnswers()
-        }}
-      >
-        Reset
-      </button>
-      <div>{answers.join(' > ')}</div>
+    <div className="relative">
+      <div className="absolute left-0 top-0 w-full">
+        <div className="mx-auto max-w-3xl space-y-2 p-4 text-center">
+          <h1 className="text-6xl font-bold">{title}</h1>
+          <p className="text-gray-500">{description}</p>
+        </div>
+      </div>
+      <div className="flex min-h-screen flex-col items-center justify-center">
+        {currentDecisionNode ? (
+          <DecisionNodeComponent
+            node={currentDecisionNode}
+            onSelect={(id, nextId) => {
+              setAnsweredNodeIds((prev) => [...prev, nextId])
+              setAnswers((prev) => [...prev, id])
+            }}
+          />
+        ) : null}
+      </div>
+      <div className="absolute bottom-0 right-0 p-4">
+        <Button
+          variant="outline"
+          size="sm"
+          className="mr-auto"
+          onClick={() => {
+            resetAnswered()
+            resetAnswers()
+          }}
+        >
+          Reset
+        </Button>
+      </div>
     </div>
   )
 }
