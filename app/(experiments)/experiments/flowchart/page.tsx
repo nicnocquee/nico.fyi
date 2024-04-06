@@ -11,14 +11,14 @@ const title = 'Should you use Vercel?'
 const description = `Vercel recently updated their pricing model which caused some uproar among developers. Answer the following questions to find out if you should use Vercel or not.`
 
 interface NodeBase {
-  text?: string
+  text?: string | React.ReactNode
   image?: string
-  info?: string
+  info?: string | React.ReactNode
 }
 
 interface NodeText extends NodeBase {
   type: 'text'
-  text: string
+  text: string | React.ReactNode
 }
 
 interface NodeImage extends NodeBase {
@@ -28,7 +28,7 @@ interface NodeImage extends NodeBase {
 
 interface NodeTextImage extends NodeBase {
   type: 'text-image'
-  text: string
+  text: string | React.ReactNode
   image: string
 }
 
@@ -50,22 +50,28 @@ type UserAnswers = DecisionNode['options'][number]['id'][]
 // Define content nodes
 const usingFrameworkNode: NodeText = {
   type: 'text',
-  text: 'Are you using a framework like Next.js or Remix?',
+  text: 'Are you using a framework like <a target="_blank" href="https://nextjs.org/">Next.js</a> or <a target="_blank" href="https://remix.run/">Remix</a>?',
 }
 const yesNode: NodeText = { type: 'text', text: 'Yes' }
 const noNode: NodeText = { type: 'text', text: 'No' }
 const brandNewProjectNode: NodeText = { type: 'text', text: 'Is it a brand new web project?' }
 const trafficScaleNode: NodeText = {
   type: 'text',
-  text: 'From the scale 0-10, using comfort, how sure are you with your project getting lots of traffic?',
+  text: 'From the scale 0-10, 10 being the most confident, how sure are you with your project getting lots of traffic?',
 }
 const trafficConfidenceHighNode: NodeText = { type: 'text', text: '6-10' }
 const serverExperienceNode: NodeText = {
   type: 'text',
   text: 'Have you or anyone in your team set up a server before?',
 }
-const dontUseVercelNode: NodeText = { type: 'text', text: "Don't use Vercel" }
-const useVercelNode: NodeText = { type: 'text', text: 'Just use Vercel' }
+const dontUseVercelNode: NodeText = {
+  type: 'text',
+  text: <p className="text-5xl font-bold">Don't use Vercel</p>,
+}
+const useVercelNode: NodeText = {
+  type: 'text',
+  text: <p className="text-5xl font-bold">Just use Vercel</p>,
+}
 const trafficConfidenceLowNode: NodeText = { type: 'text', text: '1-5' }
 const projectTrafficNode: NodeText = {
   type: 'text',
@@ -73,7 +79,7 @@ const projectTrafficNode: NodeText = {
 }
 const mentionedByGuillermoNode: NodeText = {
   type: 'text',
-  text: 'Do you want to have the chance to have your project mentioned by <a href="https://twitter.com/rauchg">Guillermo Rauch</a>?',
+  text: 'Do you want to have the chance to have your project mentioned by <a target="_blank" href="https://twitter.com/rauchg">Guillermo Rauch</a>, the CEO of Vercel?',
 }
 
 const vercelEnd = (idSuffix: string, info?: string) => ({
@@ -186,7 +192,7 @@ const decisionTree: DecisionNode = {
                   id: 'no-project-traffic',
                   next: vercelEnd(
                     'no-project-traffic',
-                    `It's better deploy to Vercel so that you can focus on your project instead of maintaining a server.`
+                    `It's better to deploy to Vercel so that you can focus on your project instead of maintaining a server.`
                   ),
                 },
               ],
@@ -264,14 +270,20 @@ const OptionNodeComponent = ({
 
 const DecisionNodeComponent = ({ node, onSelect }: { node: DecisionNode; onSelect: OnSelect }) => {
   return (
-    <Card className="max-w-md">
+    <Card className="max-w-md [&_a]:underline">
       <CardHeader>
         {node.content.image ? (
           <Image alt="" src={node.content.image} width={100} height={100} />
         ) : null}
       </CardHeader>
       <CardContent className="space-y-4">
-        {node.content.text ? <div dangerouslySetInnerHTML={{ __html: node.content.text }} /> : null}
+        {node.content.text ? (
+          typeof node.content.text === 'string' ? (
+            <div dangerouslySetInnerHTML={{ __html: node.content.text }} />
+          ) : (
+            node.content.text
+          )
+        ) : null}
         <div className="flex flex-row-reverse justify-between">
           {node.options.map((option, i) => (
             <OptionNodeComponent
@@ -285,10 +297,11 @@ const DecisionNodeComponent = ({ node, onSelect }: { node: DecisionNode; onSelec
       </CardContent>
       <CardFooter>
         {node.content.info ? (
-          <div
-            className="text-sm text-gray-500"
-            dangerouslySetInnerHTML={{ __html: node.content.info }}
-          />
+          typeof node.content.info === 'string' ? (
+            <div dangerouslySetInnerHTML={{ __html: node.content.info }} />
+          ) : (
+            node.content.info
+          )
         ) : null}
       </CardFooter>
     </Card>
@@ -314,7 +327,7 @@ const FlowchartPage = () => {
   return (
     <div className="relative">
       <div className="absolute left-0 top-0 w-full">
-        <div className="mx-auto max-w-3xl space-y-2 p-4 text-center">
+        <div className="mx-auto max-w-3xl space-y-4 p-4 text-center">
           <h1 className="text-6xl font-bold">{title}</h1>
           <p className="text-gray-500">{description}</p>
         </div>
