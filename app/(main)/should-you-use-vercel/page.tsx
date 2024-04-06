@@ -325,14 +325,12 @@ const FlowchartPage = () => {
   const currentDecisionNode = findNodeById(decisionTree, lastNode, decisionTree)
 
   return (
-    <div className="relative">
-      <div className="absolute left-0 top-0 w-full">
-        <div className="mx-auto max-w-3xl space-y-4 p-4 text-center">
-          <h1 className="text-6xl font-bold">{title}</h1>
-          <p className="text-gray-500">{description}</p>
-        </div>
+    <div className="flex flex-col items-center justify-center space-y-6">
+      <div className="mx-auto max-w-3xl space-y-4 p-4 text-center">
+        <h1 className="text-6xl font-bold">{title}</h1>
+        <p className="text-gray-500">{description}</p>
       </div>
-      <div className="flex min-h-screen flex-col items-center justify-center">
+      <div className="flex flex-col items-center justify-center">
         {currentDecisionNode ? (
           <DecisionNodeComponent
             node={currentDecisionNode}
@@ -343,7 +341,7 @@ const FlowchartPage = () => {
           />
         ) : null}
       </div>
-      <div className="absolute bottom-0 right-0 p-4">
+      <div>
         <Button
           variant="outline"
           size="sm"
