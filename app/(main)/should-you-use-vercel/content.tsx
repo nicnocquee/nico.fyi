@@ -14,6 +14,7 @@ import {
   useQuery,
 } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
+import AnimateIn from './animate-in'
 
 const title = 'Should you use Vercel?'
 const description = `Vercel recently updated their pricing model which caused some uproar among developers. Answer the following questions to find out if you should use Vercel or not.`
@@ -422,6 +423,18 @@ const Flowchart = () => {
     enabled,
   })
 
+  const animation = isLast
+    ? {
+        from: 'opacity-0 scale-[4]',
+        to: 'opacity-100 scale-100',
+        style: { transitionTimingFunction: 'cubic-bezier(0.25, 0.4, 0.55, 1.4)' },
+      }
+    : {
+        from: 'opacity-0 translate-x-4',
+        to: 'opacity-100 translate-y-0 translate-x-0',
+        style: { transitionTimingFunction: 'cubic-bezier(0.25, 0.4, 0.55, 1.4)' },
+      }
+
   return (
     <div className="flex flex-col items-center justify-center space-y-6">
       <div className="mx-auto max-w-3xl space-y-4 p-4 text-center">
@@ -431,18 +444,21 @@ const Flowchart = () => {
       <div className="flex w-full flex-col items-center justify-center space-y-4">
         {currentDecisionNode ? (
           <>
-            <DecisionNodeComponent
-              node={currentDecisionNode}
-              onSelect={async (id, next) => {
-                const newAnswers = [...answers, id]
-                if (next.options.length === 0) {
-                  const token = await executeRecaptcha('form_submit')
-                  mutate({ answers: newAnswers.join('>>>'), recaptchaToken: token })
-                }
-                setAnswers(newAnswers)
-                setCurrentDecisionNode(next)
-              }}
-            />
+            <AnimateIn key={currentDecisionNode.id} {...animation}>
+              <DecisionNodeComponent
+                node={currentDecisionNode}
+                onSelect={async (id, next) => {
+                  const newAnswers = [...answers, id]
+                  if (next.options.length === 0) {
+                    const token = await executeRecaptcha('form_submit')
+                    mutate({ answers: newAnswers.join('>>>'), recaptchaToken: token })
+                  }
+                  setAnswers(newAnswers)
+                  setCurrentDecisionNode(next)
+                }}
+              />
+            </AnimateIn>
+
             {isLast && !isPending && !isGettingCountPending && data ? (
               <>
                 <Badge className="px-4 py-2">{`🎉 You're one of ${data.count} people who arrived at this recommendation!`}</Badge>
