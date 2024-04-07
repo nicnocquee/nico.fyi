@@ -1,7 +1,7 @@
 'use client'
 import { ReCaptchaProvider, useReCaptcha } from 'next-recaptcha-v3'
 import { useAtom } from 'jotai'
-import { atomWithStorage, useResetAtom } from 'jotai/utils'
+import { atomWithReset, atomWithStorage, useResetAtom } from 'jotai/utils'
 import Image from 'next/image'
 import React, { ComponentProps } from 'react'
 import { Button } from '@/components/ui/button'
@@ -366,22 +366,7 @@ function transformTextToReactElement(node: DecisionNode): DecisionNode {
 }
 
 const userAnswers = atomWithStorage<UserAnswers>('answers', [])
-const currentNode = atomWithStorage<DecisionNode | null>('currentNode', decisionTree, {
-  setItem: (key, value) => {
-    const serialized = JSON.stringify(value)
-    localStorage.setItem(key, serialized)
-  },
-  getItem: (key) => {
-    if (!key) return decisionTree
-    const serialized = localStorage.getItem(key)
-    if (!serialized) return decisionTree
-    const deserialized = transformTextToReactElement(JSON.parse(serialized))
-    return deserialized
-  },
-  removeItem: (key) => {
-    localStorage.removeItem(key)
-  },
-})
+const currentNode = atomWithReset<DecisionNode | null>(decisionTree)
 
 const postCount = async ({ answers, recaptchaToken }) => {
   return await fetch(`/should-you-use-vercel/api`, {
