@@ -444,8 +444,18 @@ const Flowchart = () => {
               }}
             />
             {isLast && !isPending && !isGettingCountPending && data ? (
-              <Badge className="px-4 py-2">{`🎉 You're one of ${data.count} people who arrived at this recommendation!`}</Badge>
-            ) : null}
+              <>
+                <Badge className="px-4 py-2">{`🎉 You're one of ${data.count} people who arrived at this recommendation!`}</Badge>
+                <a
+                  className="underline"
+                  target="_blank"
+                  href={`https://twitter.com/intent/tweet?url=${`https://www.nico.fyi/should-you-use-vercel?use=${currentDecisionNode.id.startsWith(`dont-use-vercel`) ? '0' : '1'}`}&text=${`I'm one of ${data.count} who should ${currentDecisionNode.id.startsWith(`dont-use-vercel`) ? 'not ' : ''}use Vercel!`}`}
+                >
+                  Share on Twitter/X
+                </a>
+              </>
+            ) : //
+            null}
           </>
         ) : null}
       </div>
