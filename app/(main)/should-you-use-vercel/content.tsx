@@ -365,7 +365,7 @@ function transformTextToReactElement(node: DecisionNode): DecisionNode {
   }
 }
 
-const userAnswers = atomWithStorage<UserAnswers>('answers', [])
+const userAnswers = atomWithReset<UserAnswers>([])
 const currentNode = atomWithReset<DecisionNode | null>(decisionTree)
 
 const postCount = async ({ answers, recaptchaToken }) => {
@@ -409,8 +409,9 @@ const Flowchart = () => {
   })
 
   const isLast = currentDecisionNode?.options.length === 0
+  const enabled = isLast && answers.length > 0 && isSuccess && !isPending
 
-  const { data, isPending: isGettingCountPending } = useQuery({
+  const { data, isFetching: isGettingCountPending } = useQuery({
     queryKey: ['answers', answers.join('>>>')],
     queryFn: async () => {
       const data = await fetch(`/should-you-use-vercel/api?answers=${answers.join('>>>')}`).then(
@@ -418,7 +419,7 @@ const Flowchart = () => {
       )
       return data
     },
-    enabled: isLast && answers.length > 0 && isSuccess,
+    enabled,
   })
 
   return (
@@ -433,13 +434,13 @@ const Flowchart = () => {
             <DecisionNodeComponent
               node={currentDecisionNode}
               onSelect={async (id, next) => {
-                setCurrentDecisionNode(next)
                 const newAnswers = [...answers, id]
-                setAnswers(newAnswers)
                 if (next.options.length === 0) {
                   const token = await executeRecaptcha('form_submit')
                   mutate({ answers: newAnswers.join('>>>'), recaptchaToken: token })
                 }
+                setAnswers(newAnswers)
+                setCurrentDecisionNode(next)
               }}
             />
             {isLast && !isPending && !isGettingCountPending && data ? (
