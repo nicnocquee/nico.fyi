@@ -6,9 +6,19 @@ import Image from 'next/image'
 import React, { ComponentProps } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQueryClient,
+  useMutation,
+  useQuery,
+} from '@tanstack/react-query'
+import { Badge } from '@/components/ui/badge'
 
 const title = 'Should you use Vercel?'
 const description = `Vercel recently updated their pricing model which caused some uproar among developers. Answer the following questions to find out if you should use Vercel or not.`
+
+const queryClient = new QueryClient()
 
 interface NodeBase {
   text?: string | React.ReactNode
@@ -35,7 +45,7 @@ interface NodeTextImage extends NodeBase {
 // Then, use a type alias for the union of these interfaces
 type NodeType = NodeText | NodeImage | NodeTextImage
 
-interface DecisionNode {
+export interface DecisionNode {
   id: string
   content: NodeType
   options: {
@@ -139,7 +149,7 @@ const decisionTree: DecisionNode = {
                               id: 'yes-mentioned-by-guillermo',
                               next: vercelEnd(
                                 'yes-mentioned-by-guillermo',
-                                `It's <strong>actually</strong> better to host your project on your own server but by hosting it on Vercel, you have the chance to get exposure by having your project mentioned by Guillermo Rauch.`
+                                `It's <strong>actually</strong> better to host your project on your own server. But by hosting it on Vercel, you have the chance to get exposure by having your project mentioned by Guillermo Rauch. 🙈`
                               ),
                             },
                             {
@@ -147,7 +157,7 @@ const decisionTree: DecisionNode = {
                               id: 'no-mentioned-by-guillermo',
                               next: dontUseVercelEnd(
                                 'no-mentioned-by-guillermo',
-                                `If you host it on Vercel, you might be charged a lot because of the high traffic. So host it on your own since you have the resources to do so.`
+                                `If you host it on Vercel, you might be charged a lot because of the high traffic 🤑. So host it on your own since you have the resources to do so.`
                               ),
                             },
                           ],
@@ -158,7 +168,7 @@ const decisionTree: DecisionNode = {
                         id: 'no-server-experience',
                         next: vercelEnd(
                           'no-server-experience',
-                          `Maintaining a server is not an easy task. You have to take care of software upgrade, security, traffic management, etc. Better to focus on your project by deploying it on Vercel.`
+                          `Maintaining a server is not an easy task. You have to take care of software upgrade, security, traffic management, etc 😵‍💫. Better to focus on your project by deploying it on Vercel.`
                         ),
                       },
                     ],
@@ -237,10 +247,7 @@ function findNodeById(
   return undefined
 }
 
-type OnSelect = (
-  currentId: DecisionNode['options'][number]['id'],
-  id: DecisionNode['options'][number]['id']
-) => void
+type OnSelect = (currentId: DecisionNode['options'][number]['id'], next: DecisionNode) => void
 
 const OptionNodeComponent = ({
   node,
@@ -256,7 +263,14 @@ const OptionNodeComponent = ({
       variant={variant}
       onClick={() => {
         if (node.next) {
-          onSelect(node.id, typeof node.next === 'string' ? node.next : node.next.id)
+          if (typeof node.next === 'string') {
+            const nextNode = findNodeById(decisionTree, node.next, decisionTree)
+            if (nextNode) {
+              onSelect(node.id, nextNode)
+            }
+          } else {
+            onSelect(node.id, node.next)
+          }
         }
       }}
     >
@@ -308,21 +322,112 @@ const DecisionNodeComponent = ({ node, onSelect }: { node: DecisionNode; onSelec
   )
 }
 
-const userAnswers = atomWithStorage<UserAnswers>('answers', [])
-const answeredNodes = atomWithStorage<DecisionNode['id'][]>('answeredNodes', [decisionTree.id])
-
-const Flowchart = () => {
-  const [, setAnswers] = useAtom(userAnswers)
-  const [answeredNodeIds, setAnsweredNodeIds] = useAtom(answeredNodes)
-  const resetAnswers = useResetAtom(userAnswers)
-  const resetAnswered = useResetAtom(answeredNodes)
-
-  const lastNode = answeredNodeIds.at(-1)
-  if (!lastNode) {
-    return <div>No node found</div>
+function transformTextToReactElement(node: DecisionNode): DecisionNode {
+  // Helper function to transform the text if it's not a string
+  const transformText = (text: string | React.ReactNode): React.ReactNode => {
+    if (typeof text === 'string') {
+      return text
+    } else {
+      // Assuming the object has a 'props' property to create a React element
+      // Adjust based on the actual structure of your non-string text objects
+      // @ts-expect-error
+      return React.createElement(text.type, { ...text.props })
+    }
   }
 
-  const currentDecisionNode = findNodeById(decisionTree, lastNode, decisionTree)
+  const transformNodeContent = (content: NodeType): NodeType => {
+    // Check and transform the text property
+    if ('text' in content && content.text) {
+      content.text = transformText(content.text)
+    }
+    return content
+  }
+
+  // Transform the root content
+  const transformedContent = transformNodeContent(node.content)
+
+  // Recursively transform options
+  const transformedOptions = node.options.map((option) => {
+    return {
+      ...option,
+      content: transformNodeContent(option.content),
+      next: option.next ? transformTextToReactElement(option.next as DecisionNode) : undefined,
+    }
+  })
+
+  return {
+    ...node,
+    content: transformedContent,
+    options: transformedOptions,
+  }
+}
+
+const userAnswers = atomWithStorage<UserAnswers>('answers', [])
+const currentNode = atomWithStorage<DecisionNode | null>('currentNode', decisionTree, {
+  setItem: (key, value) => {
+    const serialized = JSON.stringify(value)
+    localStorage.setItem(key, serialized)
+  },
+  getItem: (key) => {
+    if (!key) return decisionTree
+    const serialized = localStorage.getItem(key)
+    if (!serialized) return decisionTree
+    const deserialized = transformTextToReactElement(JSON.parse(serialized))
+    return deserialized
+  },
+  removeItem: (key) => {
+    localStorage.removeItem(key)
+  },
+})
+
+const postCount = async ({ answers }) => {
+  return await fetch(`/should-you-use-vercel/api`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      answers,
+    }),
+  }).then((res) => res.json())
+}
+
+const FlowchartContainer = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Flowchart />
+    </QueryClientProvider>
+  )
+}
+const Flowchart = () => {
+  const [answers, setAnswers] = useAtom(userAnswers)
+  const [currentDecisionNode, setCurrentDecisionNode] = useAtom(currentNode)
+  const resetAnswers = useResetAtom(userAnswers)
+  const resetCurrentNode = useResetAtom(currentNode)
+
+  const queryClient = useQueryClient()
+
+  // Mutations
+  const { mutate, isPending, isSuccess } = useMutation({
+    mutationFn: postCount,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['count'] })
+    },
+    mutationKey: ['count'],
+  })
+
+  const isLast = currentDecisionNode?.options.length === 0
+
+  const { data, isPending: isGettingCountPending } = useQuery({
+    queryKey: ['answers', answers.join('>>>')],
+    queryFn: async () => {
+      const data = await fetch(`/should-you-use-vercel/api?answers=${answers.join('>>>')}`).then(
+        (res) => res.json()
+      )
+      return data
+    },
+    enabled: isLast && answers.length > 0 && isSuccess,
+  })
 
   return (
     <div className="flex flex-col items-center justify-center space-y-6">
@@ -330,15 +435,24 @@ const Flowchart = () => {
         <h1 className="text-6xl font-bold">{title}</h1>
         <p className="text-gray-500">{description}</p>
       </div>
-      <div className="flex flex-col items-center justify-center">
+      <div className="flex flex-col items-center justify-center space-y-4">
         {currentDecisionNode ? (
-          <DecisionNodeComponent
-            node={currentDecisionNode}
-            onSelect={(id, nextId) => {
-              setAnsweredNodeIds((prev) => [...prev, nextId])
-              setAnswers((prev) => [...prev, id])
-            }}
-          />
+          <>
+            <DecisionNodeComponent
+              node={currentDecisionNode}
+              onSelect={(id, next) => {
+                setCurrentDecisionNode(next)
+                const newAnswers = [...answers, id]
+                setAnswers(newAnswers)
+                if (next.options.length === 0) {
+                  mutate({ answers: newAnswers.join('>>>') })
+                }
+              }}
+            />
+            {isLast && !isPending && !isGettingCountPending && data ? (
+              <Badge className="px-4 py-2">{`🎉 You're one of ${data.count} people who arrived at this recommendation!`}</Badge>
+            ) : null}
+          </>
         ) : null}
       </div>
       <div>
@@ -347,7 +461,7 @@ const Flowchart = () => {
           size="sm"
           className="mr-auto"
           onClick={() => {
-            resetAnswered()
+            resetCurrentNode()
             resetAnswers()
           }}
         >
@@ -358,4 +472,4 @@ const Flowchart = () => {
   )
 }
 
-export default Flowchart
+export default FlowchartContainer
