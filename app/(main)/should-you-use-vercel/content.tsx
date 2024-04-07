@@ -1,5 +1,5 @@
 'use client'
-
+import { ReCaptchaProvider, useReCaptcha } from 'next-recaptcha-v3'
 import { useAtom } from 'jotai'
 import { atomWithStorage, useResetAtom } from 'jotai/utils'
 import Image from 'next/image'
@@ -247,7 +247,10 @@ function findNodeById(
   return undefined
 }
 
-type OnSelect = (currentId: DecisionNode['options'][number]['id'], next: DecisionNode) => void
+type OnSelect = (
+  currentId: DecisionNode['options'][number]['id'],
+  next: DecisionNode
+) => Promise<void>
 
 const OptionNodeComponent = ({
   node,
@@ -380,7 +383,7 @@ const currentNode = atomWithStorage<DecisionNode | null>('currentNode', decision
   },
 })
 
-const postCount = async ({ answers }) => {
+const postCount = async ({ answers, recaptchaToken }) => {
   return await fetch(`/should-you-use-vercel/api`, {
     method: 'POST',
     headers: {
@@ -388,18 +391,22 @@ const postCount = async ({ answers }) => {
     },
     body: JSON.stringify({
       answers,
+      recaptchaToken,
     }),
   }).then((res) => res.json())
 }
 
 const FlowchartContainer = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Flowchart />
-    </QueryClientProvider>
+    <ReCaptchaProvider reCaptchaKey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}>
+      <QueryClientProvider client={queryClient}>
+        <Flowchart />
+      </QueryClientProvider>
+    </ReCaptchaProvider>
   )
 }
 const Flowchart = () => {
+  const { executeRecaptcha } = useReCaptcha()
   const [answers, setAnswers] = useAtom(userAnswers)
   const [currentDecisionNode, setCurrentDecisionNode] = useAtom(currentNode)
   const resetAnswers = useResetAtom(userAnswers)
@@ -440,12 +447,13 @@ const Flowchart = () => {
           <>
             <DecisionNodeComponent
               node={currentDecisionNode}
-              onSelect={(id, next) => {
+              onSelect={async (id, next) => {
                 setCurrentDecisionNode(next)
                 const newAnswers = [...answers, id]
                 setAnswers(newAnswers)
                 if (next.options.length === 0) {
-                  mutate({ answers: newAnswers.join('>>>') })
+                  const token = await executeRecaptcha('form_submit')
+                  mutate({ answers: newAnswers.join('>>>'), recaptchaToken: token })
                 }
               }}
             />

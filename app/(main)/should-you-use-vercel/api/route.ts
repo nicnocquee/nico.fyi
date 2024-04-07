@@ -52,8 +52,36 @@ export async function POST(request: Request) {
   const body = await request.json()
   const schema = z.object({
     answers: z.string(),
+    recaptchaToken: z.string(),
   })
-  const { answers } = await schema.parseAsync(body)
+  const { answers, recaptchaToken } = await schema.parseAsync(body)
+
+  if (!recaptchaToken) {
+    return new Response('Missing recaptcha token', {
+      status: 400,
+    })
+  }
+
+  // @ts-expect-error
+  const ip = request.ip || request.headers.get('X-Forwarded-For')
+
+  const recaptchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent':
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
+    },
+    body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}&remoteip=${ip}`,
+  })
+
+  const data = await recaptchaResponse.json()
+
+  if (!data.success) {
+    return new Response('Invalid recaptcha token', {
+      status: 400,
+    })
+  }
 
   const client = createClient({
     url: tursoDbUrl,
