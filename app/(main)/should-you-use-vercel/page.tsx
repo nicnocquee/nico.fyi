@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import Flowchart from './content'
-import OGImage from './opengraph-image.jpg'
+import OGImage from './ogimage.jpg'
 
 export const metadata: Metadata = {
   title: 'Should you use Vercel?',
@@ -14,6 +14,7 @@ export const metadata: Metadata = {
     siteName: 'nico.fyi',
     locale: 'en_US',
     type: 'website',
+    images: [OGImage.src],
   },
   twitter: {
     title: 'Should you use Vercel?',
