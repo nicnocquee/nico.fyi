@@ -287,16 +287,16 @@ const OptionNodeComponent = ({
 
 const DecisionNodeComponent = ({ node, onSelect }: { node: DecisionNode; onSelect: OnSelect }) => {
   return (
-    <Card className="max-w-md [&_a]:underline">
+    <Card className="w-full max-w-md [&_a]:underline">
       <CardHeader>
         {node.content.image ? (
           <Image alt="" src={node.content.image} width={100} height={100} />
         ) : null}
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="w-full space-y-4">
         {node.content.text ? (
           typeof node.content.text === 'string' ? (
-            <div dangerouslySetInnerHTML={{ __html: node.content.text }} />
+            <div className="w-full" dangerouslySetInnerHTML={{ __html: node.content.text }} />
           ) : (
             node.content.text
           )
@@ -312,7 +312,7 @@ const DecisionNodeComponent = ({ node, onSelect }: { node: DecisionNode; onSelec
           ))}
         </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="w-full">
         {node.content.info ? (
           typeof node.content.info === 'string' ? (
             <div dangerouslySetInnerHTML={{ __html: node.content.info }} />
@@ -427,7 +427,7 @@ const Flowchart = () => {
         <h1 className="text-6xl font-bold">{title}</h1>
         <p className="text-gray-500">{description}</p>
       </div>
-      <div className="flex flex-col items-center justify-center space-y-4">
+      <div className="flex w-full flex-col items-center justify-center space-y-4">
         {currentDecisionNode ? (
           <>
             <DecisionNodeComponent
