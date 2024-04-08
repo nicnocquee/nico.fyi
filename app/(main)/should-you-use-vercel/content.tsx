@@ -1,7 +1,7 @@
 'use client'
 import { ReCaptchaProvider, useReCaptcha } from 'next-recaptcha-v3'
 import { useAtom } from 'jotai'
-import { atomWithReset, atomWithStorage, useResetAtom } from 'jotai/utils'
+import { atomWithReset, useResetAtom } from 'jotai/utils'
 import Image from 'next/image'
 import React, { ComponentProps } from 'react'
 import { Button } from '@/components/ui/button'
@@ -15,40 +15,12 @@ import {
 } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
 import AnimateIn from './animate-in'
-import { DecisionNode, NodeType, UserAnswers, decisionTree } from './data'
+import { DecisionNode, NodeType, UserAnswers, decisionTree, findNodeById } from './data'
 
 const title = 'Should you use Vercel?'
 const description = `Vercel recently updated their pricing model which caused some uproar among developers. Answer the following questions to find out if you should use Vercel or not.`
 
 const queryClient = new QueryClient()
-
-function findNodeById(
-  node: DecisionNode,
-  id: string,
-  rootNode: DecisionNode
-): DecisionNode | undefined {
-  // Check if the current node is the one we're looking for
-  if (node.id === id) {
-    return node
-  }
-
-  // If the node has options, iterate over them and search recursively
-  if ('options' in node && node.options.length > 0) {
-    for (const option of node.options) {
-      if (option.next) {
-        if (typeof option.next === 'string') {
-          continue
-        } else {
-          const found = findNodeById(option.next, id, rootNode)
-          if (found) return found
-        }
-      }
-    }
-  }
-
-  // If nothing is found
-  return undefined
-}
 
 type OnSelect = (
   currentId: DecisionNode['options'][number]['id'],

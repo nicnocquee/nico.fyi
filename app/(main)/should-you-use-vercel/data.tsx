@@ -196,3 +196,92 @@ export const decisionTree: DecisionNode = {
     },
   ],
 }
+
+export function findNodeById(
+  node: DecisionNode,
+  id: string,
+  rootNode: DecisionNode
+): DecisionNode | undefined {
+  // Check if the current node is the one we're looking for
+  if (node.id === id) {
+    return node
+  }
+
+  // If the node has options, iterate over them and search recursively
+  if ('options' in node && node.options.length > 0) {
+    for (const option of node.options) {
+      if (option.next) {
+        if (typeof option.next === 'string') {
+          continue
+        } else {
+          const found = findNodeById(option.next, id, rootNode)
+          if (found) return found
+        }
+      }
+    }
+  }
+
+  // If nothing is found
+  return undefined
+}
+
+type ValidationResult = {
+  isValid: boolean
+  message: string
+}
+
+function validateDecisionTree(
+  root: DecisionNode,
+  visitedIds = new Set<string>()
+): ValidationResult {
+  // Check for unique ID
+  if (visitedIds.has(root.id)) {
+    return { isValid: false, message: `Duplicate ID detected: ${root.id}` }
+  }
+  visitedIds.add(root.id)
+
+  // Validate root node content
+  if (!validateNodeContent(root.content)) {
+    return { isValid: false, message: `Invalid content in node with ID: ${root.id}` }
+  }
+
+  // Validate options
+  for (const option of root.options) {
+    if (typeof option.next === 'object') {
+      // Recursively validate nested DecisionNode
+      const validation = validateDecisionTree(option.next, new Set(visitedIds))
+      if (!validation.isValid) {
+        return validation
+      }
+    } else if (typeof option.next === 'string') {
+      // Validate reference to ID
+      if (!visitedIds.has(option.next)) {
+        return {
+          isValid: false,
+          message: `Invalid reference to non-existent ID: ${option.next} in node with ID: ${root.id}`,
+        }
+      }
+    }
+
+    // Ensure content is valid
+    if (!validateNodeContent(option.content)) {
+      return { isValid: false, message: `Invalid option content in node with ID: ${root.id}` }
+    }
+  }
+
+  return { isValid: true, message: 'Validation successful' }
+}
+
+function validateNodeContent(content: NodeType): boolean {
+  // Implement the logic to validate if the node content adheres to its type constraints
+  switch (content.type) {
+    case 'text':
+      return !!content.text // Ensure text exists
+    case 'image':
+      return !!content.image // Ensure image exists
+    case 'text-image':
+      return !!content.text && !!content.image // Ensure both text and image exist
+    default:
+      return false // Unknown type
+  }
+}
