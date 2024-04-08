@@ -38,7 +38,7 @@ export type UserAnswers = DecisionNode['options'][number]['id'][]
 // Define content nodes
 const usingFrameworkNode: NodeText = {
   type: 'text',
-  text: 'Are you using a framework like <a target="_blank" href="https://nextjs.org/">Next.js</a> or <a target="_blank" href="https://remix.run/">Remix</a>?',
+  text: 'Are you using a framework like <a target="_blank" href="https://nextjs.org/">Next.js</a>, <a target="_blank" href="https://nuxt.com">Nuxt</a>, <a target="_blank" href="https://kit.svelte.dev">SvelteKit</a>, <a target="_blank" href="https://vuejs.org">Vue</a>, <a target="_blank" href="https://remix.run/">Remix</a>, or any of <a target="_blank" href="https://vercel.com/docs/frameworks/more-frameworks">these frameworks</a> ?',
 }
 const yesNode: NodeText = { type: 'text', text: 'Yes' }
 const noNode: NodeText = { type: 'text', text: 'No' }
