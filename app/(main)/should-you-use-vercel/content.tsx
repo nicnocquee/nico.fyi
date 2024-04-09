@@ -18,7 +18,7 @@ import AnimateIn from './animate-in'
 import { DecisionNode, NodeType, UserAnswers, decisionTree } from './data'
 
 const title = 'Should you use Vercel?'
-const description = `Vercel recently updated their pricing model which caused some uproar among developers. Answer the following questions to find out if you should use Vercel or not.`
+const description = `Vercel recently updated their pricing model which caused some uproar among developers. Answer the following questions to find out if you should use Vercel or not.<br/>Read the <a href="https://www.nico.fyi/blog/should-you-use-vercel">blog post here.</a>`
 
 const queryClient = new QueryClient()
 
@@ -238,10 +238,10 @@ const Flowchart = () => {
       }
 
   return (
-    <div className="flex flex-col items-center justify-center space-y-6">
+    <div className="flex flex-col items-center justify-center space-y-6 [&_a]:text-primary-500 [&_a]:underline">
       <div className="mx-auto max-w-3xl space-y-4 p-4 text-center">
         <h1 className="text-6xl font-bold">{title}</h1>
-        <p className="text-gray-500">{description}</p>
+        <div className="text-gray-500" dangerouslySetInnerHTML={{ __html: description }} />
       </div>
       <div className="flex w-full flex-col items-center justify-center space-y-4">
         {currentDecisionNode ? (
