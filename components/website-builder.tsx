@@ -1,10 +1,15 @@
 import { ComponentType, createContext, useContext } from 'react'
 
 export const defaultWebsiteBuilderValue = {
-  Link: ({ href, children }) => <a href={href}>{children}</a>,
+  Link: ({ href, children }: { href: string; children: React.ReactNode }) => (
+    <a href={href}>{children}</a>
+  ),
   // eslint-disable-next-line @next/next/no-img-element
-  Image: ({ src, alt }) => <img alt={alt || ''} src={src} />,
-  Heading: ({ level, children }) => {
+  Image: ({ src, alt }: { src: string; alt: string }) => (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img alt={alt || ''} src={src} />
+  ),
+  Heading: ({ level, children }: { level: number; children: React.ReactNode }) => {
     switch (level) {
       case 1:
         return <h1>{children}</h1>
@@ -22,12 +27,14 @@ export const defaultWebsiteBuilderValue = {
         return <h3>{children}</h3>
     }
   },
-  Paragraph: ({ children }) => <p>{children}</p>,
-  List: ({ ordered, children }) => <ol>{ordered ? <li>{children}</li> : children}</ol>,
-  Table: ({ children }) => <table>{children}</table>,
-  Code: ({ children }) => <code>{children}</code>,
-  Blockquote: ({ children }) => <blockquote>{children}</blockquote>,
-  Pre: ({ children }) => <pre>{children}</pre>,
+  Paragraph: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
+  List: ({ ordered, children }: { ordered: boolean; children: React.ReactNode }) => (
+    <ol>{ordered ? <li>{children}</li> : children}</ol>
+  ),
+  Table: ({ children }: { children: React.ReactNode }) => <table>{children}</table>,
+  Code: ({ children }: { children: React.ReactNode }) => <code>{children}</code>,
+  Blockquote: ({ children }: { children: React.ReactNode }) => <blockquote>{children}</blockquote>,
+  Pre: ({ children }: { children: React.ReactNode }) => <pre>{children}</pre>,
 }
 
 const WebsiteBuilderContext = createContext<{

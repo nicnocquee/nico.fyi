@@ -1,4 +1,4 @@
-export const Heading = ({ level, children }) => {
+export const Heading = ({ level, children }: { level: number; children: React.ReactNode }) => {
   switch (level) {
     case 1:
       return <h1 className="text-3xl font-bold">{children}</h1>
@@ -17,7 +17,7 @@ export const Heading = ({ level, children }) => {
   }
 }
 
-export const Link = ({ href, children }) => (
+export const Link = ({ href, children }: { href: string; children: React.ReactNode }) => (
   <a className="text-blue-700 underline" href={href}>
     {children}
   </a>

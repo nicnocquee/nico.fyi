@@ -57,7 +57,7 @@
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.0.0",
     "esbuild": "0.20.2",
-    "github-slugger": "^1",
+    "github-slugger": "^2",
     "gray-matter": "^4.0.3",
     "image-size": "^1.1.1",
     "input-otp": "^1.2.3",

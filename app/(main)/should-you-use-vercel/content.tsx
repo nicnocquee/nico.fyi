@@ -171,7 +171,13 @@ function transformTextToReactElement(node: DecisionNode): DecisionNode {
 const userAnswers = atomWithReset<UserAnswers>([])
 const currentNode = atomWithReset<DecisionNode | null>(decisionTree)
 
-const postCount = async ({ answers, recaptchaToken }) => {
+const postCount = async ({
+  answers,
+  recaptchaToken,
+}: {
+  answers: string
+  recaptchaToken: string
+}) => {
   return await fetch(`/should-you-use-vercel/api`, {
     method: 'POST',
     headers: {

@@ -1,6 +1,6 @@
 import { escape } from 'pliny/utils/htmlEscaper.js'
 import siteMetadata from '@/data/siteMetadata'
-import { allBlogs } from 'contentlayer/generated'
+import { Blog, allBlogs } from 'contentlayer/generated'
 
 export async function GET() {
   const rss = generateRss(
@@ -19,7 +19,7 @@ export async function GET() {
   })
 }
 
-const generateRssItem = (config, post) => `
+const generateRssItem = (config: typeof siteMetadata, post: Blog) => `
   <item>
     <guid>${config.siteUrl}/blog/${post.slug}</guid>
     <title>${escape(post.title)}</title>
@@ -31,7 +31,7 @@ const generateRssItem = (config, post) => `
   </item>
 `
 
-const generateRss = (config, posts, page = 'feed.xml') => `
+const generateRss = (config: typeof siteMetadata, posts: Blog[], page = 'feed.xml') => `
   <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
     <channel>
       <title>${escape(config.title)}</title>

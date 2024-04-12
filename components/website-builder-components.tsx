@@ -1,7 +1,18 @@
-export const DefaultLink = ({ href, children }) => <a href={href}>{children}</a>
+export const DefaultLink = ({ href, children }: { href: string; children: React.ReactNode }) => (
+  <a href={href}>{children}</a>
+)
 // eslint-disable-next-line @next/next/no-img-element
-export const DefaultImage = ({ src, alt }) => <img alt={alt || ''} src={src} />
-export const DefaultHeading = ({ level, children }) => {
+export const DefaultImage = ({ src, alt }: { src: string; alt: string }) => (
+  // eslint-disable-next-line @next/next/no-img-element
+  <img alt={alt || ''} src={src} />
+)
+export const DefaultHeading = ({
+  level,
+  children,
+}: {
+  level: number
+  children: React.ReactNode
+}) => {
   switch (level) {
     case 1:
       return <h1>{children}</h1>
@@ -19,11 +30,19 @@ export const DefaultHeading = ({ level, children }) => {
       return <h3>{children}</h3>
   }
 }
-export const DefaultParagraph = ({ children }) => <p>{children}</p>
-export const DefaultList = ({ ordered, children }) => (
-  <ol>{ordered ? <li>{children}</li> : children}</ol>
+export const DefaultParagraph = ({ children }: { children: React.ReactNode }) => <p>{children}</p>
+export const DefaultList = ({
+  ordered,
+  children,
+}: {
+  ordered: boolean
+  children: React.ReactNode
+}) => <ol>{ordered ? <li>{children}</li> : children}</ol>
+export const DefaultTable = ({ children }: { children: React.ReactNode }) => (
+  <table>{children}</table>
 )
-export const DefaultTable = ({ children }) => <table>{children}</table>
-export const DefaultCode = ({ children }) => <code>{children}</code>
-export const DefaultBlockquote = ({ children }) => <blockquote>{children}</blockquote>
-export const DefaultPre = ({ children }) => <pre>{children}</pre>
+export const DefaultCode = ({ children }: { children: React.ReactNode }) => <code>{children}</code>
+export const DefaultBlockquote = ({ children }: { children: React.ReactNode }) => (
+  <blockquote>{children}</blockquote>
+)
+export const DefaultPre = ({ children }: { children: React.ReactNode }) => <pre>{children}</pre>

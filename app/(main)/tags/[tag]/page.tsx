@@ -1,4 +1,4 @@
-import { slug } from 'github-slugger'
+import GitHubSlugger from 'github-slugger'
 import { allCoreContent } from 'pliny/utils/contentlayer'
 import siteMetadata from '@/data/siteMetadata'
 import ListLayout from '@/layouts/ListLayoutWithTags'
@@ -8,6 +8,7 @@ import { Metadata } from 'next'
 import { displayablePosts } from '@/app/(main)/blogs-data'
 
 export const revalidate = 60
+const slugger = new GitHubSlugger()
 
 export async function generateMetadata({ params }: { params: { tag: string } }): Promise<Metadata> {
   const tag = decodeURI(params.tag)
@@ -37,7 +38,9 @@ export default function TagPage({ params }: { params: { tag: string } }) {
   // Capitalize first letter and convert space to dash
   const title = tag[0].toUpperCase() + tag.split(' ').join('-').slice(1)
   const filteredPosts = allCoreContent(
-    displayablePosts().filter((post) => post.tags && post.tags.map((t) => slug(t)).includes(tag))
+    displayablePosts().filter(
+      (post) => post.tags && post.tags.map((t) => slugger.slug(t)).includes(tag)
+    )
   )
   return <ListLayout posts={filteredPosts} title={title} />
 }

@@ -229,7 +229,7 @@ import { useRouter } from 'next/navigation'
 import { CoreContent } from 'pliny/utils/contentlayer'
 import { Blog } from 'contentlayer/generated'
 
-export const SearchProvider = ({ children }) => {
+export const SearchProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter()
   return (
     <KBarSearchProvider

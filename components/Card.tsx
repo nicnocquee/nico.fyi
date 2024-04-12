@@ -1,7 +1,17 @@
 import Image from './Image'
 import Link from './Link'
 
-const Card = ({ title, description, imgSrc, href }) => (
+const Card = ({
+  title,
+  description,
+  imgSrc,
+  href,
+}: {
+  title: string
+  description: string
+  imgSrc: string
+  href: string
+}) => (
   <div className="md max-w-[544px] p-4 md:w-1/2">
     <div
       className={`${

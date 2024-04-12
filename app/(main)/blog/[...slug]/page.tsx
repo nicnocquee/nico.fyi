@@ -110,7 +110,7 @@ export default async function Page({ params }: { params: typeof routes.blogPage.
     }
   })
 
-  const Layout = layouts[post.layout || defaultLayout]
+  const Layout = layouts[(post.layout || defaultLayout) as keyof typeof layouts]
 
   return (
     <>

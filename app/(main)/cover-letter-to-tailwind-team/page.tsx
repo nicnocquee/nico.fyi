@@ -99,7 +99,7 @@ export default async function Page() {
     }
   })
 
-  const Layout = layouts[post.layout || defaultLayout]
+  const Layout = layouts[(post.layout || defaultLayout) as keyof typeof layouts]
 
   return (
     <>
@@ -107,7 +107,7 @@ export default async function Page() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Layout content={mainContent} authorDetails={authorDetails} next={null} prev={null}>
+      <Layout content={mainContent} authorDetails={authorDetails}>
         <MDXLayoutRenderer code={post.body.code} components={components} toc={post.toc} />
       </Layout>
     </>

@@ -100,7 +100,7 @@ The idea of `useValueEffect` resembles [React's `useEffect`](https://react.dev/r
 In his case, he wanted to determine the number of items that could fit into the available width of his breadcrumb component. To achieve this, he first rendered all items, then calculated how many items could fit within the breadcrumb's width, and finally rendered only the visible items, as demonstrated below.
 
 ```javascript
-export function Breadcrumbs({ children }) {
+export function Breadcrumbs({ children }: {children: React.ReactNode}) {
   const childrenCount = React.Children.count(children);
   const [visibleItemsCount, setVisibleItemsCount] = useValueEffect(
     childrenCount
