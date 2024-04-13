@@ -167,7 +167,7 @@ const DecisionNodeComponent = ({ node, onSelect }: { node: DecisionNode; onSelec
 
 const md = `
 graph TD
-    using-framework{"Are you using a framework?"} -->|Yes| brand-new-project{"Is it a brand new web project?"}
+    using-framework{"Are you using a framework like <a target="_blank" href="https://nextjs.org/">Next.js</a>, <a target="_blank" href="https://nuxt.com">Nuxt</a>, <a target="_blank" href="https://kit.svelte.dev">SvelteKit</a>, <a target="_blank" href="https://vuejs.org">Vue</a>, <a target="_blank" href="https://remix.run/">Remix</a>, or any of <a target="_blank" href="https://vercel.com/docs/frameworks/more-frameworks">these frameworks</a> ?"} -->|Yes| brand-new-project{"Is it a brand new web project?"}
     using-framework -->|No| dont-use-vercel-no-framework["Don't use Vercel<br/>Why are you even thinking about using Vercel?"]
 
     brand-new-project -->|Yes| traffic-scale{"From the scale 0-10, how sure are you with your project getting lots of traffic?"}
@@ -176,7 +176,7 @@ graph TD
     traffic-scale -->|6-10| server-experience{"Have you or anyone in your team set up a server before?"}
     traffic-scale -->|1-5| use-vercel-traffic-confidence-low["Just use Vercel<br/>Vercel has an attractive free plan so you can try it out to see if there's a product market fit."]
 
-    server-experience -->|Yes| mentioned-by-guillermo{"Do you want to have the chance to have your project mentioned by Guillermo Rauch?"}
+    server-experience -->|Yes| mentioned-by-guillermo{"Do you want to have the chance to have your project mentioned by <a target="_blank" href='https://twitter.com/rauchg'>Guillermo Rauch, CEO of Vercel</a>?"}
     server-experience -->|No| use-vercel-no-server-experience["Just use Vercel<br/>Maintaining a server is not an easy task. You have to take care of software upgrade, security, traffic management, etc 😵‍💫. Better to focus on your project by deploying it on Vercel."]
 
     mentioned-by-guillermo -->|Yes| use-vercel-yes-mentioned-by-guillermo["Just use Vercel<br/>It's <strong>actually</strong> better to host your project on your own server. But by hosting it on Vercel, you have the chance to get exposure by having your project mentioned by Guillermo Rauch. 🙈"]
