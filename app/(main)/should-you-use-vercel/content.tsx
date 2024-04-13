@@ -1,7 +1,7 @@
 'use client'
 import { ReCaptchaProvider, useReCaptcha } from 'next-recaptcha-v3'
 import { useAtom } from 'jotai'
-import { atomWithReset, atomWithStorage, useResetAtom } from 'jotai/utils'
+import { atomWithReset, useResetAtom } from 'jotai/utils'
 import Image from 'next/image'
 import React, { ComponentProps } from 'react'
 import { Button } from '@/components/ui/button'
@@ -15,12 +15,48 @@ import {
 } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
 import AnimateIn from './animate-in'
-import { DecisionNode, NodeType, UserAnswers, decisionTree } from './data'
 
 const title = 'Should you use Vercel?'
 const description = `Vercel recently updated their pricing model which caused some uproar among developers. Answer the following questions to find out if you should use Vercel or not.<br/>Read the <a href="https://www.nico.fyi/blog/should-you-use-vercel">blog post here.</a>`
 
 const queryClient = new QueryClient()
+
+export interface NodeBase {
+  text?: string | React.ReactNode
+  image?: string
+  info?: string | React.ReactNode
+}
+
+interface NodeText extends NodeBase {
+  type: 'text'
+  text: string | React.ReactNode
+}
+
+interface NodeImage extends NodeBase {
+  type: 'image'
+  image: string
+}
+
+interface NodeTextImage extends NodeBase {
+  type: 'text-image'
+  text: string | React.ReactNode
+  image: string
+}
+
+// Then, use a type alias for the union of these interfaces
+export type NodeType = NodeText | NodeImage | NodeTextImage
+
+export interface DecisionNode {
+  id: string
+  content: NodeType
+  options: {
+    id: string
+    content: NodeType
+    next?: DecisionNode | DecisionNode['options'][number]['id']
+  }[]
+}
+
+export type UserAnswers = DecisionNode['options'][number]['id'][]
 
 function findNodeById(
   node: DecisionNode,
@@ -70,7 +106,7 @@ const OptionNodeComponent = ({
       onClick={() => {
         if (node.next) {
           if (typeof node.next === 'string') {
-            const nextNode = findNodeById(decisionTree, node.next, decisionTree)
+            const nextNode = findNodeById(rootNode, node.next, rootNode)
             if (nextNode) {
               onSelect(node.id, nextNode)
             }
@@ -90,7 +126,7 @@ const OptionNodeComponent = ({
 
 const DecisionNodeComponent = ({ node, onSelect }: { node: DecisionNode; onSelect: OnSelect }) => {
   return (
-    <Card className="w-full max-w-md [&_a]:underline">
+    <Card className="w-full max-w-md [&_a]:underline [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:text-black">
       <CardHeader>
         {node.content.image ? (
           <Image alt="" src={node.content.image} width={100} height={100} />
@@ -128,48 +164,30 @@ const DecisionNodeComponent = ({ node, onSelect }: { node: DecisionNode; onSelec
   )
 }
 
-function transformTextToReactElement(node: DecisionNode): DecisionNode {
-  // Helper function to transform the text if it's not a string
-  const transformText = (text: string | React.ReactNode): React.ReactNode => {
-    if (typeof text === 'string') {
-      return text
-    } else {
-      // Assuming the object has a 'props' property to create a React element
-      // Adjust based on the actual structure of your non-string text objects
-      // @ts-expect-error
-      return React.createElement(text.type, { ...text.props })
-    }
-  }
+const md = `
+graph TD
+    using-framework{"Are you using a framework?"} -->|Yes| brand-new-project{"Is it a brand new web project?"}
+    using-framework -->|No| dont-use-vercel-no-framework["Don't use Vercel<br/>Why are you even thinking about using Vercel?"]
 
-  const transformNodeContent = (content: NodeType): NodeType => {
-    // Check and transform the text property
-    if ('text' in content && content.text) {
-      content.text = transformText(content.text)
-    }
-    return content
-  }
+    brand-new-project -->|Yes| traffic-scale{"From the scale 0-10, how sure are you with your project getting lots of traffic?"}
+    brand-new-project -->|No| project-traffic{"Does your project have lots of traffic?"}
 
-  // Transform the root content
-  const transformedContent = transformNodeContent(node.content)
+    traffic-scale -->|6-10| server-experience{"Have you or anyone in your team set up a server before?"}
+    traffic-scale -->|1-5| vercelEnd-traffic-confidence-low["Just use Vercel<br/>Vercel has an attractive free plan so you can try it out to see if there's a product market fit."]
 
-  // Recursively transform options
-  const transformedOptions = node.options.map((option) => {
-    return {
-      ...option,
-      content: transformNodeContent(option.content),
-      next: option.next ? transformTextToReactElement(option.next as DecisionNode) : undefined,
-    }
-  })
+    server-experience -->|Yes| mentioned-by-guillermo{"Do you want to have the chance to have your project mentioned by Guillermo Rauch?"}
+    server-experience -->|No| vercelEnd-no-server-experience["Just use Vercel<br/>Maintaining a server is not an easy task. You have to take care of software upgrade, security, traffic management, etc 😵‍💫. Better to focus on your project by deploying it on Vercel."]
 
-  return {
-    ...node,
-    content: transformedContent,
-    options: transformedOptions,
-  }
-}
+    mentioned-by-guillermo -->|Yes| vercelEnd-yes-mentioned-by-guillermo["Just use Vercel<br/>It's <strong>actually</strong> better to host your project on your own server. But by hosting it on Vercel, you have the chance to get exposure by having your project mentioned by Guillermo Rauch. 🙈"]
+    mentioned-by-guillermo -->|No| dontUseVercelEnd-no-mentioned-by-guillermo["Don't use Vercel<br/>If you host it on Vercel, you might be charged a lot because of the high traffic 🤑. So host it on your own since you have the resources to do so."]
+
+    project-traffic -->|Yes| server-experience
+    project-traffic -->|No| vercelEnd-no-project-traffic["Just use Vercel<br/>It's better to deploy to Vercel so that you can focus on your project instead of maintaining a server."]
+`
 
 const userAnswers = atomWithReset<UserAnswers>([])
-const currentNode = atomWithReset<DecisionNode | null>(decisionTree)
+const rootNode = parseMermaidToDecisionNode(md)!
+const currentNode = atomWithReset<DecisionNode | null>(rootNode)
 
 const postCount = async ({
   answers,
@@ -301,3 +319,104 @@ const Flowchart = () => {
 }
 
 export default FlowchartContainer
+
+// from here on, the code is generated by ChatGPT. I just did some minor tweaks to make it work.
+
+// Utility function to parse node info considering complex enclosures
+function extractNodeInfo(part: string): DecisionNode | null {
+  // Normalize the input by removing any connection labels
+  part = part.replace(/\|[^|]+\|/, '').trim()
+
+  // Determine the position of the first potential opening character
+  const openingChars = '([{<'
+  const closingChars = ')]}>'
+
+  const stack = []
+  let startIdx = -1
+  let id = ''
+  let text = ''
+
+  for (let i = 0; i < part.length; i++) {
+    const char = part[i]
+
+    if (openingChars.includes(char)) {
+      stack.push({ char, idx: i })
+      if (stack.length === 1) {
+        // Assume the text before the first opening character is the ID
+        id = part.substring(0, i).trim()
+        startIdx = i + 1
+      }
+    } else if (closingChars.includes(char)) {
+      if (stack.length === 0) continue // Ignore unmatched closing characters
+
+      const last = stack.pop()
+      if (openingChars.indexOf(last?.char || '') !== closingChars.indexOf(char)) {
+        console.error('Mismatched braces in Mermaid.js syntax')
+        return null // Mismatched braces
+      }
+      if (stack.length === 0) {
+        // Closing the outermost brace, extract the text
+        text = part.substring(startIdx, i).replace(/["']/g, '').trim()
+        break // Exit after finding the first complete enclosure
+      }
+    }
+  }
+
+  if (id && text) {
+    const [title, ...rest] = text.split('<br/>')
+    const titleComponent = rest.length > 0 ? <p className="text-5xl font-bold">{title}</p> : title
+    return {
+      id,
+      content: { type: 'text', text: titleComponent, info: rest.join('<br/>') },
+      options: [],
+    }
+  } else {
+    // If no braces were found, assume it's just an ID without a description
+    return { id: part.trim(), content: { type: 'text', text: part.trim() }, options: [] }
+  }
+}
+
+// Main function to construct the DecisionNode from Mermaid markdown
+export function parseMermaidToDecisionNode(markdown: string): DecisionNode | null {
+  const lines = markdown.split('\n')
+  const nodes: Map<string, DecisionNode> = new Map()
+  const rootCandidates = new Set<string>()
+
+  lines.forEach((line) => {
+    // Extract nodes and create/update them
+    const parts = line.split('-->')
+    if (parts.length === 2) {
+      const fromPart = parts[0].trim()
+      const toPart = parts[1].trim()
+
+      const fromNodeInfo = extractNodeInfo(fromPart)
+      const toNodeInfo = extractNodeInfo(toPart)
+
+      if (fromNodeInfo && toNodeInfo) {
+        const labelStart = parts[1].indexOf('|') + 1
+        const labelEnd = parts[1].indexOf('|', labelStart)
+        const label = parts[1].substring(labelStart, labelEnd).trim()
+
+        const fromNode = nodes.get(fromNodeInfo.id) || fromNodeInfo
+        const toNode = nodes.get(toNodeInfo.id) || toNodeInfo
+
+        fromNode.options.push({
+          id: toNode.id,
+          content: { type: 'text', text: label },
+          next: toNode,
+        })
+
+        nodes.set(fromNodeInfo.id, fromNode)
+        nodes.set(toNodeInfo.id, toNode)
+
+        rootCandidates.add(fromNodeInfo.id)
+        rootCandidates.delete(toNodeInfo.id)
+      }
+    }
+  })
+
+  // Determine the root node (a node that's not a child of any node)
+  const rootNodeId = rootCandidates.values().next().value
+  const rootNode = nodes.get(rootNodeId) || null
+  return rootNode
+}

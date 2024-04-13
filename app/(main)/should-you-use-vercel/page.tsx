@@ -1,4 +1,4 @@
-import { Metadata, ResolvingMetadata } from 'next'
+import { Metadata } from 'next'
 import Flowchart from './content'
 import OGImage from './ogimage.jpg'
 import OGImageYes from './ogimage-yes.jpg'
