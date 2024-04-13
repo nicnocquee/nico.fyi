@@ -126,7 +126,7 @@ const OptionNodeComponent = ({
 
 const DecisionNodeComponent = ({ node, onSelect }: { node: DecisionNode; onSelect: OnSelect }) => {
   return (
-    <Card className="w-full max-w-md [&_a]:underline [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:text-black">
+    <Card className="mx-auto w-full max-w-md [&_a]:underline [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:text-black">
       <CardHeader>
         {node.content.image ? (
           <Image alt="" src={node.content.image} width={100} height={100} />
@@ -270,7 +270,7 @@ const Flowchart = () => {
       <div className="flex w-full flex-col items-center justify-center space-y-4">
         {currentDecisionNode ? (
           <>
-            <AnimateIn key={currentDecisionNode.id} {...animation}>
+            <AnimateIn className="w-full" key={currentDecisionNode.id} {...animation}>
               <DecisionNodeComponent
                 node={currentDecisionNode}
                 onSelect={async (id, next) => {
