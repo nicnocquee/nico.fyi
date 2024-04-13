@@ -87,8 +87,9 @@ function findNodeById(
 }
 
 type OnSelect = (
-  currentId: DecisionNode['options'][number]['id'],
-  next: DecisionNode
+  optionNode: DecisionNode['options'][number],
+  toNode: DecisionNode,
+  fromNode: DecisionNode
 ) => Promise<void>
 
 const OptionNodeComponent = ({
@@ -98,7 +99,7 @@ const OptionNodeComponent = ({
 }: {
   node: DecisionNode['options'][number]
   variant?: ComponentProps<typeof Button>['variant']
-  onSelect: OnSelect
+  onSelect: (optionNode: DecisionNode['options'][number], next: DecisionNode) => void
 }) => {
   return (
     <Button
@@ -108,10 +109,10 @@ const OptionNodeComponent = ({
           if (typeof node.next === 'string') {
             const nextNode = findNodeById(rootNode, node.next, rootNode)
             if (nextNode) {
-              onSelect(node.id, nextNode)
+              onSelect(node, nextNode)
             }
           } else {
-            onSelect(node.id, node.next)
+            onSelect(node, node.next)
           }
         }
       }}
@@ -145,7 +146,7 @@ const DecisionNodeComponent = ({ node, onSelect }: { node: DecisionNode; onSelec
             <OptionNodeComponent
               key={option.id}
               node={option}
-              onSelect={onSelect}
+              onSelect={(optionNode, next) => onSelect(optionNode, next, node)}
               variant={i === 0 ? 'default' : 'outline'}
             />
           ))}
@@ -173,20 +174,20 @@ graph TD
     brand-new-project -->|No| project-traffic{"Does your project have lots of traffic?"}
 
     traffic-scale -->|6-10| server-experience{"Have you or anyone in your team set up a server before?"}
-    traffic-scale -->|1-5| vercelEnd-traffic-confidence-low["Just use Vercel<br/>Vercel has an attractive free plan so you can try it out to see if there's a product market fit."]
+    traffic-scale -->|1-5| use-vercel-traffic-confidence-low["Just use Vercel<br/>Vercel has an attractive free plan so you can try it out to see if there's a product market fit."]
 
     server-experience -->|Yes| mentioned-by-guillermo{"Do you want to have the chance to have your project mentioned by Guillermo Rauch?"}
-    server-experience -->|No| vercelEnd-no-server-experience["Just use Vercel<br/>Maintaining a server is not an easy task. You have to take care of software upgrade, security, traffic management, etc 😵‍💫. Better to focus on your project by deploying it on Vercel."]
+    server-experience -->|No| use-vercel-no-server-experience["Just use Vercel<br/>Maintaining a server is not an easy task. You have to take care of software upgrade, security, traffic management, etc 😵‍💫. Better to focus on your project by deploying it on Vercel."]
 
-    mentioned-by-guillermo -->|Yes| vercelEnd-yes-mentioned-by-guillermo["Just use Vercel<br/>It's <strong>actually</strong> better to host your project on your own server. But by hosting it on Vercel, you have the chance to get exposure by having your project mentioned by Guillermo Rauch. 🙈"]
-    mentioned-by-guillermo -->|No| dontUseVercelEnd-no-mentioned-by-guillermo["Don't use Vercel<br/>If you host it on Vercel, you might be charged a lot because of the high traffic 🤑. So host it on your own since you have the resources to do so."]
+    mentioned-by-guillermo -->|Yes| use-vercel-yes-mentioned-by-guillermo["Just use Vercel<br/>It's <strong>actually</strong> better to host your project on your own server. But by hosting it on Vercel, you have the chance to get exposure by having your project mentioned by Guillermo Rauch. 🙈"]
+    mentioned-by-guillermo -->|No| dont-use-vercel-no-mentioned-by-guillermo["Don't use Vercel<br/>If you host it on Vercel, you might be charged a lot because of the high traffic 🤑. So host it on your own since you have the resources to do so."]
 
     project-traffic -->|Yes| server-experience
-    project-traffic -->|No| vercelEnd-no-project-traffic["Just use Vercel<br/>It's better to deploy to Vercel so that you can focus on your project instead of maintaining a server."]
+    project-traffic -->|No| use-vercel-no-project-traffic["Just use Vercel<br/>It's better to deploy to Vercel so that you can focus on your project instead of maintaining a server."]
 `
 
-const userAnswers = atomWithReset<UserAnswers>([])
 const rootNode = parseMermaidToDecisionNode(md)!
+const userAnswers = atomWithReset<UserAnswers>([rootNode.id])
 const currentNode = atomWithReset<DecisionNode | null>(rootNode)
 
 const postCount = async ({
@@ -273,14 +274,17 @@ const Flowchart = () => {
             <AnimateIn className="w-full" key={currentDecisionNode.id} {...animation}>
               <DecisionNodeComponent
                 node={currentDecisionNode}
-                onSelect={async (id, next) => {
-                  const newAnswers = [...answers, id]
-                  if (next.options.length === 0) {
+                onSelect={async (_optionNode, toNode) => {
+                  const newAnswers = [...answers, toNode.id]
+                  if (toNode.options.length === 0) {
                     const token = await executeRecaptcha('form_submit')
-                    mutate({ answers: newAnswers.join('>>>'), recaptchaToken: token })
+                    mutate({
+                      answers: newAnswers.join('>>>'),
+                      recaptchaToken: token,
+                    })
                   }
                   setAnswers(newAnswers)
-                  setCurrentDecisionNode(next)
+                  setCurrentDecisionNode(toNode)
                 }}
               />
             </AnimateIn>
@@ -401,7 +405,7 @@ export function parseMermaidToDecisionNode(markdown: string): DecisionNode | nul
         const toNode = nodes.get(toNodeInfo.id) || toNodeInfo
 
         fromNode.options.push({
-          id: toNode.id,
+          id: `${label.toLowerCase()}-${toNode.id}`,
           content: { type: 'text', text: label },
           next: toNode,
         })
