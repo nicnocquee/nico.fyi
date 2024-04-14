@@ -1,0 +1,33 @@
+---
+title: 'server-only package is empty?!'
+date: '2024-04-17'
+summary: Then how can it prevent a client component from using it?
+tags: ['dev', 'nextjs']
+---
+
+If you've read the Next.js documentation, you'll know about [server-only package](https://www.npmjs.com/package/server-only) since it's mentioned a few times in the doc. Using this package, you can [keep server-only code out of the client component](https://nextjs.org/docs/app/building-your-application/rendering/composition-patterns#keeping-server-only-code-out-of-the-client-environment). I was kinda curious about this package and how it works and my discovery was a bit surprising.
+
+First, I need to find out where the source code for this package is. This happened to be quiet a challenge because the package basically has no information whatsoever in the NPM registry. Not to mention there's no link to the source code. It only has a link to [reactjs.org](https://reactjs.org).
+
+I found out later on that the source code is actually in [Next.js repository](https://github.com/vercel/next.js/tree/canary/packages/next/src/compiled/server-only). But to my surprise, this package only has 3 files: a `package.json`, `index.js`, and `empty.js`. Inside the `index.js` file, there's only a single error throw statement. In the `empty.js` file, there's nothing! So how does this package even work?!
+
+It turns out the key is in the package.json. The package.json has an `exports` key with value I have never seen before.
+
+```json
+ "exports": {
+    ".": {
+      "react-server": "./empty.js",
+      "default": "./index.js"
+    }
+  }
+```
+
+This is what they called a [conditional export](https://nodejs.org/api/packages.html#packages_conditional_exports). It means that when the package is imported in an environment where the **`react-server` condition is set**, it will load the `empty.js` file, in other words, this package does nothing.
+
+On the other hand, if the package is imported in an environment where the **`react-server` condition is not set**, it will load the `index.js` file, which will throw an error.
+
+CMIIW, but [this condition](https://webpack.js.org/configuration/resolve/#resolveconditionnames) is set by the bundler when building and running the application. In case of Next.js, I see that it is set in [the webpack config.](https://github.com/vercel/next.js/blob/33e8334d35cb353c37b5d21fb4ca9d860d2e3f6a/packages/next/src/build/webpack-config.ts#L573)
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
