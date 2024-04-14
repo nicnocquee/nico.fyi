@@ -1,0 +1,77 @@
+---
+title: "Overcoming Next.js' Search Params Limitation in Layouts"
+date: '2024-04-15'
+summary: Not many people know about this but parallel routes is awesome
+tags: ['dev', 'nextjs']
+---
+
+In Next.js App Router, the [Layout component doesn't have access to the search params](https://nextjs.org/docs/app/api-reference/file-conventions/layout#layouts-do-not-receive-searchparams) because a shared layout is not re-rendered during navigation, which could lead to stale `searchParams` between navigations. This limitation has caused many developers to believe that Next.js App Router is not a good choice for applications where layout is used to display information based on the value in the search params.
+
+For example, you may have a user impersonation feature where the admins of your app can impersonate other users by changing the value of the `user` search param. Then you want to display the user's name in the layout. However, the layout doesn't have access to the search params because it's a shared layout. Only page components get the search params.
+
+The answer to this predicament is to use [parallel routes](https://nextjs.org/docs/app/building-your-application/routing/parallel-routes). Using the parallel routes, a layout can render multiple pages at the same time. But that definition is hiding the true power of parallel routes. A page is basically a React component. So using the parallel routes, a layout can render multiple React components at the same level for a certain route, not only a single children.
+
+So in the user impersonation example, we can have a layout that renders the main page as `children` of the layout and another component that renders the impersonated user's name based on the `user` search param.
+
+```typescript
+// layout.tsx
+export default function Layout({
+  children,
+  impersonation,
+}: {
+  children: React.ReactNode
+  impersonation: React.ReactNode
+}) {
+  return (
+    <div className="flex h-screen flex-col space-y-2 p-4 font-sans text-black">
+      <div className="space-y-2 pb-8 pt-6 md:space-y-5">
+        <h1 className="text-3xl font-extrabold leading-9 tracking-tight text-gray-900 dark:text-gray-100 sm:text-4xl sm:leading-10 md:text-6xl md:leading-14">
+          This is a dashboard
+        </h1>
+        {impersonation} {/* Render impersonation here */}
+      </div>
+      <div className="flex flex-col">{children}</div> {/* Render children here */}
+    </div>
+  )
+}
+
+```
+
+In the layout above, the `Layout` component receives two props: `children` and `impersonation`. The `children` prop is the React component that is rendered at the root level of the page. The `impersonation` prop will be filled with the component defined in `@impersonation/page.tsx`.
+
+```typescript
+// @impersonation/page.tsx
+import { Suspense } from 'react'
+import Content from './content'
+
+export default async function Page({ searchParams }: { searchParams: Record<string, string> }) {
+  const user = searchParams['user'] as string
+
+  return (
+    <Suspense key={user || 'you'} fallback={<div>Loading...</div>}>
+      <Content user={user} />
+    </Suspense>
+  )
+}
+
+
+// @impersonation/content.tsx
+import { fakeUserData } from '../data'
+
+export default async function Content({ user }: { user?: string }) {
+  if (user) {
+    await new Promise((resolve) => setTimeout(resolve, 1000)) // fake delay
+    const userData = fakeUserData[user as keyof typeof fakeUserData]
+    if (userData) {
+      return <div>Viewing this page as {userData.name}</div>
+    }
+  }
+  return <div>Viewing this page as yourself</div>
+}
+```
+
+Since the `@impersonation/page.tsx` component is a page component, it will receive the search params as props. And now the impersonated user's name is displayed in the layout! You can check the [demo page](/experiments/view-as) to see the resul and the code in [this repo](<https://github.com/nicnocquee/nico.fyi/tree/main/app/(experiments)/experiments/view-as>).
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
