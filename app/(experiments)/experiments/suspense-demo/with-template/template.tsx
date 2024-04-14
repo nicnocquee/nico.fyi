@@ -3,7 +3,7 @@ import { getServerTime } from '../get-server-time'
 import SearchField from '../search-field'
 
 export default async function Template({ children }: { children: React.ReactNode }) {
-  const time = await getServerTime()
+  const time = await getServerTime(false)
   return (
     <div className="flex h-screen flex-col space-y-2 p-4 font-sans text-black">
       <div className="space-y-2 pb-8 pt-6 md:space-y-5">

@@ -1,0 +1,126 @@
+---
+title: 'Understanding Layout and Template Next.js App Router'
+date: '2024-04-16'
+summary: It's not that simple
+tags: ['dev', 'nextjs']
+---
+
+Next.js with App Router gives us two options to wrap pages: [Layout](https://nextjs.org/docs/app/building-your-application/routing/pages-and-layouts#layouts) and [Template](https://nextjs.org/docs/app/building-your-application/routing/pages-and-layouts#templates). The documentation makes it seem like Layout and Template are simple. But after playing with them for a while, I realized that they are not.
+
+Let's say we have a layout component as follows:
+
+```typescript
+// /app/layout.tsx
+import Time from './time'
+import { getServerTime } from '../get-server-time'
+import SearchField from '../search-field'
+
+export default async function Layout({ children }: { children: React.ReactNode }) {
+  const time = await getServerTime(false)
+  return (
+    <div className="flex h-screen flex-col space-y-2 p-4 font-sans text-black">
+      <div className="space-y-2 pb-8 pt-6 md:space-y-5">
+        <h1 className="text-3xl font-extrabold leading-9 tracking-tight text-gray-900 dark:text-gray-100 sm:text-4xl sm:leading-10 md:text-6xl md:leading-14">
+          This is a dashboard in a Layout
+        </h1>
+        <div>
+          <p className="font-bold">Time in layout:</p>
+          <Time server={time} />
+        </div>
+        <SearchField />
+      </div>
+      <div className="flex flex-col">{children}</div>
+    </div>
+  )
+}
+```
+
+where `Time` is a client component that displays time in the client and the time that is passed from the server.
+
+```typescript
+// time.tsx
+'use client'
+
+import ClientOnly from '../../client-only'
+
+export default function Time({ server }: { server: string }) {
+  return (
+    <ClientOnly>
+      <p>Client: {new Date().toLocaleTimeString()}</p>
+      <p>Server: {server}</p>
+    </ClientOnly>
+  )
+}
+```
+
+When you navigate to a page that shares this `Layout` component, the value of client's time will never change. This is because the `Layout` component is persisted so the `Time` component is not re-rendered. Check out the [demo here](/experiments/suspense-demo/with-layout/admin/1).
+
+On the other hand, if we use a template component, the value of client's time will change every time we navigate to a page that shares this template component.
+
+```typescript
+// /app/template.tsx
+import Time from './time'
+import { getServerTime } from '../get-server-time'
+import SearchField from '../search-field'
+
+export default async function Template({ children }: { children: React.ReactNode }) {
+  const time = await getServerTime(false)
+  return (
+    <div className="flex h-screen flex-col space-y-2 p-4 font-sans text-black">
+      <div className="space-y-2 pb-8 pt-6 md:space-y-5">
+        <h1 className="text-3xl font-extrabold leading-9 tracking-tight text-gray-900 dark:text-gray-100 sm:text-4xl sm:leading-10 md:text-6xl md:leading-14">
+          This is a dashboard in a Template
+        </h1>
+        <div>
+          <p className="font-bold">Time in layout:</p>
+          <Time server={time} />
+        </div>
+        <SearchField />
+      </div>
+      <div className="flex flex-col">{children}</div>
+    </div>
+  )
+}
+```
+
+But with **one caveat**.
+
+If you navigate to a page that shares this template component but the destination page is using the same page component as the current page, the value of client's time will not change, which means **the template component is not re-rendered**. For example, say we have the following page component in `/app/admin/[id]/page.tsx` and `/app/guest/[id]/page.tsx`, and both shares the same template component above.
+
+```typescript
+// /app/admin/[id]/page.tsx
+import Link from 'next/link'
+
+export default async function AdminPage({ params }: { params: { id: string } }) {
+   return (
+    <div className="flex flex-col space-y-2">
+      // some code here
+    </div>
+  )
+}
+```
+
+```typescript
+// /app/guest/[id]/page.tsx
+import Link from 'next/link'
+
+export default async function GuestPage({ params }: { params: { id: string } }) {
+   return (
+    <div className="flex flex-col space-y-2">
+      // some code here
+    </div>
+  )
+}
+```
+
+Then let's say currently you are in `/admin/1` page and you click on a link that navigates to `/admin/2`. The value of client's time in the `Template` component **will not change** because the `/admin/2` route is using the same `AdminPage` component as `/admin/1`.
+
+On the other hand, if you navigate to `/guest/1`, the value of client's time in the `Template` component will change because the `/guest/1` route is using `GuestPage` component which is different from the `/admin/1` route.
+
+Check out the [demo here](/experiments/suspense-demo/with-template/admin/1).
+
+This behaviour happens in Next.js 14.2. I'm not sure if this is a bug or by design.
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!

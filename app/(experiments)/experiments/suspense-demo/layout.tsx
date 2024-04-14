@@ -10,6 +10,15 @@ export default async function Layout({ children }: { children: React.ReactNode }
         <Link prefetch={false} href={`/experiments/suspense-demo/with-template`}>
           With Template demo
         </Link>
+        <Link prefetch={false} href="/experiments/suspense-demo/with-layout-single-loading/">
+          With Layout Single Loading demo
+        </Link>
+        <Link prefetch={false} href="/experiments/suspense-demo/with-template-single-loading/">
+          With Template Single Loading demo
+        </Link>
+        <Link prefetch={false} href="/experiments/suspense-demo/with-template-implicit-suspense/">
+          With Template Implicit Suspense demo
+        </Link>
       </div>
       <div className="flex flex-col">{children}</div>
     </div>
