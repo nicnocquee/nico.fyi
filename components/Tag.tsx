@@ -1,15 +1,13 @@
 import Link from 'next/link'
-import GitHubSlugger from 'github-slugger'
+import { slug } from 'github-slugger'
 interface Props {
   text: string
 }
 
-const slugger = new GitHubSlugger()
-
 const Tag = ({ text }: Props) => {
   return (
     <Link
-      href={`/tags/${slugger.slug(text)}`}
+      href={`/tags/${slug(text)}`}
       className="mr-3 text-sm font-medium uppercase text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
     >
       {text.split(' ').join('-')}
