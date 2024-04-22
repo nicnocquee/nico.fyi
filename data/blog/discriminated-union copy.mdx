@@ -1,0 +1,118 @@
+---
+title: "You don't need useState in React"
+date: '2024-04-23'
+summary: Just like you don't need useEffect
+tags: ['dev', 'react', 'typescript']
+---
+
+In one of the pull requests I reviewed, I noticed a pattern that I've seen in many pull requests. A React component had multiple UI states such as `loading`, `error`, and `success`. The author used multiple `useState` hooks to manage these states, which resulted in code that is hard to read and error-prone, for example:
+
+```typescript
+const MyComponent = () => {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(false)
+  const [success, setSuccess] = useState(false)
+
+  return (
+    <div>
+      {loading && !error && !success && <p>Loading...</p>}
+      {error && !loading && !success && <p>Error occurred</p>}
+      {success && !loading && !error && <p>Operation completed successfully</p>}
+    </div>
+  )
+}
+```
+
+These states are **distinct from each other**. When `loading` is true, the `error` and `success` states should be `false`. Using multiple `useState` hooks can cause unexpected behaviors, like accidentally setting two states to `true` simultaneously.
+
+Instead, consider using the ["finite state machine" (FSM) pattern](https://en.wikipedia.org/wiki/Finite-state_machine). A FSM allows only a finite number of states. In the UI example above, a single `useState` can manage the current state more robustly and with less risk of error, as shown here:
+
+```typescript
+import { useState } from 'react'
+
+type State = 'loading' | 'error' | 'success'
+
+const MyComponent = () => {
+  const [state, setState] = useState<State>('loading')
+
+  const handleClick = () => {
+    setState('loading')
+    // Simulate an async operation
+    setTimeout(() => {
+      setState('success')
+    }, 2000)
+  }
+
+  return (
+    <div>
+      {state === 'loading' && <p>Loading...</p>}
+      {state === 'error' && <p>Error occurred</p>}
+      {state === 'success' && <p>Operation completed successfully</p>}
+      <button onClick={handleClick}>Click me</button>
+    </div>
+  )
+}
+```
+
+In some cases, such as when using [Tanstack query](https://tanstack.com/query/latest/docs/framework/react/overview) to fetch data, `useQuery` eliminates the need for separate `useState` hooks for `loading`, `error`, and `success` states:
+
+```typescript
+const MyComponent = () => {
+  const { data, isLoading, error } = useQuery(...)
+
+  if (isLoading) {
+    return <p>Loading...</p>
+  }
+
+  if (error) {
+    return <p>Error occurred</p>
+  }
+
+  return <p>Operation completed successfully {data}</p>
+}
+```
+
+Let's consider another state called `locked`, indicating whether the user has unlocked the feature, based on a [403 status code](https://http.cat/status/403) from the server. Often developers might use `useState` and `useEffect` to manage this, which can add unnecessary complexity:
+
+```typescript
+const MyComponent = () => {
+  const [locked, setLocked] = useState(false)
+  const { data, isLoading, error } = useQuery(...)
+
+  useEffect(() => {
+    if (error && error.status === 403) {
+      setLocked(true)
+    }
+  }, [error])
+
+  if (locked) {
+    return <p>You are locked out</p>
+  }
+}
+```
+
+A better approach **derives** the `locked` state directly from the `error`:
+
+```typescript
+const MyComponent = () => {
+  const { data, isLoading, error } = useQuery(...)
+
+  if (isLoading) {
+    return <p>Loading...</p>
+  }
+
+  const locked = error?.status === 403
+
+  if (locked) {
+    return <p>You are locked out</p>
+  }
+}
+```
+
+This method avoids the need for additional state management with `useState` and `useEffect`.
+
+When writing a React component, always consider whether `useState` and `useEffect` are necessary. Often, they are not.
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
