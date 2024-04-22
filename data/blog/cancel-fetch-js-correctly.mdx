@@ -1,0 +1,157 @@
+---
+title: 'How to cancel fetch on demand OR with timeout'
+date: '2024-04-24'
+summary: Don't trust what ChatGPT says
+tags: ['dev', 'typescript']
+---
+
+By default, the [web fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) doesn't have timeout option. It means that a request will never be cancelled if it's not explicitly cancelled. So how do we cancel a fetch request on demand? And how do we set a timeout for a fetch request? Take it even further, how do we allow user to **cancel the fetch before the timeout is reached**?
+
+When I asked ChatGPT about the default timeout for fetch, here's what it said:
+
+> The `fetch` API in browsers does not have a built-in timeout mechanism. By default, a `fetch` request will run indefinitely until the server responds or the connection is closed by some network error. If you need to implement a timeout, you have to do it manually with `setTimeout` and abort the fetch using an `AbortController`. Here’s a quick example:
+
+```typescript
+const controller = new AbortController()
+const timeoutId = setTimeout(() => controller.abort(), 5000) // Set timeout to 5000 ms
+
+fetch('https://example.com', { signal: controller.signal })
+  .then((response) => response.json())
+  .then((data) => console.log(data))
+  .catch((error) => console.error('Fetch aborted:', error))
+  .finally(() => clearTimeout(timeoutId))
+```
+
+> This sets up a fetch request that will be aborted if it takes longer than 5000 milliseconds (5 seconds).
+
+The above code seems alright but it's a bit complicated. There's an easier way to do it—use the [AbortSignal.timeout](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/timeout_static).
+
+```typescript
+try {
+  const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
+  const result = await res.blob()
+  // …
+} catch (err) {
+  if (err.name === 'TimeoutError') {
+    console.error('Timeout: It took more than 5 seconds to get the result!')
+  } else {
+    // A network error, or some other problem.
+    console.error(`Error: type: ${err.name}, message: ${err.message}`)
+  }
+}
+```
+
+Next we want to allow the user to cancel the fetch manually. We can use the same `AbortController` to abort the fetch request. Here's the code:
+
+```typescript
+import { useEffect, useRef } from 'react';
+
+function MyComponent() {
+  const abortControllerRef = useRef(new AbortController());
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const response = await fetch(someURL, { signal: abortControllerRef.current.signal });
+      const data = await response.json();
+      // Do something with data
+    };
+    fetchData();
+
+    return () => {
+      abortControllerRef.current.abort();
+    };
+  }, []);
+
+  return (
+    <button onClick={() => abortControllerRef.current.abort()}>Cancel</button>
+  );
+}
+```
+
+Finally, we want to the fetch to be canceled if the user clicks the cancel button _OR_ if the timeout is reached. Luckily, the platform provides us with a built-in way to achieve this using the [AbortSignal.any](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/any_static#using_abortsignal.any):
+
+```typescript
+import { useEffect, useRef } from 'react';
+
+function MyComponent() {
+  // in production, don't use multiple states like this. Check out my previous blog post.
+  const [loading, setLoading] = useState(false)
+  const [data, setData] = useState<any>(null)
+  const [error, setError] = useState<any>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    let isCleandUp = false
+
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
+
+    const fetchData = async () => {
+      // reset the states
+      setLoading(true)
+      setError(null)
+      setData(null)
+
+      // @ts-ignore don't know why TS doesn't recognize any
+      const combinedSignal = AbortSignal.any([
+        abortController.signal,
+        AbortSignal.timeout(1_000 * 5), // 5 seconds timeout
+      ])
+      const url = window.location.protocol + '//' + window.location.host
+      const fetchURL = `${url}/experiments/fetch-abort-demo/api`
+      try {
+        const response = await fetch(fetchURL, {
+          signal: combinedSignal,
+        })
+        const data = await response.json()
+
+        if (!isCleandUp) {
+          setData(data)
+          setLoading(false)
+          setError(null)
+        }
+      } catch (error: any) {
+        if (!isCleandUp) {
+          setLoading(false)
+
+          if (error.name === 'TimeoutError') {
+            setError('Timeout: It took more than 5 seconds to get the result!')
+          }
+          if (error.name === 'AbortError') {
+            setError(`Fetch canceled by user`)
+          }
+        }
+      }
+    }
+
+    fetchData()
+
+    return () => {
+      isCleandUp = true
+      abortController.abort()
+      abortControllerRef.current = null
+    }
+  }, [])
+
+  return (
+    <div>
+      {data && !loading && !error ? <p>Data: {data.message}</p> : null}
+      {error && !loading && !data ? <p>Error: {error}</p> : null}
+      {loading ? (
+        <button
+          className="cursor-default rounded-md border border-black px-4 py-2"
+          onClick={() => abortControllerRef.current?.abort()}
+        >
+          Loading. Will timeout in 5 seconds. Click to cancel now.
+        </button>
+      ) : null}
+    </div>
+  )
+}
+```
+
+Check out the [demo here](/experiments/fetch-abort-demo). Note that as of this writing, the demo doesn't work in Safari, only in Chrome and Firefox, even though Safari is supposed to support [AbortController.any since version 17.4](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/any_static#browser_compatibility).
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
