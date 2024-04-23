@@ -1,0 +1,183 @@
+---
+title: 'React Strict Mode and Race Condition'
+date: '2024-04-25'
+summary: 'I actually caught a bug thanks to Strict Mode'
+tags: ['dev', 'typescript']
+---
+
+One of the main reasons React introduced [Strict Mode](https://react.dev/reference/react/StrictMode) is to help us find hard-to-notice bugs, like race conditions. One of the ways it does this is by re-running [Effects](https://react.dev/learn/synchronizing-with-effects) twice in development mode.
+
+When I created the [aborting fetch demo](/experiments/fetch-abort-demo) in the [previous post](/blog/cancel-fetch-js-correctly), I stumbled upon a race condition bug which I had neither noticed nor understood at the beginning. This was the buggy code:
+
+```typescript
+function MyComponent() {
+  // in production, don't use multiple states like this
+  const [loading, setLoading] = useState(false)
+  const [data, setData] = useState<any>(null)
+  const [error, setError] = useState<any>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
+
+    const fetchData = async () => {
+      // reset the states
+      setLoading(true)
+      setError(null)
+      setData(null)
+
+      // @ts-ignore don't know why TS doesn't recognize any
+      const combinedSignal = AbortSignal.any([
+        abortController.signal,
+        AbortSignal.timeout(1_000 * 5), // 5 seconds timeout
+      ])
+      const url = window.location.protocol + '//' + window.location.host
+      const fetchURL = `${url}/experiments/fetch-abort-demo/api`
+      try {
+        const response = await fetch(fetchURL, {
+          signal: combinedSignal,
+        })
+        const data = await response.json()
+
+        setData(data)
+        setLoading(false)
+        setError(null)
+      } catch (error: any) {
+        setLoading(false)
+
+        if (error.name === 'TimeoutError') {
+          setError('Timeout: It took more than 5 seconds to get the result!')
+        }
+        if (error.name === 'AbortError') {
+          setError(`Fetch canceled by user`)
+        }
+      }
+    }
+
+    fetchData()
+
+    return () => {
+      abortController.abort()
+      abortControllerRef.current = null
+    }
+  }, [])
+
+  return (
+    <div>
+      {data && !loading && !error ? <p>Data: {data.message}</p> : null}
+      {error && !loading && !data ? <p>Error: {error}</p> : null}
+      {loading ? (
+        <button
+          className="cursor-default rounded-md border border-black px-4 py-2"
+          onClick={() => abortControllerRef.current?.abort()}
+        >
+          Loading. Will timeout in 5 seconds. Click to cancel now.
+        </button>
+      ) : null}
+    </div>
+  )
+}
+```
+
+In the above component, the `loading` state is never set to `true` during development. Can you guess why?
+
+At first, I thought even though the `useEffect` is run twice, `setLoading(true)` should **still have been** called before the `fetch` is executed.
+
+So, this is where Strict Mode exposes the subtle bug in the code. What happened was like this:
+
+1. React calls the Effect function. In this case, the `loading` state is set to `true`, then the `fetch` is started.
+2. Because of Strict Mode, the [cleanup function](https://react.dev/learn/synchronizing-with-effects#step-3-add-cleanup-if-needed) is called immediately after the Effect function is finished. Note that the `fetch` may not be finished yet.
+3. React calls the Effect function again. In this case, the `loading` state is set to `true`. However, because the `abortController.abort()` was called in the cleanup function, the previous `fetch` is now aborted, an error is thrown, and **it is** caught by the catch block. And since the `loading` state is set to false in this catch block, the `loading` state's value is immediately set to `false` again. Thus the `loading` state is never `true` in development mode.
+
+This code is buggy in a **very subtle way** because there's a possibility that it **updates the current state of the component based on an operation that is no longer valid**—the previously aborted `fetch`. The fix to this bug is pretty simple.
+
+We just need to have an indicator that the `fetch` was aborted because of the cleanup function:
+
+```typescript
+function MyComponent() {
+  // in production, don't use multiple states like this
+  const [loading, setLoading] = useState(false)
+  const [data, setData] = useState<any>(null)
+  const [error, setError] = useState<any>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    let isCleandUp = false // this is the indicator
+
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
+
+    const fetchData = async () => {
+      // reset the states
+      setLoading(true)
+      setError(null)
+      setData(null)
+
+      // @ts-ignore don't know why TS doesn't recognize any
+      const combinedSignal = AbortSignal.any([
+        abortController.signal,
+        AbortSignal.timeout(1_000 * 5), // 5 seconds timeout
+      ])
+      const url = window.location.protocol + '//' + window.location.host
+      const fetchURL = `${url}/experiments/fetch-abort-demo/api`
+      try {
+        const response = await fetch(fetchURL, {
+          signal: combinedSignal,
+        })
+        const data = await response.json()
+
+        if (!isCleandUp) {
+          setData(data)
+          setLoading(false)
+          setError(null)
+        }
+      } catch (error: any) {
+        if (!isCleandUp) {
+          setLoading(false)
+
+          if (error.name === 'TimeoutError') {
+            setError('Timeout: It took more than 5 seconds to get the result!')
+          }
+          if (error.name === 'AbortError') {
+            setError(`Fetch canceled by user`)
+          }
+        }
+      }
+    }
+
+    fetchData()
+
+    return () => {
+      isCleandUp = true
+      abortController.abort()
+      abortControllerRef.current = null
+    }
+  }, [])
+
+  return (
+    <div>
+      {data && !loading && !error ? <p>Data: {data.message}</p> : null}
+      {error && !loading && !data ? <p>Error: {error}</p> : null}
+      {loading ? (
+        <button
+          className="cursor-default rounded-md border border-black px-4 py-2"
+          onClick={() => abortControllerRef.current?.abort()}
+        >
+          Loading. Will timeout in 5 seconds. Click to cancel now.
+        </button>
+      ) : null}
+    </div>
+  )
+}
+```
+
+Using the `isCleanedUp` variable, we make sure that all state updates inside the Effect happen only when the cleanup function is not called.
+
+By the way, you should use [Tanstack Query](https://tanstack.com/query/latest/docs/framework/react/overview) instead of fetching data inside `useEffect` like this.
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi)!
+
+![](/static/images/articles/pull-request-best-practices.png)
