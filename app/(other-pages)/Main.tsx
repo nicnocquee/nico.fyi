@@ -3,7 +3,7 @@ import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
 import { formatDate } from 'pliny/utils/formatDate'
 import NewsletterForm from 'pliny/ui/NewsletterForm'
-import { routes } from './blog/routes'
+import { routes } from '../(blog)/blog/routes'
 import { Blog } from '@/.contentlayer/generated'
 import { CoreContent } from 'pliny/utils/contentlayer'
 

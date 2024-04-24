@@ -1,6 +1,6 @@
 import { allCoreContent } from 'pliny/utils/contentlayer'
 import Main from './Main'
-import { displayablePosts } from '@/app/(main)/blogs-data'
+import { displayablePosts } from '@/app/(blog)/blogs-data'
 
 export const revalidate = 60
 

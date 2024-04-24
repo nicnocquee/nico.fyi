@@ -10,7 +10,7 @@ import siteMetadata from '@/data/siteMetadata'
 import { Metadata } from 'next'
 import { Analytics as VercelAnalytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
-import { ThemeProviders } from '@/app/(main)/theme-providers'
+import { ThemeProviders } from '@/app/theme-providers'
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteMetadata.siteUrl),

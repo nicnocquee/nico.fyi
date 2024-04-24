@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next'
 import siteMetadata from '@/data/siteMetadata'
-import { displayablePosts } from './(main)/blogs-data'
+import { displayablePosts } from '@/app/(blog)/blogs-data'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const siteUrl = siteMetadata.siteUrl

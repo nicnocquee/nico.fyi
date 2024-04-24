@@ -5,7 +5,7 @@ import ListLayout from '@/layouts/ListLayoutWithTags'
 import tagData from 'app/tag-data.json'
 import { genPageMetadata } from 'app/seo'
 import { Metadata } from 'next'
-import { displayablePosts } from '@/app/(main)/blogs-data'
+import { displayablePosts } from '@/app/(blog)/blogs-data'
 
 export const revalidate = 60
 

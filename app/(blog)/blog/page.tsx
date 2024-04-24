@@ -1,7 +1,7 @@
 import ListLayout from '@/layouts/ListLayoutWithTags'
 import { allCoreContent } from 'pliny/utils/contentlayer'
 import { genPageMetadata } from 'app/seo'
-import { displayablePosts } from '@/app/(main)/blogs-data'
+import { displayablePosts } from '@/app/(blog)/blogs-data'
 
 const POSTS_PER_PAGE = 5
 export const revalidate = 60
