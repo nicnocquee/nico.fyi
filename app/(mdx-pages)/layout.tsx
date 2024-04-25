@@ -9,9 +9,7 @@ import Footer from '@/components/Footer'
 import siteMetadata from '@/data/siteMetadata'
 import { ThemeProviders } from '@/app/theme-providers'
 import { Metadata } from 'next'
-import { Analytics as VercelAnalytics } from '@vercel/analytics/react'
-import { SpeedInsights } from '@vercel/speed-insights/next'
-import { CSPostHogProvider } from '@/app/posthog'
+import { CSPostHogProvider, VercelAnalytics } from '@/app/analytics'
 
 const space_grotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -89,17 +87,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </SectionContainer>
           </ThemeProviders>
         </CSPostHogProvider>
-
         <VercelAnalytics />
-        <SpeedInsights
-          sampleRate={0.5}
-          beforeSend={(data) => {
-            if (data.url.includes('/experiments/')) {
-              return null // this will ignore the event
-            }
-            return data // this will send the event as is
-          }}
-        />
       </body>
     </html>
   )
