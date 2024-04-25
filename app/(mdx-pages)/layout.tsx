@@ -91,7 +91,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </CSPostHogProvider>
 
         <VercelAnalytics />
-        <SpeedInsights />
+        <SpeedInsights
+          sampleRate={0.5}
+          beforeSend={(data) => {
+            if (data.url.includes('/experiments/')) {
+              return null // this will ignore the event
+            }
+            return data // this will send the event as is
+          }}
+        />
       </body>
     </html>
   )
