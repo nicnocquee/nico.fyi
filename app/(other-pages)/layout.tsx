@@ -2,7 +2,6 @@ import 'css/tailwind.css'
 import 'pliny/search/algolia.css'
 
 import { Space_Grotesk } from 'next/font/google'
-import { Analytics, AnalyticsConfig } from 'pliny/analytics'
 import { SearchProvider, SearchConfig } from 'pliny/search'
 import Header from '@/components/Header'
 import SectionContainer from '@/components/SectionContainer'
@@ -12,7 +11,7 @@ import { ThemeProviders } from '../theme-providers'
 import { Metadata } from 'next'
 import { Analytics as VercelAnalytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
-import { CSPostHogProvider } from '../posthog'
+import { CSPostHogProvider } from '@/app/posthog'
 
 const space_grotesk = Space_Grotesk({
   subsets: ['latin'],

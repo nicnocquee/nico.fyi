@@ -1,15 +1,12 @@
 import 'css/tailwind.css'
 import 'pliny/search/algolia.css'
 
-import { Analytics, AnalyticsConfig } from 'pliny/analytics'
 import { SearchProvider, SearchConfig } from 'pliny/search'
 import Header from '@/components/Header'
 import SectionContainer from '@/components/SectionContainer'
 import Footer from '@/components/Footer'
 import siteMetadata from '@/data/siteMetadata'
 import { Metadata } from 'next'
-import { Analytics as VercelAnalytics } from '@vercel/analytics/react'
-import { SpeedInsights } from '@vercel/speed-insights/next'
 import { ThemeProviders } from '@/app/theme-providers'
 
 export const metadata: Metadata = {
@@ -66,8 +63,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </SectionContainer>
       </ThemeProviders>
-      <VercelAnalytics />
-      <SpeedInsights />
     </>
   )
 }
