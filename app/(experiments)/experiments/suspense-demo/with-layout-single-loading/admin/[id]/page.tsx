@@ -28,12 +28,6 @@ export default async function AdminPage({ params }: { params: { id: string } }) 
           >
             Next guest page
           </Link>
-          <Link
-            prefetch={false}
-            href={`/experiments/suspense-demo/with-layout-single-loading/${role}/${nextRandomId}`}
-          >
-            Next random page
-          </Link>
         </div>
       </div>
       <div className="max-w-lg">

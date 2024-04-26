@@ -35,12 +35,6 @@ export default async function GuestPage({ params }: { params: { id: string } }) 
             >
               Next guest page
             </Link>
-            <Link
-              prefetch={false}
-              href={`/experiments/suspense-demo/with-template/${role}/${nextRandomId}`}
-            >
-              Next random page
-            </Link>
           </div>
         </div>
       </div>
