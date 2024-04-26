@@ -5,12 +5,15 @@ import { allOthers } from '@/.contentlayer/generated'
 import { components } from '@/components/MDXComponents'
 import { MDXLayoutRenderer } from 'pliny/mdx-components'
 
-export default async function GuestPage({ params }: { params: { id: string } }) {
-  const roles = ['admin', 'guest']
-  const role = roles[Math.floor(Math.random() * roles.length)]
-  const time = await getServerTime()
-  const nextRandomId = Math.floor(Math.random() * 10000)
+export const dynamicParams = false
+export const generateStaticParams = async () => {
+  return [1, 2, 3].map((i) => ({ id: i.toString() }))
+}
 
+export default async function GuestPage({ params }: { params: { id: string } }) {
+  const time = await getServerTime()
+  let nextId = parseInt(params.id) + 1
+  if (nextId > 3) nextId = 1
   const guestNote = allOthers.find((p) => p.slug === 'template-example-guest-page')
 
   return (
@@ -25,13 +28,13 @@ export default async function GuestPage({ params }: { params: { id: string } }) 
             </Link>
             <Link
               prefetch={false}
-              href={`/experiments/suspense-demo/with-template/admin/${nextRandomId}`}
+              href={`/experiments/suspense-demo/with-template/admin/${nextId}`}
             >
               Next admin page
             </Link>
             <Link
               prefetch={false}
-              href={`/experiments/suspense-demo/with-template/guest/${nextRandomId}`}
+              href={`/experiments/suspense-demo/with-template/guest/${nextId}`}
             >
               Next guest page
             </Link>

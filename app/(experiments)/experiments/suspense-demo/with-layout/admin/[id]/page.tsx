@@ -2,11 +2,15 @@ import Link from 'next/link'
 import { getServerTime } from '../../../get-server-time'
 import { Alert } from '@/components/ui/alert'
 
+export const dynamicParams = false
+export const generateStaticParams = async () => {
+  return [1, 2, 3].map((i) => ({ id: i.toString() }))
+}
+
 export default async function AdminPage({ params }: { params: { id: string } }) {
-  const roles = ['admin', 'guest']
-  const role = roles[Math.floor(Math.random() * roles.length)]
   const time = await getServerTime()
-  const nextRandomId = Math.floor(Math.random() * 10000)
+  let nextId = parseInt(params.id) + 1
+  if (nextId > 3) nextId = 1
   return (
     <div className="flex flex-col space-y-2">
       <div className="flex flex-col space-y-2 bg-slate-100 p-4 [&_a]:text-primary-500 [&_a]:underline">
@@ -16,16 +20,10 @@ export default async function AdminPage({ params }: { params: { id: string } }) 
           <Link prefetch={false} href="/experiments/suspense-demo/with-layout/">
             Root
           </Link>
-          <Link
-            prefetch={false}
-            href={`/experiments/suspense-demo/with-layout/admin/${nextRandomId}`}
-          >
+          <Link prefetch={false} href={`/experiments/suspense-demo/with-layout/admin/${nextId}`}>
             Next admin page
           </Link>
-          <Link
-            prefetch={false}
-            href={`/experiments/suspense-demo/with-layout/guest/${nextRandomId}`}
-          >
+          <Link prefetch={false} href={`/experiments/suspense-demo/with-layout/guest/${nextId}`}>
             Next guest page
           </Link>
         </div>
