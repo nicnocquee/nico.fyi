@@ -16,7 +16,7 @@ import { displayablePosts } from '@/app/(blog)/blogs-data'
 import { routes } from '../routes'
 
 export const revalidate = 60
-export const dynamicParams = true
+export const dynamicParams = false
 
 const defaultLayout = 'PostLayout'
 const layouts = {
