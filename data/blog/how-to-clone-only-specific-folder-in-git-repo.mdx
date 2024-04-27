@@ -1,0 +1,92 @@
+---
+title: 'How to clone only specific folder in Git repo'
+date: '2024-04-30'
+summary: When you don't need the whole repo.
+tags: ['dev', 'git']
+---
+
+Many open source projects include some examples in the same repository as the main code. This is common practice in the open source community. However, as a user of the project, you may only need some of the examples. In this blog post, I'll show you how to clone only the folders you need.
+
+There's no direct way to clone only specific folders in the Git repo. To get just the folders you need, you have to
+
+1. clone the repo to the specified destination directory with minimal depth and no tree.
+2. set up the [sparse checkout](https://git-scm.com/docs/git-sparse-checkout)
+3. run the `git checkout`.
+
+This script will do the above:
+
+```shell
+#!/bin/bash
+
+# Check if the correct number of arguments are passed
+if [ "$#" -ne 3 ]; then
+    echo "Usage: $0 <git-url> <path-to-directory> <target-directory>"
+    exit 1
+fi
+
+# Variables from arguments
+GIT_URL=$1
+DIRECTORY_PATH=$2
+TARGET_DIR=$3
+
+# Cleanup function to remove the target directory on failure
+cleanup() {
+    echo "An error occurred. Cleaning up the target directory..."
+    /bin/rm -rf "$TARGET_DIR"
+    echo "Cleanup complete."
+}
+
+# Cloning the repo into the specified target directory with minimal depth and no tree
+git clone -n --depth=1 --filter=tree:0 "$GIT_URL" "$TARGET_DIR"
+if [ $? -ne 0 ]; then
+    echo "Git clone failed."
+    cleanup
+    exit 1
+fi
+
+# Change directory to the specified target directory
+cd "$TARGET_DIR"
+if [ $? -ne 0 ]; then
+    echo "Failed to change directory to $TARGET_DIR"
+    cleanup
+    exit 1
+fi
+
+# Setup sparse checkout
+git sparse-checkout set --no-cone "$DIRECTORY_PATH"
+if [ $? -ne 0 ]; then
+    echo "Sparse-checkout setup failed."
+    cleanup
+    exit 1
+fi
+
+# Checkout the files
+git checkout
+if [ $? -ne 0 ]; then
+    echo "Git checkout failed."
+    cleanup
+    exit 1
+fi
+
+# Verify the contents of the checkout
+if [ -z "$(ls -A $DIRECTORY_PATH)" ]; then
+    echo "Error: The specified path '$DIRECTORY_PATH' does not exist in the repository."
+    cleanup
+    exit 1
+fi
+
+echo "Checkout complete. The repository is located in '$TARGET_DIR'."
+echo "To enter the directory, use: cd '$TARGET_DIR'"
+```
+
+I have named this script `git-sparse-clone.sh`. Let's see how to use it. Suppose you only want to clone the `ai/edge-functions` example from the supabase:
+
+```shell
+./git-sparse-clone.sh git@github.com:supabase/supabase.git examples/ai/edge-functions supabase-ai-edge
+```
+
+Running this command will create a directory called `supabase-ai-edge` in the current directory, containing the `ai/edge-functions` example.
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
