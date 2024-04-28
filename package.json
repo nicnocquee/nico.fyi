@@ -5,7 +5,7 @@
   "scripts": {
     "start": "next dev --turbo",
     "format": "prettier --write .",
-    "dev": "cross-env INIT_CWD=$PWD next dev",
+    "dev": "cross-env NODE_OPTIONS='--experimental-json-modules' node ./scripts/postbuild.mjs &&cross-env INIT_CWD=$PWD next dev",
     "build": "cross-env INIT_CWD=$PWD next build && cross-env NODE_OPTIONS='--experimental-json-modules' node ./scripts/postbuild.mjs",
     "serve": "next start",
     "analyze": "cross-env ANALYZE=true next build",

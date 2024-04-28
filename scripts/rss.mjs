@@ -13,7 +13,7 @@ const generateRssItem = (config, post) => {
     <guid>${config.siteUrl}/blog/${post.slug}</guid>
     <title>${escape(post.title)}</title>
     <link>${config.siteUrl}/blog/${post.slug}</link>
-    ${post.body.raw && `<description>${escape(post.body.raw)}</description>`}
+    ${post.body.raw && `<description>${escape(post.body.raw.substring(0, 1000))}</description>`}
     <pubDate>${new Date(post.date).toUTCString()}</pubDate>
     <author>${config.email} (${config.author})</author>
     ${post.tags && post.tags.map((t) => `<category>${t}</category>`).join('')}
