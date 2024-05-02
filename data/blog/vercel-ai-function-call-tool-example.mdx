@@ -1,0 +1,71 @@
+---
+title: 'How to Feed the Function Call Result Back to the Model with Vercel AI SDK'
+date: '2024-05-03'
+summary: 'To get a better response from the model'
+tags: ['dev', 'ai']
+---
+
+Vercel have just released a new version of their [AI SDK along with new documentation](https://sdk.vercel.ai/docs/introduction). It's better than the previous documentation, but it still lacks an example of how to use the SDK to [call functions](https://sdk.vercel.ai/docs/ai-sdk-core/tools-and-tool-calling) and then [feed the result back to the model](https://platform.openai.com/docs/guides/function-calling/parallel-function-calling).
+
+For example, the `getWeather` function returns a string that is immediately displayed to the user in [their weather example](https://sdk.vercel.ai/examples/next-app/tools/call-functions-in-parallel#server).
+
+```typescript
+const { text, toolResults } = await generateText({
+  model: openai('gpt-3.5-turbo'),
+  system: 'You are a friendly weather assistant!',
+  messages: history,
+  tools: {
+    getWeather: {
+      description: 'Get the weather for a location',
+      parameters: z.object({
+        city: z.string().describe('The city to get the weather for'),
+        unit: z.enum(['C', 'F']).describe('The unit to display the temperature in'),
+      }),
+      execute: async ({ city, unit }) => {
+        const weather = getWeather({ city, unit })
+        return `It is currently 25°${weather.value} and ${weather.description} in ${city}!`
+      },
+    },
+  },
+})
+```
+
+In this example, if the user asks about the weather in two or more cities, they will get the function's return value in the order in which they were called. This doesn't sound very natural. A better result would be to **let the model compose the sentence based on the result of the function call**. To do this, we need to feed the result of the function call back to the model.
+
+```typescript
+const { text, toolResults, toolCalls } = await generateText({
+  ...context,
+  messages,
+})
+
+// if there's a tool call, add it to the assistant's message
+if (toolResults && toolCalls) {
+  messages.push({
+    role: 'assistant' as const,
+    content: toolCalls,
+  })
+
+  messages.push({
+    role: 'tool' as const,
+    content: toolResults,
+  })
+
+  const { text: finalText } = await generateText({
+    ...context,
+    messages,
+  })
+  messages.push({ role: 'assistant', content: finalText })
+  process.stdout.write(`Assistant: ${finalText}\n`)
+} else {
+  messages.push({ role: 'assistant', content: text })
+  process.stdout.write(`Assistant: ${text}\n`)
+}
+```
+
+You can have a look at the demo from [this repository](https://github.com/nicnocquee/vercel-ai-node-example).
+
+![](/static/images/articles/vercel-ai-output.png.webp)
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
