@@ -23,7 +23,7 @@ const ContentSecurityPolicy = `
   media-src *.s3.amazonaws.com;
   connect-src *;
   font-src 'self';
-  frame-src giscus.app player.cloudinary.com www.google.com www.gstatic.com;
+  frame-src giscus.app player.cloudinary.com www.google.com www.gstatic.com eu.posthog.com;
 `
 
 const securityHeaders = [
