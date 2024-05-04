@@ -10,6 +10,7 @@ import siteMetadata from '@/data/siteMetadata'
 import { Metadata } from 'next'
 import { CSPostHogProvider, VercelAnalytics } from '@/app/analytics'
 import { ThemeProviders } from '@/app/theme-providers'
+import { Toaster } from '@/components/ui/toaster'
 
 const space_grotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -74,6 +75,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000" />
       <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
       <body className="bg-white text-black antialiased dark:bg-gray-950 dark:text-white">
+        <Toaster />
+
         <CSPostHogProvider>
           <ThemeProviders>
             <SectionContainer>
