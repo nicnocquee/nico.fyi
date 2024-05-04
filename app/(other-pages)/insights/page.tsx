@@ -1,3 +1,16 @@
+export const generateMetadata = async () => {
+  return {
+    title: 'Insights',
+    description: 'Insights from Posthog',
+    robots: {
+      index: false,
+      follow: false,
+      noindex: true,
+      nofollow: true,
+    },
+  }
+}
+
 export default function InsightsPage() {
   return (
     <div className="flex flex-col space-y-8">
@@ -7,23 +20,24 @@ export default function InsightsPage() {
       <p className="text-lg leading-7 text-gray-500 dark:text-gray-400">
         This is a page for nico.fyi insights.
       </p>
-      <iframe
-        title="nico.fyi insights by pages"
-        width="100%"
-        height="400"
-        frameBorder="0"
-        allowFullScreen
-        src="https://eu.posthog.com/embedded/Uh-dD7vLEIlPzGiEREHn3xzQ3E234g"
-      ></iframe>
 
-      <iframe
-        title="nico.fyi insights by country"
-        width="100%"
-        height="600"
-        frameBorder="0"
-        allowFullScreen
-        src="https://eu.posthog.com/embedded/cUu6_GTpj41KC1AHVZdZDWTgyszHBA"
-      ></iframe>
+      {[
+        'https://eu.posthog.com/embedded/Uh-dD7vLEIlPzGiEREHn3xzQ3E234g',
+        'https://eu.posthog.com/shared/AQM_F4DRz2eRgCeYzpeWBFwsHYI-VQ',
+        'https://eu.posthog.com/embedded/cUu6_GTpj41KC1AHVZdZDWTgyszHBA',
+        'https://eu.posthog.com/embedded/EVWqyDeCEnblyb6k1CYPiVfnjSp1yw',
+      ].map((url) => {
+        return (
+          <iframe
+            key={url}
+            title="nico.fyi insights by pages"
+            width="100%"
+            height="600"
+            allowFullScreen
+            src={url}
+          ></iframe>
+        )
+      })}
     </div>
   )
 }

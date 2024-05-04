@@ -14,6 +14,7 @@ import siteMetadata from '@/data/siteMetadata'
 import { notFound } from 'next/navigation'
 import { displayablePosts } from '@/app/(blog)/blogs-data'
 import { routes } from '../routes'
+import { PopularBlogs } from '../../components/popular'
 
 export const revalidate = 60
 export const dynamicParams = true
@@ -121,6 +122,7 @@ export default async function Page({ params }: { params: typeof routes.blogPage.
       <Layout content={mainContent} authorDetails={authorDetails} next={next} prev={prev}>
         <MDXLayoutRenderer code={post.body.code} components={components} toc={post.toc} />
       </Layout>
+      <PopularBlogs />
     </>
   )
 }

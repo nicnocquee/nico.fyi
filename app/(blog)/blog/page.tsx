@@ -2,6 +2,7 @@ import ListLayout from '@/layouts/ListLayoutWithTags'
 import { allCoreContent } from 'pliny/utils/contentlayer'
 import { genPageMetadata } from 'app/seo'
 import { displayablePosts } from '@/app/(blog)/blogs-data'
+import { PopularBlogs } from '../components/popular'
 
 const POSTS_PER_PAGE = 5
 export const revalidate = 60
@@ -21,11 +22,14 @@ export default function BlogPage() {
   }
 
   return (
-    <ListLayout
-      posts={posts}
-      initialDisplayPosts={initialDisplayPosts}
-      pagination={pagination}
-      title="All Posts"
-    />
+    <div className="flex flex-col space-y-8">
+      <ListLayout
+        posts={posts}
+        initialDisplayPosts={initialDisplayPosts}
+        pagination={pagination}
+        title="All Posts"
+      />
+      <PopularBlogs />
+    </div>
   )
 }
