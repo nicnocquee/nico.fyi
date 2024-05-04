@@ -10,7 +10,7 @@ const siteMetadata = {
     process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://www.nico.fyi',
   siteRepo: 'https://github.com/nicnocquee/nico.fyi',
   siteLogo: '/static/images/logo.webp',
-  socialBanner: '/static/images/twitter-card.png',
+  socialBanner: '/static/images/twitter-card.jpg',
   mastodon: '',
   email: 'hi@nico.fyi',
   github: 'https://github.com/nicnocquee',
