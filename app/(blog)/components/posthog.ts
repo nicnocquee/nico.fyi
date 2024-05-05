@@ -6,7 +6,7 @@ export type Breakdown = z.infer<typeof BreakdownSchema>
 export const BreakdownTypeEnumSchema = z.enum(['event'])
 export type BreakdownTypeEnum = z.infer<typeof BreakdownTypeEnumSchema>
 
-export const DateFromSchema = z.enum(['-7d'])
+export const DateFromSchema = z.string()
 export type DateFrom = z.infer<typeof DateFromSchema>
 
 export const DisplaySchema = z.enum(['ActionsLineGraph'])
@@ -39,19 +39,10 @@ export type Key = z.infer<typeof KeySchema>
 export const OperatorSchema = z.enum(['not_regex'])
 export type Operator = z.infer<typeof OperatorSchema>
 
-export const ValueEnumSchema = z.enum(['^(localhost|127\\.0\\.0\\.1)($|:)'])
+export const ValueEnumSchema = z.string()
 export type ValueEnum = z.infer<typeof ValueEnumSchema>
 
-export const LabelSchema = z.enum([
-  '1-May-2024',
-  '26-Apr-2024',
-  '27-Apr-2024',
-  '28-Apr-2024',
-  '29-Apr-2024',
-  '2-May-2024',
-  '30-Apr-2024',
-  '3-May-2024',
-])
+export const LabelSchema = z.string()
 export type Label = z.infer<typeof LabelSchema>
 
 export const EdBySchema = z.object({

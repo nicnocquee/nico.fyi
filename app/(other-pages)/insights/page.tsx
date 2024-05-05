@@ -1,3 +1,5 @@
+import siteMetadata from '@/data/siteMetadata'
+
 export const generateMetadata = async () => {
   return {
     title: 'Insights',
@@ -7,6 +9,20 @@ export const generateMetadata = async () => {
       follow: false,
       noindex: true,
       nofollow: true,
+    },
+    openGraph: {
+      title: siteMetadata.title,
+      description: siteMetadata.description,
+      url: './',
+      siteName: siteMetadata.title,
+      images: [`${siteMetadata.siteUrl}/static/screenshots/insights.webp`],
+      locale: 'en_US',
+      type: 'website',
+    },
+    twitter: {
+      title: siteMetadata.title,
+      card: 'summary_large_image',
+      images: [`${siteMetadata.siteUrl}/static/screenshots/insights.webp`],
     },
   }
 }
