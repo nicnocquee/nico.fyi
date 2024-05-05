@@ -1,0 +1,38 @@
+---
+title: 'How to use a page screenshot as an Open Graph image'
+date: '2024-05-07'
+summary: 'For free!'
+tags: ['dev', 'cli', 'open source']
+---
+
+Some people argue that using a screenshot of a page as an [open graph](https://ogp.me) image is a great idea that can increase traffic. That's why several [SaaS](https://en.wikipedia.org/wiki/Software_as_a_service) options offer this service. For example, [ScreenshotOne](https://screenshotone.com) and [Image.social](https://image.social). If you have tried them, you'll find that they are not so cheap.
+
+I understand that it costs money to run this type of service. Capturing a screenshot involves using a real browser. And running a browser to capture tons of screenshots requires a lot of computational power.
+
+But for small bloggers like me, I'm not sure if it's worth the money to use those services. **Once a blog post is published, I just need to generate the screenshot of the page once**. I think it's a waste of money to pay every month for something that I won't use too often. Not to mention that I have a computer that should be powerful enough to perform this task.
+
+So, I created a CLI tool that can generate a screenshot of a URL, resize it to the **recommended open graph image size (1200x630px)**, and save it to a file. It's called [og-screenshots](https://github.com/nicnocquee/og-screenshots). It's open source and free to use. To use this tool, you need to have the following:
+
+1. Node.js. You can download it from [here](https://nodejs.org/en/download).
+2. Chrome browser. You can download it from [here](https://www.google.com/chrome/).
+3. ImageMagick. You can download it from [here](https://imagemagick.org/script/download.php) or by installing it via [Homebrew](https://brew.sh/): `brew install imagemagick`.
+
+Once you have the above tools installed, you can directly run it:
+
+```bash
+npx og-screenshots -u https://www.nico.fyi/
+```
+
+When the URL you provide with the `-u` flag is either a [sitemap](https://www.sitemaps.org) or an [RSS feed](https://en.wikipedia.org/wiki/RSS), the tool will automatically generate open graph images for each page listed in the feed or sitemap!
+
+The tool is still in beta, and I have tested it only on macOS to capture screenshots and generate open graph images for pages on this Next.js website during its development:
+
+1. I run the website locally using `bun dev` which can be accessed at `http://localhost:3000`.
+2. Open another terminal and run `npx og-screenshots -u http://localhost:3000/sitemap.xml -o /path/to/repo/public/static/screenshots`.
+3. Update the [generateMetadata function](https://nextjs.org/docs/app/api-reference/functions/generate-metadata) in the [page.tsx](<https://github.com/nicnocquee/nico.fyi/blob/ca476097285d1ba45c510350bdc7789e1f65226b/app/(blog)/blog/%5B...slug%5D/page.tsx#L49>) file to use the generated open graph images.
+
+Give it a try and [let me know if you have any issues](https://github.com/nicnocquee/og-screenshots/issues).
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
