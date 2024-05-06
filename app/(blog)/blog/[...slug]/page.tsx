@@ -54,9 +54,17 @@ export async function generateMetadata({
     }
   })
 
+  const keywords = Array.from(
+    new Set([
+      ...post.keywords.map((t) => t.toLowerCase()),
+      ...post.tags.map((t) => t.toLowerCase()),
+    ])
+  )
+
   return {
     title: post.title,
     description: post.summary,
+    keywords,
     openGraph: {
       title: post.title,
       description: post.summary,
