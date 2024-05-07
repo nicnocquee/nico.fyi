@@ -27,7 +27,7 @@ export type Insight = z.infer<typeof InsightSchema>
 export const IntervalSchema = z.enum(['day'])
 export type Interval = z.infer<typeof IntervalSchema>
 
-export const BreakdownAttributionTypeSchema = z.enum(['first_touch'])
+export const BreakdownAttributionTypeSchema = z.enum(['first_touch']).optional()
 export type BreakdownAttributionType = z.infer<typeof BreakdownAttributionTypeSchema>
 
 export const PropertiesTypeSchema = z.enum(['AND'])
@@ -152,15 +152,10 @@ export const ResultFilterSchema = z.object({
 export type ResultFilter = z.infer<typeof ResultFilterSchema>
 
 export const ResultSchema = z.object({
-  action: ActionSchema,
   label: z.string(),
   count: z.number(),
-  data: z.array(z.number()),
-  labels: z.array(LabelSchema),
-  days: z.array(z.string()),
-  breakdown_value: z.string(),
-  persons_urls: z.array(PersonsUrlSchema),
-  filter: ResultFilterSchema,
+  data: z.array(z.number()).optional(),
+  days: z.array(z.string()).optional(),
 })
 export type Result = z.infer<typeof ResultSchema>
 
@@ -168,30 +163,7 @@ export const PosthogSchema = z.object({
   id: z.number(),
   short_id: z.string(),
   name: z.string(),
-  derived_name: z.string(),
-  filters: FiltersSchema,
-  query: z.null(),
-  order: z.null(),
-  deleted: z.boolean(),
-  dashboards: z.array(z.number()),
-  dashboard_tiles: z.array(DashboardTileSchema),
-  last_refresh: z.coerce.date(),
-  next_allowed_client_refresh: z.coerce.date(),
-  result: z.array(ResultSchema),
+  result: z.array(ResultSchema).nullable(),
   created_at: z.coerce.date(),
-  created_by: EdBySchema,
-  description: z.string(),
-  updated_at: z.coerce.date(),
-  favorited: z.boolean(),
-  saved: z.boolean(),
-  last_modified_at: z.coerce.date(),
-  last_modified_by: EdBySchema,
-  is_sample: z.boolean(),
-  effective_restriction_level: z.number(),
-  effective_privilege_level: z.number(),
-  timezone: z.null(),
-  is_cached: z.boolean(),
-  tags: z.array(z.any()),
-  filters_hash: z.string(),
 })
 export type Posthog = z.infer<typeof PosthogSchema>

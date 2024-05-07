@@ -8,7 +8,6 @@ export const PopularBlogsList = async () => {
     {
       method: 'GET',
       headers: {
-        Accept: 'application/json',
         Authorization: `Bearer ${process.env.POSTHOG_API_KEY}`,
       },
     }
@@ -18,7 +17,7 @@ export const PopularBlogsList = async () => {
   const { result } = await PosthogSchema.parseAsync(jsonData)
 
   const posts = result
-    .filter((post) => post.label.startsWith('/blog'))
+    ?.filter((post) => post.label.startsWith('/blog'))
     .map((post) => {
       const thePost = allBlogs.find((p) => post.label.indexOf(p.slug) !== -1)
       return {
@@ -29,7 +28,7 @@ export const PopularBlogsList = async () => {
     })
     .filter((_, i) => i < 6)
 
-  if (posts.length === 0) {
+  if (!posts || posts.length === 0) {
     return null
   }
 
