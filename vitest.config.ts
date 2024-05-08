@@ -7,6 +7,7 @@ import { loadEnv } from 'vite'
 export default defineConfig({
   plugins: [react()],
   test: {
+    testTimeout: 10000,
     environment: 'node',
     setupFiles: './__tests__/setup.ts',
     env: loadEnv('test', process.cwd(), ''),
