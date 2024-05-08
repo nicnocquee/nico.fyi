@@ -12,7 +12,7 @@ His solution is to use [Vitest](https://vitest.dev) and [MSW (Mock Service Worke
 
 The idea is quite simple:
 
-1. Create a dummy request based on the [NextRequest] (https://nextjs.org/docs/app/api-reference/functions/next-request).
+1. Create a dummy request based on the [NextRequest](https://nextjs.org/docs/app/api-reference/functions/next-request).
 2. Pass the mock request to the handler of the API route (GET, POST, etc).
 3. Assert that the response is what you expect.
 4. If necessary, intercept any requests made within the handler and mock them using MSW.
@@ -20,8 +20,8 @@ The idea is quite simple:
 I then tried it out on this site. I added a test for the API route that stores the data in the Turso database for the [Should you use Vercel tool](/should-you-use-vercel) using the following steps:
 
 1. Install vitest and msw.
-2. Create a [setup file for vitest](https://github.com/nicnocquee/nico.fyi/main/__tests__/setup.ts). In this file I instantiate the MSW node server which will intercept all requests made within the API route handler.
-3. Create a test for the API route in [the route.test.ts file](<https://github.com/nicnocquee/nico.fyi/main/app/(other-pages)/should-you-use-vercel/api/route.test.ts>).
+2. Create a [setup file for vitest](https://github.com/nicnocquee/nico.fyi/blob/main/__tests__/setup.ts). In this file I instantiate the MSW node server which will intercept all requests made within the API route handler.
+3. Create a test for the API route in [the route.test.ts file](<https://github.com/nicnocquee/nico.fyi/blob/main/app/(other-pages)/should-you-use-vercel/api/route.test.ts>).
 
 When the data is submitted, the request handler verifies that the [reCAPTCHA](https://www.google.com/recaptcha/about/) token is valid by sending a request to [Google's reCAPTCHA API](https://developers.google.com/recaptcha/docs/verify). If the token is valid, the request handler will then continue to store the data in the Turso database. So in this case, I need to intercept the request to Google's reCAPTCHA API and mock the response to return `success: true` or `success: false` based on the test case.
 
@@ -33,9 +33,7 @@ A few things to note based on my initial experience with Vitest and MSW:
 2. You must explicitly tell Vitest where to find the environment file.
 
 ```typescript
-    env: {
-      ...config({ path: './.env.test' }).parsed,
-    },
+    env: loadEnv('test', process.cwd(), ''),
 ```
 
 3. If the function to be tested is async, you must use `await` when calling the `expect` function:
@@ -44,7 +42,7 @@ A few things to note based on my initial experience with Vitest and MSW:
 await expect(() => POST(req)).rejects.toThrow()
 ```
 
-4. If you use the [module path aliases](https://nextjs.org/docs/app/building-your-application/configuring/absolute-imports-and-module-aliases) in your test file, as I did [here](<https://github.com/nicnocquee/nico.fyi/main/app/(other-pages)/should-you-use-vercel/api/route.test.ts>), you need to add them to the [vitest config file](https://github.com/nicnocquee/nico.fyi/main/vite.config.ts):
+4. If you use the [module path aliases](https://nextjs.org/docs/app/building-your-application/configuring/absolute-imports-and-module-aliases) in your test file, as I did [here](<https://github.com/nicnocquee/nico.fyi/blob/main/app/(other-pages)/should-you-use-vercel/api/route.test.ts>), you need to add them to the [vitest config file](https://github.com/nicnocquee/nico.fyi/blob/main/vitest.config.ts):
 
 ```typescript
 resolve: {
@@ -56,10 +54,10 @@ resolve: {
 
 Check out the related files for testing the API route on this website:
 
-1. [vitest.config.ts](https://github.com/nicnocquee/nico.fyi/main/vite.config.ts)
-2. [setup.ts](https://github.com/nicnocquee/nico.fyi/main/__tests__/setup.ts)
-3. [route.test.ts](<https://github.com/nicnocquee/nico.fyi/main/app/(other-pages)/should-you-use-vercel/api/route.test.ts>)
-4. [.env.test](https://github.com/nicnocquee/nico.fyi/main/.env.test)
+1. [vitest.config.ts](https://github.com/nicnocquee/nico.fyi/blob/main/vitest.config.ts)
+2. [setup.ts](https://github.com/nicnocquee/nico.fyi/blob/main/__tests__/setup.ts)
+3. [route.test.ts](<https://github.com/nicnocquee/nico.fyi/blob/main/app/(other-pages)/should-you-use-vercel/api/route.test.ts>)
+4. [.env.test](https://github.com/nicnocquee/nico.fyi/blob/main/.env.test)
 
 Zaher has written a lot about DevOps like Docker and Kubernetes in [his blog](https://zaher.dev/blog/). Check it out if you're interested in these topics!
 

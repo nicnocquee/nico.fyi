@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { fileURLToPath, URL } from 'url'
-import { config } from 'dotenv'
+import { loadEnv } from 'vite'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -9,9 +9,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     setupFiles: './__tests__/setup.ts',
-    env: {
-      ...config({ path: './.env.test' }).parsed,
-    },
+    env: loadEnv('test', process.cwd(), ''),
   },
   resolve: {
     alias: {
