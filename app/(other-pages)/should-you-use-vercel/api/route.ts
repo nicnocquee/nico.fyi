@@ -1,5 +1,5 @@
 export const runtime = 'edge'
-import { createClient } from '@libsql/client/web'
+import { createClient } from '@libsql/client'
 import { z } from 'zod'
 
 export async function GET(request: Request) {
@@ -87,6 +87,10 @@ export async function POST(request: Request) {
     url: tursoDbUrl,
     authToken: tursoDbAuthToken,
   })
+
+  await client.execute(
+    `CREATE TABLE IF NOT EXISTS responses (id serial primary key, answers text unique, count int, selectedPaths text)`
+  )
 
   const response = await client.execute({
     sql: `INSERT INTO responses (answers, count)

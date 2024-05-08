@@ -6,10 +6,12 @@
     "start": "next dev --turbo",
     "format": "prettier --write .",
     "dev": "cross-env NODE_OPTIONS='--experimental-json-modules' node ./scripts/postbuild.mjs &&cross-env INIT_CWD=$PWD next dev",
-    "build": "cross-env INIT_CWD=$PWD next build && cross-env NODE_OPTIONS='--experimental-json-modules' node ./scripts/postbuild.mjs",
+    "build": "npm run test:ci && cross-env INIT_CWD=$PWD next build && cross-env NODE_OPTIONS='--experimental-json-modules' node ./scripts/postbuild.mjs",
     "serve": "next start",
     "analyze": "cross-env ANALYZE=true next build",
-    "lint": "next lint --fix --dir pages --dir app --dir components --dir lib --dir layouts --dir scripts"
+    "lint": "next lint --fix --dir pages --dir app --dir components --dir lib --dir layouts --dir scripts",
+    "test": "NODE_ENV=test vitest --reporter=basic --disable-console-intercept",
+    "test:ci": "NODE_ENV=test vitest run --reporter=basic --disable-console-intercept"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
@@ -108,6 +110,7 @@
     "@types/react": "^18.2.67",
     "@typescript-eslint/eslint-plugin": "^7.3.1",
     "@typescript-eslint/parser": "^7.3.1",
+    "@vitejs/plugin-react": "^4.2.1",
     "cross-env": "^7.0.3",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.1.3",
@@ -115,9 +118,11 @@
     "eslint-plugin-prettier": "^5.1.3",
     "husky": "^9.0.11",
     "lint-staged": "^15.2.2",
+    "msw": "^2.2.14",
     "prettier": "^3.2.5",
     "prettier-plugin-tailwindcss": "^0.5.12",
-    "typescript": "^5.4.2"
+    "typescript": "^5.4.2",
+    "vitest": "^1.6.0"
   },
   "lint-staged": {
     "*.+(js|jsx|ts|tsx)": [
