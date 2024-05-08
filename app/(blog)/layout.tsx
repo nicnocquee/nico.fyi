@@ -91,7 +91,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </ThemeProviders>
           <CookieBanner />
         </CSPostHogProvider>
-
         <VercelAnalytics />
       </body>
     </html>
