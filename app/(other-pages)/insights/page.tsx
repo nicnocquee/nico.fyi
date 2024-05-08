@@ -54,9 +54,19 @@ export default function InsightsPage() {
           'https://eu.posthog.com/embedded/cUu6_GTpj41KC1AHVZdZDWTgyszHBA?refresh=true',
         ],
         [
+          'Page view by country in Bar Chart',
+          'pageview-by-country-bar-chart',
+          'https://eu.posthog.com/shared/Jsq7RdOaTiPr1i_Z8YuBSHb9QPOrFA?refresh=true',
+        ],
+        [
           'Page view by browser',
           'pageview-by-browser',
           'https://eu.posthog.com/embedded/EVWqyDeCEnblyb6k1CYPiVfnjSp1yw?refresh=true',
+        ],
+        [
+          'Page view by Referring Domain',
+          'pageview-by-referring-domain',
+          'https://eu.posthog.com/shared/qKij9bDD1SVSdA4vfdlg-ZtVW7LWvw?refresh=true',
         ],
       ].map(([title, anchor, url]) => {
         return (
