@@ -9,7 +9,7 @@ import Footer from '@/components/Footer'
 import siteMetadata from '@/data/siteMetadata'
 import { ThemeProviders } from '../theme-providers'
 import { Metadata } from 'next'
-import { CSPostHogProvider, VercelAnalytics } from '@/app/analytics'
+import { CSPostHogProvider, CookieBanner, VercelAnalytics } from '@/app/analytics'
 
 const space_grotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -86,6 +86,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             </SectionContainer>
           </ThemeProviders>
+          <CookieBanner />
         </CSPostHogProvider>
         <VercelAnalytics />
       </body>
