@@ -38,20 +38,43 @@ export default function InsightsPage() {
       </p>
 
       {[
-        'https://eu.posthog.com/embedded/Uh-dD7vLEIlPzGiEREHn3xzQ3E234g',
-        'https://eu.posthog.com/shared/AQM_F4DRz2eRgCeYzpeWBFwsHYI-VQ',
-        'https://eu.posthog.com/embedded/cUu6_GTpj41KC1AHVZdZDWTgyszHBA',
-        'https://eu.posthog.com/embedded/EVWqyDeCEnblyb6k1CYPiVfnjSp1yw',
-      ].map((url) => {
+        [
+          'Page view by path',
+          'pageview-by-path',
+          'https://eu.posthog.com/embedded/Uh-dD7vLEIlPzGiEREHn3xzQ3E234g?refresh=true',
+        ],
+        [
+          'Weekly active users',
+          'weekly-active-users',
+          'https://eu.posthog.com/embedded/AQM_F4DRz2eRgCeYzpeWBFwsHYI-VQ?refresh=true',
+        ],
+        [
+          'Page view by country',
+          'pageview-by-country',
+          'https://eu.posthog.com/embedded/cUu6_GTpj41KC1AHVZdZDWTgyszHBA?refresh=true',
+        ],
+        [
+          'Page view by browser',
+          'pageview-by-browser',
+          'https://eu.posthog.com/embedded/EVWqyDeCEnblyb6k1CYPiVfnjSp1yw?refresh=true',
+        ],
+      ].map(([title, anchor, url]) => {
         return (
-          <iframe
-            key={url}
-            title="nico.fyi insights by pages"
-            width="100%"
-            height="600"
-            allowFullScreen
-            src={url}
-          ></iframe>
+          <div key={url} className="flex flex-col space-y-4">
+            <h2 className="text-xl font-bold">
+              <a id={anchor} href={`#${anchor}`}>
+                {title}
+              </a>
+            </h2>
+            <iframe
+              key={url}
+              title={title}
+              width="100%"
+              height="600"
+              allowFullScreen
+              src={url}
+            ></iframe>
+          </div>
         )
       })}
     </div>
