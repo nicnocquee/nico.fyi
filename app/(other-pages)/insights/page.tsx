@@ -102,32 +102,32 @@ export default function InsightsPage() {
         [
           'Page view by path',
           'pageview-by-path',
-          'https://eu.posthog.com/embedded/Uh-dD7vLEIlPzGiEREHn3xzQ3E234g',
+          'https://eu.posthog.com/embedded/Uh-dD7vLEIlPzGiEREHn3xzQ3E234g?refresh=true',
         ],
         [
           'Weekly active users',
           'weekly-active-users',
-          'https://eu.posthog.com/embedded/AQM_F4DRz2eRgCeYzpeWBFwsHYI-VQ',
+          'https://eu.posthog.com/embedded/AQM_F4DRz2eRgCeYzpeWBFwsHYI-VQ?refresh=true',
         ],
         [
           'Page view by country',
           'pageview-by-country',
-          'https://eu.posthog.com/embedded/cUu6_GTpj41KC1AHVZdZDWTgyszHBA',
+          'https://eu.posthog.com/embedded/cUu6_GTpj41KC1AHVZdZDWTgyszHBA?refresh=true',
         ],
         [
           'Page view by country in Bar Chart',
           'pageview-by-country-bar-chart',
-          'https://eu.posthog.com/shared/Jsq7RdOaTiPr1i_Z8YuBSHb9QPOrFA',
+          'https://eu.posthog.com/shared/Jsq7RdOaTiPr1i_Z8YuBSHb9QPOrFA?refresh=true',
         ],
         [
           'Page view by browser',
           'pageview-by-browser',
-          'https://eu.posthog.com/embedded/EVWqyDeCEnblyb6k1CYPiVfnjSp1yw',
+          'https://eu.posthog.com/embedded/EVWqyDeCEnblyb6k1CYPiVfnjSp1yw?refresh=true',
         ],
         [
           'Page view by Referring Domain',
           'pageview-by-referring-domain',
-          'https://eu.posthog.com/shared/qKij9bDD1SVSdA4vfdlg-ZtVW7LWvw',
+          'https://eu.posthog.com/shared/qKij9bDD1SVSdA4vfdlg-ZtVW7LWvw?refresh=true',
         ],
       ].map(([title, anchor, url]) => {
         return (
