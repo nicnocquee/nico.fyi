@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server'
 export async function GET(_request: NextRequest) {
   revalidatePath('/', 'layout')
   revalidatePath('/blog', 'page')
+  revalidatePath('/insights', 'page')
   revalidatePath('/tags', 'page')
   revalidatePath('/blog/[...slug]', 'page')
   revalidatePath('/blog/page/[page]', 'page')
