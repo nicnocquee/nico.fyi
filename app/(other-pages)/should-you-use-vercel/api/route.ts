@@ -1,10 +1,11 @@
 export const runtime = 'edge'
 import { createClient } from '@libsql/client'
 import { z } from 'zod'
+import { env } from '@/app/env'
 
 export async function GET(request: Request) {
-  const tursoDbUrl = process.env.TURSO_DB_URL
-  const tursoDbAuthToken = process.env.TURSO_DB_AUTH_TOKEN
+  const tursoDbUrl = env.TURSO_DB_URL
+  const tursoDbAuthToken = env.TURSO_DB_AUTH_TOKEN
 
   if (!tursoDbUrl || !tursoDbAuthToken) {
     return new Response('Missing Turso DB URL or auth token', {
@@ -40,8 +41,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const tursoDbUrl = process.env.TURSO_DB_URL
-  const tursoDbAuthToken = process.env.TURSO_DB_AUTH_TOKEN
+  const tursoDbUrl = env.TURSO_DB_URL
+  const tursoDbAuthToken = env.TURSO_DB_AUTH_TOKEN
 
   if (!tursoDbUrl || !tursoDbAuthToken) {
     return new Response('Missing Turso DB URL or auth token', {
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
       'User-Agent':
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
     },
-    body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}&remoteip=${ip}`,
+    body: `secret=${env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}&remoteip=${ip}`,
   })
 
   const data = await recaptchaResponse.json()

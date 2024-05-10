@@ -15,6 +15,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@/__tests__': fileURLToPath(new URL('./__tests__', import.meta.url)),
+      '@/app': fileURLToPath(new URL('./app', import.meta.url)),
     },
   },
 })

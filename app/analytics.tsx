@@ -7,10 +7,11 @@ import { PostHogProvider } from 'posthog-js/react'
 import { Button } from '@/components/ui/button'
 import { usePostHog } from 'posthog-js/react'
 import { useEffect, useState } from 'react'
+import { env } from '@/app/env'
 
 if (typeof window !== 'undefined') {
-  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST!,
+  posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
+    api_host: env.NEXT_PUBLIC_POSTHOG_HOST,
     persistence: cookieConsentGiven() === 'yes' ? 'localStorage+cookie' : 'memory',
   })
 }

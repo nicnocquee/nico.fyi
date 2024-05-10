@@ -15,6 +15,7 @@ import {
 } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
 import AnimateIn from './animate-in'
+import { env } from '@/app/env'
 
 const title = 'Should you use Vercel?'
 const description = `Vercel recently updated their pricing model which caused some uproar among developers. Answer the following questions to find out if you should use Vercel or not.<br/>Read the <a href="https://www.nico.fyi/blog/should-you-use-vercel">blog post here.</a>`
@@ -211,7 +212,7 @@ const postCount = async ({
 
 const FlowchartContainer = () => {
   return (
-    <ReCaptchaProvider reCaptchaKey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}>
+    <ReCaptchaProvider reCaptchaKey={env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}>
       <QueryClientProvider client={queryClient}>
         <Flowchart />
       </QueryClientProvider>

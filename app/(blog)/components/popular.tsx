@@ -1,14 +1,15 @@
 import { allBlogs } from '@/.contentlayer/generated'
 import { PosthogSchema } from './posthog'
 import Link from 'next/link'
+import { env } from '@/app/env'
 
 export const PopularBlogsList = async () => {
   const response = await fetch(
-    `https://eu.posthog.com/api/projects/${process.env.POSTHOG_PROJECT_ID}/insights/${process.env.POSTHOG_INSIGHT_ID}`,
+    `https://eu.posthog.com/api/projects/${env.POSTHOG_PROJECT_ID}/insights/${env.POSTHOG_INSIGHT_ID}`,
     {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${process.env.POSTHOG_API_KEY}`,
+        Authorization: `Bearer ${env.POSTHOG_API_KEY}`,
       },
     }
   )
