@@ -1,0 +1,73 @@
+---
+title: 'Stop using environment variable directly in your TypeScript code'
+date: '2024-05-13'
+summary: 'After that, stop writing the code to validate the environment variable.'
+keywords: ['nextjs', 'cli', 'environment variable', 'typescript']
+tags: ['dev', 'nextjs', 'cli']
+---
+
+Environment variables are a must-have in web development. They help us manage different configurations between development, testing, and production without hardcoding sensitive data like database URLs or API keys. They're flexible, secure, and help keep our applications modular.
+
+## The Problem with Direct Access
+
+It might seem like a good idea to directly access `process.env` in your TypeScript code, but there are a few problems with it. **First off, it can lead to typos in your variable names that go unnoticed until runtime**, since they're just strings with no type checking. Additionally, using environment variables directly doesn't give you IntelliSense support or auto-completion in your IDE, making your development process more prone to errors and slower.
+
+Also, if you use environment variables directly, you need to do a lot of type casting and type checking in your code. Do you recognise code like this?
+
+```typescript
+const apiKey = process.env.NEXT_PUBLIC_API_KEY! as string
+```
+
+This is a bad practice because it's error-prone and can lead to runtime errors.
+
+## A Better Approach
+
+[T3 Env](https://env.t3.gg) helps you define your environment variables in one place, so they're accessed consistently throughout your application. It provides type safety thanks to [Zod](https://zod.dev), so you catch any potential mistakes at compile time rather than at runtime. Plus, it integrates seamlessly with TypeScript to offer auto-completion and IntelliSense, making your coding faster and more reliable.
+
+**But writing the code to read and validate the environment variables is still a bit of a hassle.** Let’s say you have three environment variables you want to use in your code. When you're developing, you'll need to create the .env file like this:
+
+```
+DATABASE_URL=postgres://localhost:5432/my-app
+OPEN_AI_API_KEY=1234567890
+NEXT_PUBLIC_PUBLISHABLE_KEY=1234567890
+```
+
+Then write the code like this:
+
+```tsx
+import { createEnv } from '@t3-oss/env-nextjs'
+import { z } from 'zod'
+
+export const env = createEnv({
+  server: {
+    DATABASE_URL: z.string().url(),
+    OPEN_AI_API_KEY: z.string().min(1),
+  },
+  client: {
+    NEXT_PUBLIC_PUBLISHABLE_KEY: z.string().min(1),
+  },
+  experimental__runtimeEnv: {
+    NEXT_PUBLIC_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_PUBLISHABLE_KEY,
+  },
+})
+```
+
+As you've probably noticed, you need to write `NEXT_PUBLIC_PUBLISHABLE_KEY` _four times_ in total.
+
+## Automate with `env-to-t3`
+
+To make things even easier, I’ve created a CLI tool that can generate T3 Env compliant code automatically. It’s called [env-to-t3](https://github.com/nicnocquee/env-to-t3), and it’s open-source, so you can use it for free.
+
+Here's how it makes your workflow easier:
+
+1. Define your environment variables in a `.env` file as usual.
+2. Next, run the `env-to-t3` CLI on your project. It reads your `.env` file and automatically generates a TypeScript module that defines all your environment variables with the correct types.
+3. Then, import and use your typed variables from this module. This gives you all the benefits of type safety, auto-completion, and centralized management.
+
+Check the [repository](https://github.com/nicnocquee/env-to-t3) to see how it works and learn the other options you can pass to the CLI.
+
+The `env-to-t3` tool is there to save you time and reduce errors by automating the boring bits of managing environment variables. You can focus on writing the code that matters without worrying about the underlying configuration logistics.
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
