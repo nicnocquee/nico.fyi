@@ -18,7 +18,7 @@ export const PopularBlogsList = async () => {
   const { result } = await PosthogSchema.parseAsync(jsonData)
 
   const posts = result
-    ?.filter((post) => post.label.startsWith('/blog'))
+    ?.filter((post) => post.label.startsWith('/blog/') && !post.label.endsWith('/blog'))
     .map((post) => {
       const thePost = allBlogs.find((p) => post.label.indexOf(p.slug) !== -1)
       return {
