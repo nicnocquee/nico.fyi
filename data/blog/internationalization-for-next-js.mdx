@@ -1,0 +1,29 @@
+---
+title: 'Internationalization for Next.js Without Hassle'
+date: '2024-05-14'
+summary: 'And also type-safe with zero overhead!'
+keywords: ['nextjs', 'cli', 'internationalization', 'typescript', 'i18n', 'react', 'localization']
+tags: ['dev', 'nextjs', 'cli']
+---
+
+For developers who live in a country with multiple national languages like Switzerland, internationalization (i18n) is a must-have and is usually implemented from day 1. For example, in the websites I made for the company I work for, like the [iTheorie website](https://www.itheorie.ch/de), they need to have all four languages—English, German, French, and Italian—since the beginning.
+
+![](/static/images/articles/react-meetup.png.webp)
+
+I usually use the solution from [next-18next](https://github.com/i18next/next-i18next). But a few weeks ago, I found out about [Paraglide JS](https://inlang.com/m/gerre34r/library-inlang-paraglideJs) when I attended a React meetup in Zürich. I like the idea of having tree-shakeable messages when using Paraglide JS. This means each page only loads the messages it actually uses. Unfortunately, I couldn't successfully use it with my Next.js project because of several errors. Not to mention, there are unfortunately too many typos in the [documentation](https://inlang.com/m/osslbuzt/paraglide-next-i18n/overview), which makes me feel unconvinced.
+
+So I decided to make my own solution. Introducing [simple-i18n-next](https://github.com/nicnocquee/simple-i18n-next). It's a CLI tool that **generates TypeScript code from translation files in JSON format and Markdown files for Next.js projects**. There's no plugin you need to install and configure. Simply run the CLI to generate the TypeScript code and use it in your project.
+
+## Features
+
+- The translations are type-safe. That means there will be build-time errors if you use a translation key that does not exist in a specific language.
+- The translation keys are available for all languages. That means you will get an error message if you forget to add a translation for a specific language.
+- In [React Server Components (RSC)](https://react.dev/reference/rsc/server-components), the translations are generated inline, so no JS code is sent to the client.
+- In client components, if you use the generated `useStrings` hook, only the translation strings that you need will be sent to the client. There will be no unused translations sent to the client.
+- You can use [MDX files](https://mdxjs.com) and use them as React components.
+
+Please note that this is a work in progress. I have only tested it with Next.js 14 with App Router. Give it a try and let me know if you have any issues.
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
