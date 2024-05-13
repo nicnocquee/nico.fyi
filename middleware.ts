@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv'
+// import { kv } from '@vercel/kv'
 import { NextFetchEvent, NextResponse } from 'next/server'
 
 export const config = {
@@ -27,7 +27,8 @@ export default function middleware(request: Request, context: NextFetchEvent) {
   context.waitUntil(
     (async () => {
       try {
-        await kv.incr('all_views')
+        // comment this because it's starting to get traffic and Vercel is not cheap lol
+        // await kv.incr('all_views')
       } catch (error) {
         console.error('Failed to update views:', error)
       }
