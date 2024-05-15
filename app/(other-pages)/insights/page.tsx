@@ -10,11 +10,12 @@ import {
   subMonths,
   subWeeks,
 } from 'date-fns'
+import Link from 'next/link'
 
 export const generateMetadata = async () => {
   return {
-    title: 'Insights',
-    description: 'Insights from Posthog',
+    title: 'Nico.fyi | Insights',
+    description: 'Stats and insights about Nico.fyi powered by PostHog',
     robots: {
       index: false,
       follow: false,
@@ -67,7 +68,11 @@ export default function InsightsPage() {
         Insights
       </h1>
       <p className="text-lg leading-7 text-gray-500 dark:text-gray-400">
-        This is a page for nico.fyi insights.
+        This is a page for stats and insights about Nico.fyi powered by{' '}
+        <Link href="https://www.nico.fyi/blog/how-to-show-popular-posts-using-posthog">
+          PostHog
+        </Link>
+        .
       </p>
 
       <div className="flex flex-col space-y-4">
@@ -98,6 +103,11 @@ export default function InsightsPage() {
       </div>
 
       {[
+        [
+          'Unique visitors this month',
+          'unique-visitors-this-month',
+          'https://eu.posthog.com/embedded/782nw5OjRlQxVqV9lHsXKvUyTs77IA?refresh=true',
+        ],
         [
           'Page view by path',
           'pageview-by-path',
