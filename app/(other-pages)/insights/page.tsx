@@ -69,7 +69,10 @@ export default function InsightsPage() {
       </h1>
       <p className="text-lg leading-7 text-gray-500 dark:text-gray-400">
         This is a page for stats and insights about Nico.fyi powered by{' '}
-        <Link href="https://www.nico.fyi/blog/how-to-show-popular-posts-using-posthog">
+        <Link
+          className="text-primary-500 underline"
+          href="https://www.nico.fyi/blog/how-to-show-popular-posts-using-posthog"
+        >
           PostHog
         </Link>
         .
