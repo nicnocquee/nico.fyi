@@ -1,0 +1,42 @@
+---
+title: 'How to correctly split a string into words in JavaScript'
+date: '2024-05-16'
+summary: 'Or why you should stop using the split function!'
+keywords: ['internationalization', 'typescript', 'javascript', 'i18n', 'react', 'localization']
+tags: ['dev', 'typescript']
+---
+
+If you have been using `.split(' ')` to get an array of words from a string, you should stop doing so. It works perfectly for English, but it's not the best solution for other languages.
+
+For example, if you have a string like this:
+
+```typescript
+const str = '俺はルフィ！海賊王になる男だ！'
+console.table(str.split(' '))
+```
+
+you will get this:
+
+![](/static/images/articles/split-japanese.png.webp)
+
+which is not what we want. That's the whole sentence.
+
+Instead, we should use the [Intl.Segmenter](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Segmenter)!
+
+```typescript
+const str = '俺はルフィ！海賊王になる男だ！'
+const segmenterJa = new Intl.Segmenter('ja-JP', { granularity: 'word' })
+
+const segments = segmenterJa.segment(str)
+console.table(Array.from(segments))
+```
+
+![](/static/images/articles/intl-segmenter.png.webp)
+
+We can also use `{ granularity: 'sentence' }` to get the sentences in the string.
+
+![](/static/images/articles/intl-segmenter-sentence.png.webp)
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
