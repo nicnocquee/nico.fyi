@@ -1,0 +1,49 @@
+---
+title: 'How to easily secure Next.js projects'
+date: '2024-05-20'
+summary: 'Very useful when you just want to demo your project'
+tags: ['dev', 'nextjs']
+---
+
+Last weekend we had a small internal hackathon at Hyperjump to create an AI chat bot. I used the stack I'm most familiar with—Next.js, TypeScript, Tailwind CSS and OpenAI. When the project reached a good enough version, I could simply share the link to the deployed project so that everyone could try it out. However, I don't want people outside the team to be able to access it, as bad actors might abuse it and run up my OpenAI bill.
+
+But the thing is, I don't want to implement a whole authentication system just to protect my demo project.
+
+If I were using Vercel's Enterprise plan, I could have easily protected the deployments. But I didn't. So I decided to implement the simplest solution I could think of: [**basic access authentication**](https://en.wikipedia.org/wiki/Basic_access_authentication).
+
+All I had to do was add this code to `middleware.ts`:
+
+```typescript:middleware.ts showLineNumbers
+import { NextRequest, NextResponse } from "next/server";
+
+export default function middleware(request: NextRequest) {
+  const basicAuth = request.headers.get("authorization");
+
+  if (basicAuth) {
+    const authValue = basicAuth.split(" ")[1];
+    const [user, pwd] = atob(authValue).split(":");
+
+    const validUser = process.env.BASIC_AUTH_USER;
+    const validPassWord = process.env.BASIC_AUTH_PASSWORD;
+
+    if (user === validUser && pwd === validPassWord) {
+      return NextResponse.next();
+    }
+  }
+
+  return new Response("Unauthorized", {
+    status: 401,
+    headers: {
+      "WWW-Authenticate": 'Basic realm="Secure Area"',
+    },
+  });
+}
+```
+
+Then all I have to do is add `BASIC_AUTH_USER` and `BASIC_AUTH_PASSWORD` to the Vercel environment variables, and give the team members their credentials. When they try to access the project, the browser will prompt them for their credentials, and if they enter the correct ones, they will be redirected to the project.
+
+Side note: I used [Langchain](https://python.langchain.com/v0.1/docs/get_started/introduction/) for the first time on this project. I have to say that I'm not a fan of it. It's a bit of a pain to use because of the lack of documentation. But that's a story for another time.
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
