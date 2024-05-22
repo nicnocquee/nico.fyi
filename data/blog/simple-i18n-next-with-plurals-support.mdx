@@ -15,9 +15,9 @@ The complexity doesn't stop there. **There are also different plural forms for t
 
 To solve this, I decided to follow the agreed convention as documented in the [Unicode Common Locale Data Repository (CLDR)](https://cldr.unicode.org/index/cldr-spec/plural-rules), which defines 6 categories of the plural forms: `zero`, `one`, `two`, `few`, `many`, and `other`.
 
-**These categories are merely mnemonics**—their names don't strictly indicate the category's exact contents. For instance, in both English and French, the number 1 falls under the category one (singular). In English, all other numbers are classified as plural and given the category other. In French, however, the number 0 is also categorized as one, not other or zero, because units qualified by 0 are treated as singular.
+**These categories are merely mnemonics**—their names don't strictly indicate the category's exact contents. For instance, in both English and French, the number 1 falls under the category `one` (singular). In English, all other numbers are classified as plural and given the category `other`. In French, however, the number 0 is also categorized as `one`, not `other` or `zero`, because units qualified by 0 are treated as singular.
 
-According to the document, **a common misconception is that "one" applies only to the number 1**. In reality, "one" is a category for any number that behaves like 1. In some languages, for example, one includes numbers ending in "1" (such as 1, 21, 151) but excludes numbers ending in 11 (like 11, 111, 10311).
+According to the document, **a common misconception is that "one" applies only to the number 1**. In reality, `one` is a category for any number that behaves like 1. In some languages, for example, `one` includes numbers ending in "1" (such as 1, 21, 151) but excludes numbers ending in 11 (like 11, 111, 10311).
 
 Thankfully, I don't need to write the code to determine the rules of which numbers go into which categories by myself. JavaScript has already a built-in API to do that: [Intl.PluralRules](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/PluralRules). I just need to pass the language code to it, and it will return the rules for that language.
 
