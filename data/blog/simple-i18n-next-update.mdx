@@ -1,0 +1,63 @@
+---
+title: 'Simple i18n for Next.js is smarter now'
+date: '2024-05-27'
+summary: 'Now I can finally replace i18next from my projects!'
+keywords: ['nextjs', 'cli', 'internationalization', 'typescript', 'i18n', 'react', 'localization']
+tags: ['dev', 'nextjs', 'cli']
+---
+
+On the weekend, I added two new features to the [simple-i18n-next](https://github.com/nicnocquee/simple-i18n-next) CLI tool. The first one is to support nested keys. The second one is to support multiple JSON files in each language directory.
+
+## Nested keys
+
+Now you can use nested keys in your translation files. For example, if you have a translation file like this:
+
+```json:locales/en/messages.json
+{
+  "landing": {
+    "title": "Welcome to my website!",
+    "subtitle": "This is a subtitle"
+  }
+}
+```
+
+The CLI will generate two constants you can use in your code: `landingTitle` and `landingSubtitle`. You can use them like this:
+
+```tsx:page.tsx
+import { landingTitle, landingSubtitle } from '@/locales/.generated/server'
+
+export default function Home() {
+  return (
+    <main>
+      <h1>{landingTitle}</h1>
+      <p>{landingSubtitle}</p>
+    </main>
+  )
+}
+```
+
+## Multiple JSON files
+
+[Originally](/blog/internationalization-for-next-js), the CLI read only the `messages.json` files in each of the language directories. **Now, the CLI will read all JSON files in the language directories**. The default file is still `messages.json`. So, if you have `locales/en/messages.json` and `locales/en/landing-page.json` like this:
+
+```json:locales/en/messages.json
+{
+    "name": "My awesome website",
+    "greeting": "Hello, {{name}}"
+}
+```
+
+```json:locales/en/landing-page.json
+{
+  "title": "Welcome to my website!",
+  "subtitle": "This is a subtitle"
+}
+```
+
+The CLI will generate 4 constants you can use in your code: `name`, `greeting`, `landingPageTitle`, and `landingPageSubtitle`. As you can see, the CLI will prefix the constants with a camel-cased version of the file name. So `landing-page.json` becomes `landingPage` prefix. However, the keys in the default file (`messages.json`) are not prefixed.
+
+So that's it! Please give it a try and let me know if you have any issues. And if you have any suggestions, please let me know on [Twitter](https://twitter.com/2co_p)!
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
