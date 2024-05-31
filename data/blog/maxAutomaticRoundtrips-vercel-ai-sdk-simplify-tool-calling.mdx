@@ -1,0 +1,64 @@
+---
+title: 'The new maxAutomaticRoundtrips in Vercel AI SDK'
+date: '2024-06-03'
+summary: 'It simplifies tool calling and feeds the result back to the model'
+keywords: ['vercel', 'ai', 'sdk', 'tool', 'function', 'call', 'feed', 'result', 'back', 'model']
+tags: ['dev', 'ai']
+---
+
+Last month I wrote about [how to feed the result of function calls back to the model](/blog/vercel-ai-function-call-tool-example) using the [Vercel AI SDK](https://sdk.vercel.ai/docs/introduction). The team at Vercel have just released a new version (3.1.22) of the SDK with a new feature called [`maxAutomaticRoundtrips`](https://sdk.vercel.ai/docs/reference/ai-sdk-core/generate-text#max-automatic-roundtrips). This feature simplifies tool calling and feeds the result back to the model.
+
+Here's an example of how we needed to do it before:
+
+```typescript
+const { text, toolResults, toolCalls } = await generateText({
+  ...context,
+  messages,
+})
+
+// if there's a tool call, add it to the assistant's message
+if (toolResults && toolCalls) {
+  messages.push({
+    role: 'assistant' as const,
+    content: toolCalls,
+  })
+
+  messages.push({
+    role: 'tool' as const,
+    content: toolResults,
+  })
+
+  const { text: finalText } = await generateText({
+    ...context,
+    messages,
+  })
+  messages.push({ role: 'assistant', content: finalText })
+  process.stdout.write(`Assistant: ${finalText}\n`)
+} else {
+  messages.push({ role: 'assistant', content: text })
+  process.stdout.write(`Assistant: ${text}\n`)
+}
+```
+
+Basically, we need to add the tool call to the `assistant`'s message, and then add the tool result to the `tool`'s message as well. This is a bit of a pain.
+
+But the new `maxAutomaticRoundtrips` feature simplifies this process.
+
+```typescript
+const { text } = await generateText({
+  ...context,
+  maxAutomaticRoundtrips: 5,
+  messages,
+})
+
+messages.push({ role: 'assistant', content: text })
+process.stdout.write(`Assistant: ${text}\n`)
+```
+
+**The SDK will automatically call the tool and feed the result back to the model**!
+
+Check out the [updated demo from the previous post in this repository](https://github.com/nicnocquee/vercel-ai-node-example).
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
