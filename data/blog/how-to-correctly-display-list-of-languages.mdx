@@ -1,0 +1,62 @@
+---
+title: 'How to correctly display a list of languages'
+date: '2024-06-07'
+summary: 'Many got this wrong.'
+keywords: ['typescript', 'i18n', 'javascript', 'localization', 'internationalization']
+tags: ['dev', 'typescript', 'javascript']
+---
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+
+When displaying a list of languages for user selection, avoid the common mistake of showing language names in the currently selected language.
+
+For instance, **if the current language is English** and your website supports **English, German, Japanese, and French**, it's incorrect to show the list like this:
+
+<Card>
+  <CardHeader>
+    <CardTitle>Languages</CardTitle>
+    <CardDescription>Select a language</CardDescription>
+  </CardHeader>
+  <CardContent>
+    <LanguageSelectDemo />
+  </CardContent>
+</Card>
+
+Instead, show the language names in their native languages. For example:
+
+<Card>
+  <CardHeader>
+    <CardTitle>Languages</CardTitle>
+    <CardDescription>Select a language</CardDescription>
+  </CardHeader>
+  <CardContent>
+    <LanguageSelectDemo
+      languages={['en', 'de', 'ja', 'fr'].map((l) => {
+        return {
+          value: l,
+          label: new Intl.DisplayNames([l], { type: 'language' }).of(l),
+        }
+      })}
+    />
+  </CardContent>
+</Card>
+
+This way, those who don't speak the current language will still be able to select the language they want.
+
+To achieve this, you don't need to hard code the language names by hand. Simply use JavaScript's built-in [Intl.DisplayNames](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DisplayNames) API. For example:
+
+```tsx
+const languages = ['en', 'de', 'ja', 'fr'].map((l) => {
+  return {
+    value: l,
+    label: new Intl.DisplayNames([l], { type: 'language' }).of(l),
+  }
+})
+```
+
+So neat.
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!

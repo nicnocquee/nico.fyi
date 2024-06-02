@@ -5,6 +5,8 @@ import type { MDXComponents } from 'mdx/types'
 import Image from './Image'
 import CustomLink from './Link'
 import AutocompleteSection from './autocomplete-section'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { LanguageSelectDemo } from './language-select-demo'
 
 export const components: MDXComponents = {
   Image,
@@ -13,4 +15,7 @@ export const components: MDXComponents = {
   pre: CustomPre,
   BlogNewsletterForm,
   AutocompleteSection,
+  RadioGroup,
+  RadioGroupItem,
+  LanguageSelectDemo,
 }
