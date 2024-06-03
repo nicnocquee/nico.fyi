@@ -1,0 +1,70 @@
+---
+title: 'Nesktop: Make an offline desktop app with Next.js'
+date: '2024-06-05'
+summary: 'An alternative to building cross platform desktop app without Electron or without using native platform.'
+keywords: ['electron', 'next.js', 'typescript', 'react', 'desktop app', 'cross platform']
+tags: ['cli', 'open source', 'next.js']
+---
+
+I wanted to have a GUI app for my personal project that required access to the file system. Ideally, I should create a desktop app using a native platform (e.g., Swift for macOS) or Electron for cross-platform support. However, developing a native app for macOS, Windows, and Linux would have taken time. The same applies to Electron, even though it's web-based.
+
+So I had an idea. Since I am so used to making web apps using Next.js, why don't I make a Next.js app that anyone can run locally without _manually_ cloning and installing dependencies? It's basically like an Electron app but without the hassle of [managing window lifecycle](https://www.electronjs.org/docs/latest/tutorial/tutorial-first-app#managing-your-apps-window-lifecycle), [learning the process model](https://www.electronjs.org/docs/latest/tutorial/process-model), [packaging and code signing](https://www.electronjs.org/docs/latest/tutorial/distribution-overview), etc.
+
+# Introducing: Nesktop
+
+![](/static/images/articles/nesktop.webp)
+
+**It turned out it's possible**. I created this [template called Nesktop](https://github.com/nicnocquee/nesktop). Using the template, I can create the Next.js app as usual and then build it for production. The production build will then be published as an NPM package. Then anyone who wants to use the "desktop" app can simply run
+
+```shell
+npx the-package-name
+```
+
+Once the package is downloaded, it will automatically run the production build of the Next.js app and open the [http://localhost:4323](http://localhost:4323) URL in their browser.
+
+# Why use this?
+
+|     |                                                                                                                           |
+| --- | ------------------------------------------------------------------------------------------------------------------------- |
+| 👨‍💻  | Your app targets people who have installed Node.js in their computer, which is the majority of web developers these days. |
+| ▲   | You're already familiar with Next.js.                                                                                     |
+| 🌐  | You don't mind the app runs in the browser instead of in a stand alone window.                                            |
+
+# Features
+
+|     |                                                                                                                                                                                                                                                |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🤖  | No need for server. So no hassle maintaining a server, or get a [surprise bill when using serverless platform](https://www.nico.fyi/blog/should-you-use-vercel).                                                                               |
+| 👜  | Small package size. This template app is only 1.3 MB (excluding the dependencies, which will be downloaded when the user install the package).                                                                                                 |
+| 🔄  | Easy to update. Simply run `npm publish --access public` to update the package. You can then show a banner or notification on the page when there's a new update. There is no need to submit for review or torture yourself with code signing. |
+| 📵  | Works offline. Unless your app actually needs to access the internet. Note that you need to install the package globally `npm i -g <package-name>` instead of using `npx`.                                                                     |
+| 🔐  | No need for authentication because the app runs on user's own computer. Less code to write, less bug. Users of your app can keep their data in their own computer.                                                                             |
+| ⚡  | No need to worry about network waterfalls or slow networks. Every HTML, CSS, and JS file is already on the user's computer, so it's extremely fast.                                                                                            |
+| 🗄️  | The Next.js app can have access to the file system. So you can persist data easily to text files, JSON, or even database like SQLite.                                                                                                          |
+
+# Usage
+
+## Writing and reading files
+
+Writing and reading files from the file system is as easy as using the `node:fs` module as usual in the server part of Next.js, like in the [Route handlers (route.ts)](https://nextjs.org/docs/app/building-your-application/routing/route-handlers) or in a [server action](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations).
+
+## Special Environment Variables
+
+When the app is run, it injects the following [environment variables which you can use in your Next.js app](https://www.nico.fyi/blog/stop-using-environment-variable-directly):
+
+| Name                | Description                                                                                                                                                                                                                                                                                           |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ORIGINAL_CWD        | The directory where your package is run from. For example, if you run `npx nesktop` from the `/Users/nico/Downloads` directory, the value of this variable will be `/Users/nico/Downloads`. You should not use `process.cwd()` because it will return the directory where NPM installed your package. |
+| APP_NAME            | The name of the app as defined in `package.json`.                                                                                                                                                                                                                                                     |
+| APP_CURRENT_VERSION | The current version of the app as defined in `package.json`.                                                                                                                                                                                                                                          |
+| APP_LATEST_VERSION  | The latest version of the app which is published to NPM.                                                                                                                                                                                                                                              |
+
+# Give it a try
+
+Technically, we can also make a desktop app using the same technique with Remix or any other web frameworks. But since I'm already familiar with Next.js, I decided to use it first.
+
+Visit the [repo](https://github.com/nicnocquee/nesktop) to see how it works. Give it a try and let me know if you have any questions!
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
