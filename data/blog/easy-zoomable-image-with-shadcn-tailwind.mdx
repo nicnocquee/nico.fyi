@@ -1,0 +1,58 @@
+---
+title: 'How to render zoomable image with Shadcn UI and Tailwind CSS in Next.js'
+date: '2024-06-10'
+summary: 'With Shadcn UI and Tailwind CSS, you can easily render zoomable image.'
+keywords: ['shadcn', 'tailwind', 'next.js', 'react', 'image', 'zoomable']
+tags: ['dev', 'nextjs', 'tailwind']
+---
+
+[Shadcn/UI](https://ui.shadcn.com) has amazing UI components. Even when a component you want is not available, you can compose it using the available components.
+
+For example, I needed a zoomable image component. When an image is clicked, it should display the image in a larger size. To do this, I just used the [Dialog](https://ui.shadcn.com/docs/components/dialog) component from Shadcn UI and the Image component from Next.js.
+
+```tsx:zoomable-image.tsx
+import Image from 'next/image'
+import { Dialog, DialogContent, DialogTrigger } from './ui/dialog'
+import { DetailedHTMLProps, ImgHTMLAttributes } from 'react'
+
+export default function ZoomableImage({
+  src,
+  alt,
+  className,
+}: DetailedHTMLProps<ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement>) {
+  if (!src) return null
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Image
+          src={src}
+          alt={alt || ''}
+          sizes="100vw"
+          className={className}
+          style={{
+            width: '100%',
+            height: 'auto',
+          }}
+          width={500}
+          height={100}
+        />
+      </DialogTrigger>
+      <DialogContent className="max-w-7xl border-0 bg-transparent p-0">
+        <div className="relative h-[calc(100vh-220px)] w-full overflow-clip rounded-md bg-transparent shadow-md">
+          <Image src={src} fill alt={alt || ''} className="h-full w-full object-contain" />
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+```
+
+If you don't use Next.js, you can use the `<img>` tag instead of the `<Image>` tag.
+
+Give it a try by clicking the photo of my cute kittens below. 😇
+
+![](/static/images/articles/gohan-miso-kare-udon2.jpeg)
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
