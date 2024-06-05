@@ -3,36 +3,11 @@ import { PosthogSchema } from './posthog'
 import Link from 'next/link'
 import { env } from '@/app/env'
 
-export const PopularBlogsList = async () => {
-  const response = await fetch(
-    `https://eu.posthog.com/api/projects/${env.POSTHOG_PROJECT_ID}/insights/${env.POSTHOG_INSIGHT_ID}`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${env.POSTHOG_API_KEY}`,
-      },
-    }
-  )
-
-  const jsonData = await response.json()
-  const { result } = await PosthogSchema.parseAsync(jsonData)
-
-  const posts = result
-    ?.filter((post) => post.label.startsWith('/blog/') && !post.label.endsWith('/blog'))
-    .map((post) => {
-      const thePost = allBlogs.find((p) => post.label.indexOf(p.slug) !== -1)
-      return {
-        path: post.label,
-        count: post.count,
-        title: thePost?.title,
-      }
-    })
-    .filter((_, i) => i < 6)
-
-  if (!posts || posts.length === 0) {
-    return null
-  }
-
+export const PopularBlogsList = async ({
+  posts,
+}: {
+  posts: Array<{ path: string; title: string; count: number }>
+}) => {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {posts.map((post) => (
@@ -56,7 +31,40 @@ export const PopularBlogsList = async () => {
   )
 }
 
-export const PopularBlogs = () => {
+export const PopularBlogs = async () => {
+  const response = await fetch(
+    `https://eu.posthog.com/api/projects/${env.POSTHOG_PROJECT_ID}/insights/${env.POSTHOG_INSIGHT_ID}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${env.POSTHOG_API_KEY}`,
+      },
+    }
+  )
+
+  const jsonData = await response.json()
+  const { result } = await PosthogSchema.parseAsync(jsonData)
+
+  const posts = result
+    ?.filter((post) => post.label.startsWith('/blog/') && !post.label.endsWith('/blog'))
+    .map((post) => {
+      const thePost = allBlogs.find((p) => post.label.indexOf(p.slug) !== -1)
+      if (!thePost) {
+        return null
+      }
+      return {
+        path: post.label,
+        count: post.count,
+        title: thePost.title,
+      }
+    })
+    .filter((post): post is NonNullable<typeof post> => post !== null)
+    .filter((_, i) => i < 6)
+
+  if (!posts || posts.length === 0) {
+    return null
+  }
+
   return (
     <div className="divide-y divide-gray-200 dark:divide-gray-700">
       <div className="space-y-2 pb-8 pt-6 md:space-y-5">
@@ -65,7 +73,7 @@ export const PopularBlogs = () => {
         </h2>
       </div>
       <div className="py-12">
-        <PopularBlogsList />
+        <PopularBlogsList posts={posts} />
       </div>
     </div>
   )
