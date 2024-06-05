@@ -45,21 +45,25 @@ export const PopularBlogs = async () => {
   const jsonData = await response.json()
   const { result } = await PosthogSchema.parseAsync(jsonData)
 
-  const posts = result
-    ?.filter((post) => post.label.startsWith('/blog/') && !post.label.endsWith('/blog'))
-    .map((post) => {
-      const thePost = allBlogs.find((p) => post.label.indexOf(p.slug) !== -1)
-      if (!thePost) {
-        return null
+  const posts: Array<{ path: string; count: number; title: string }> = []
+
+  if (result) {
+    for (const post of result) {
+      if (posts.length >= 6) break
+
+      if (post.label.startsWith('/blog/') && !post.label.endsWith('/blog')) {
+        const thePost = allBlogs.find((p) => post.label.includes(p.slug))
+
+        if (thePost) {
+          posts.push({
+            path: post.label,
+            count: post.count,
+            title: thePost.title,
+          })
+        }
       }
-      return {
-        path: post.label,
-        count: post.count,
-        title: thePost.title,
-      }
-    })
-    .filter((post): post is NonNullable<typeof post> => post !== null)
-    .filter((_, i) => i < 6)
+    }
+  }
 
   if (!posts || posts.length === 0) {
     return null
