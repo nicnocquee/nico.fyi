@@ -1,0 +1,80 @@
+---
+title: 'Making a User-Friendly, Smart, and Secure AI Assistant Chatbot'
+date: '2024-06-10'
+summary: 'Vercel AI SDK and gpt-4o make it easy to build a user-friendly and natural-sounding AI chatbot.'
+keywords: ['nextjs', 'ai', 'chatbot', 'vercel', 'gpt', 'prompt engineering']
+tags: ['dev', 'nextjs', 'ai']
+---
+
+I recently put together a [demo](https://x.com/2co_p/status/1799076368631906451)) of an AI Bank assistant chatbot using [Vercel's AI SDK](https://sdk.vercel.ai/docs/introduction) and gpt-4o. This chatbot uses two main tools: `transferMoney` and `getBalance`. Here's a breakdown of what makes it user-friendly, secure, and how easy it is to implement.
+
+## Smart Information Handling
+
+One of the nice features of this chatbot is how it handles information. **Whether you prefer to enter your details bit by bit, all at once, or step-by-step, the chatbot can manage it**.
+
+![](/static/images/articles/ai-sdk-chatbot-1.png.webp)
+
+It won't execute the task until it has all the required information, **making the interaction feel more natural and less like filling out a form**. I absolutely believe that this is an important user experience when it comes to AI chatbots.
+
+Implementing this kind of smart information handling can be quite challenging with other tools like [Langchain](https://www.langchain.com), [Dify](https://dify.ai), or [Rasa AI](https://rasa.com), as they often require more complex setup and management of dialogue flows.
+
+Here’s a prompt to tell the [LLM](https://en.wikipedia.org/wiki/Large_language_model) to collect the required information until it has all the details:
+
+```markdown
+- transferMoney: Schedule the money transfer. This tool and the parameters' collection must only be called if the user has verified their account via OTP verification. Call the transferMoney tool only when you have all required parameters. Otherwise, keep asking the user. Don't come up with the information yourself. Once you have the complete information, ask the user to confirm the transfer before calling the tool by showing the transfer information.
+```
+
+## Enhanced Security
+
+Security is crucial, especially for banking transactions. To address this, the chatbot includes two extra tools: `verifyPhoneNumber` and `verifyOTP`.
+
+- **verifyPhoneNumber:** Requires your account information and phone number. It then sends a 4-digit OTP to your phone.
+- **verifyOTP:** You enter the OTP you received. If it's correct, you can proceed with transactions.
+
+These steps ensure that only verified users can perform sensitive actions like transferring money. The [verification process in the demo](https://github.com/nicnocquee/input-collect-ai-chatbot-vercel-sdk/blob/e333b9c8adc78d43b65e1243172dd455beeb2e38/app/actions.ts#L292) is simple where the `verifyOTP` function simply checks if the phone number that the user provided belongs to the user with the given account information, and if the entered OTP is correct.
+
+![](/static/images/articles/ai-sdk-chatbot-4.png.webp)
+
+Here’s the prompt to tell the LLM to verify the account:
+
+```
+Some of the actions require the user to verify their account first by providing a verification code (OTP) sent to their phone number. The verification code is valid only when the user enters it correctly. If the verification code is invalid, the user needs to request a new verification code. Subsequent verifications are required when the last verification was more than 3 minutes ago.
+
+- verifyPhoneNumber: Verify the phone number of the account. Only collect the parameter to call this tool when the previous tool call requires phone number verification. And then call the verifyPhoneNumber tool only when you have required information. Otherwise, keep asking the user. Don't come up with the information yourself. Once you have the complete information, ask the user to confirm the request before calling the tool by showing the request information.
+- verifyOTP: Verify the OTP sent to the user's phone number. If the OTP is valid, perform the next function. Otherwise, ask the user to request a new OTP.
+
+```
+
+## Flexibility in Requests
+
+The chatbot is also quite flexible. If you initially request a money transfer but then decide to check your balance instead, it adapts accordingly. This ability to change directions based on user input makes it more user-friendly.
+
+![](/static/images/articles/chat-02.png.webp)
+
+I think such flexibility in handling dynamic requests is part of the capabilities of the model I used which is [gpt-4o from OpenAI](https://openai.com/index/hello-gpt-4o/).
+
+## User Confirmation
+
+Before executing any task, the chatbot confirms the details with you. This gives you a chance to **review and modify any information if needed**. It ensures accuracy and peace of mind.
+
+![](/static/images/articles/ai-sdk-chatbot-3.png.webp)
+
+Check out this prompt to instruct the LLM to show the confirmation step in action:
+
+```
+Once you have the complete information, ask the user to confirm the request before calling the tool by showing the request information.
+```
+
+## Ease of Implementation with Vercel AI SDK and gpt-4o
+
+With Vercel AI SDK and gpt-4o, building this chatbot was quick and painless, making it accessible even if you’re not an AI expert. The ease of prompt engineering and seamless function/tool definition and calling allows for a smooth development experience, ensuring powerful and responsive AI interactions. And with the recent [maxAutomaticRoundtrips feature](/max-automatic-roundtrips-vercel-ai-sdk-simplify-tool-calling), feeding the result of the function calls back to the model is no hassle at all.
+
+## Conclusion
+
+Overall, I really enjoyed building this AI Bank assistant chatbot. The development experience was top notch unlike my experience with Langchain caused me to think that I had skill issue.
+
+You can check the repositories of this chatbot [here](https://github.com/nicnocquee/input-collect-ai-chatbot-vercel-sdk) and the demo [video here](https://x.com/2co_p/status/1799076368631906451).
+
+---
+
+By the way, [I have a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
