@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import { Dialog, DialogContent, DialogTrigger } from './ui/dialog'
 import { DetailedHTMLProps, ImgHTMLAttributes } from 'react'
+import { cn } from '@/lib/utils'
 
 export default function ZoomableImage({
   src,
@@ -15,7 +16,7 @@ export default function ZoomableImage({
           src={src}
           alt={alt || ''}
           sizes="100vw"
-          className={className}
+          className={cn('overflow-clip rounded-md shadow-lg', className)}
           style={{
             width: '100%',
             height: 'auto',
