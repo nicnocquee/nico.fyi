@@ -8,7 +8,7 @@ import SectionContainer from '@/components/SectionContainer'
 import Footer from '@/components/Footer'
 import siteMetadata from '@/data/siteMetadata'
 import { Metadata } from 'next'
-import { CSPostHogProvider, CookieBanner, VercelAnalytics } from '@/app/analytics'
+import { CSPostHogProvider, CookieBanner, UmamiAnalytics, VercelAnalytics } from '@/app/analytics'
 import { ThemeProviders } from '@/app/theme-providers'
 import { Toaster } from '@/components/ui/toaster'
 
@@ -93,6 +93,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </CSPostHogProvider>
         <VercelAnalytics />
       </body>
+      <UmamiAnalytics />
     </html>
   )
 }

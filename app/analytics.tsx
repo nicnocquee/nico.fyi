@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { usePostHog } from 'posthog-js/react'
 import { useEffect, useState } from 'react'
 import { env } from '@/app/env'
+import Script from 'next/script'
 
 if (typeof window !== 'undefined' && env.NEXT_PUBLIC_POSTHOG_KEY) {
   posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
@@ -94,5 +95,17 @@ export const VercelAnalytics = () => {
         }}
       />
     </>
+  )
+}
+
+export const UmamiAnalytics = () => {
+  if (process.env.NODE_ENV === 'development') return null
+  if (process.env.VERCEL_ENV === 'preview') return null
+  return (
+    <Script
+      defer
+      src="https://umami.magic.coolify.nico.fyi/script.js"
+      data-website-id="d8e904cf-e264-4eaf-8f96-4f51f9e5ea86"
+    ></Script>
   )
 }

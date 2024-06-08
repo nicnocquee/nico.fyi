@@ -9,7 +9,7 @@ import Footer from '@/components/Footer'
 import siteMetadata from '@/data/siteMetadata'
 import { ThemeProviders } from '@/app/theme-providers'
 import { Metadata } from 'next'
-import { CSPostHogProvider, VercelAnalytics } from '@/app/analytics'
+import { CSPostHogProvider, UmamiAnalytics, VercelAnalytics } from '@/app/analytics'
 
 const space_grotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -89,6 +89,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </CSPostHogProvider>
         <VercelAnalytics />
       </body>
+      <UmamiAnalytics />
     </html>
   )
 }
