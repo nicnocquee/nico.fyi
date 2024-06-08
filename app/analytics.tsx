@@ -105,7 +105,7 @@ export const UmamiAnalytics = () => {
     <Script
       defer
       src="https://umami.magic.coolify.nico.fyi/script.js"
-      data-website-id="d8e904cf-e264-4eaf-8f96-4f51f9e5ea86"
+      data-website-id="95be4389-87e2-43d2-995e-fc0b2f0ce7f3"
     ></Script>
   )
 }
