@@ -1,0 +1,68 @@
+---
+title: 'Blocking External Access to PostgreSQL in Docker with UFW on Ubuntu'
+date: '2024-06-14'
+summary: "Setting up firewall is not always easy even when the tool said it's uncomplicated"
+tags: ['database', 'postgres']
+---
+
+Recently, I ran into a perplexing issue with my Ubuntu server. I had set up a deny rule for port 5432, which is the port PostgreSQL uses. Surprisingly, I could still access my PostgreSQL server from an external connection.
+
+After some research, I discovered that this behavior is tied to how Docker manages traffic rules and interacts with UFW (Uncomplicated Firewall). In this post, I'll walk you through the problem, the underlying issue, and the easiest solution to block external access to your PostgreSQL database running inside a Docker container.
+
+## The Problem
+
+I have a PostgreSQL database running inside a Docker container on an Ubuntu server. To secure my setup, I used UFW to deny incoming traffic on port 5432:
+
+```sh
+sudo ufw deny 5432
+```
+
+Despite this rule, the PostgreSQL server was still accessible from outside the host. This behavior was unexpected and concerning.
+
+## The Underlying Issue
+
+Upon digging deeper, I found a comment on a GitHub issue [here](https://github.com/moby/moby/issues/4737#issuecomment-38044320) that shed light on the situation. The root cause lies in how UFW and Docker handle network traffic:
+
+- **UFW operates only on the filter table** of iptables.
+- **Docker redirects traffic using the nat table**, bypassing the filter table where UFW rules are applied.
+
+In essence, the UFW rules were ineffective against traffic routed through Docker's configuration.
+
+## Potential Solutions
+
+There are several ways to address this issue:
+
+1. **Modifying iptables Directly**: You can add rules to the iptables nat or mangle tables to block the specific traffic you're concerned about. This approach requires a good understanding of iptables and can be more complex to manage. For more details on how to modify iptables, you can refer to [this guide](https://www.digitalocean.com/community/tutorials/how-the-iptables-firewall-works).
+2. **Using Docker's Network Configuration**: Docker offers various networking options that can manage connectivity and access control more precisely, such as using user-defined bridge networks or overlay networks. You can learn more about Docker networking in [Docker's official documentation](https://docs.docker.com/network/).
+3. **Changing Docker Container Port Mapping**: This method involves binding the container’s port to localhost, effectively making the service inaccessible from outside the host.
+
+In my case, changing the port mapping of the container was the simplest and most straightforward solution.
+
+## The Simplest Solution
+
+To properly block external access to PostgreSQL, you can change the port mapping of the Docker container. Instead of exposing the PostgreSQL port to all IP addresses, bind it only to the loopback interface (localhost). Here’s how to make this change:
+
+1. **Stop the current PostgreSQL container**:
+
+   ```sh
+   docker stop <container_id_or_name>
+   docker rm <container_id_or_name>
+   ```
+
+2. **Start a new container with the port mapped to localhost**:
+
+   ```sh
+   docker run -d \
+     --name my_postgres \
+     -p 127.0.0.1:5432:5432 \
+     -e POSTGRES_PASSWORD=mysecretpassword \
+     postgres
+   ```
+
+By binding Docker’s PostgreSQL port to `127.0.0.1`, external machines will no longer have access to port 5432 on your server. This solution leverages Docker's flexibility and avoids the complexity of diving into the iptables mangle or nat tables.
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi)!
+
+![](/static/images/articles/pull-request-best-practices.png)
