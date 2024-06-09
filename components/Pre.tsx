@@ -6,7 +6,11 @@ interface Props extends DetailedHTMLProps<HTMLAttributes<HTMLPreElement>, HTMLPr
 }
 
 const CustomPre = ({ children, ...props }: Props) => {
-  return <Pre {...props}>{children || ''}</Pre>
+  return (
+    <div className="[&_code.language-markdown]:text-wrap">
+      <Pre {...props}>{children || ''}</Pre>
+    </div>
+  )
 }
 
 export default CustomPre
