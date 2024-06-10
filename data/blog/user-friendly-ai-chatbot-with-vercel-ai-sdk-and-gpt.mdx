@@ -37,12 +37,11 @@ These steps ensure that only verified users can perform sensitive actions like t
 
 Here’s the prompt to tell the LLM to verify the account:
 
-```
+```markdown
 Some of the actions require the user to verify their account first by providing a verification code (OTP) sent to their phone number. The verification code is valid only when the user enters it correctly. If the verification code is invalid, the user needs to request a new verification code. Subsequent verifications are required when the last verification was more than 3 minutes ago.
 
 - verifyPhoneNumber: Verify the phone number of the account. Only collect the parameter to call this tool when the previous tool call requires phone number verification. And then call the verifyPhoneNumber tool only when you have required information. Otherwise, keep asking the user. Don't come up with the information yourself. Once you have the complete information, ask the user to confirm the request before calling the tool by showing the request information.
 - verifyOTP: Verify the OTP sent to the user's phone number. If the OTP is valid, perform the next function. Otherwise, ask the user to request a new OTP.
-
 ```
 
 ## Flexibility in Requests
@@ -61,7 +60,7 @@ Before executing any task, the chatbot confirms the details with you. This gives
 
 Check out this prompt to instruct the LLM to show the confirmation step in action:
 
-```
+```markdown
 Once you have the complete information, ask the user to confirm the request before calling the tool by showing the request information.
 ```
 
