@@ -23,6 +23,7 @@ What worked was adding a rule to UFW that **allows incoming traffic from the int
 2. Note the "IPv4Address" of the container in the output of the command above.
 3. Then run `sudo ufw allow from <the ipv4 address from the previous command>`. For example, `sudo ufw allow from 192.168.0.2/20`.
 4. Finally, `sudo ufw reload`.
+5. Note that if you pull the latest minio image and restart, the IP address will change. You'll need to update the rule again.
 
 You should be able to use Minio normally. That was a time-wasting experience, but I hope it helps someone else.
 
