@@ -1,0 +1,35 @@
+---
+title: 'How to fix invalid login in Minio deployed via Coolify'
+date: '2024-06-17'
+summary: 'It took me hours and a nap to finally figure out how to fix this problem'
+tags: ['ubuntu', 'cli', 'coolify']
+---
+
+Playing with [Coolify](https://coolify.io) has been **both nice and a bit frustrating**. For some applications and services, it's so easy to install, deploy, and use. But for others, it's a real pain in the ass.
+
+One of the apps I'm trying to deploy with Coolify is [Minio](https://minio.io/), an S3-compatible object storage server. While I could deploy it successfully, I never managed to log in to the dashboard. I searched the internet for hours, but I couldn't find a solution. Some people had the same problem and mentioned that they could fix it by changing the proxy in Coolify to [Caddy](https://caddyserver.com) instead of [Traefik](https://traefik.io/traefik/). But I've been using Caddy this whole time, and it didn't work.
+
+For experimentation, I spun up a new server in [Hetzner](https://www.hetzner.com) and added it to Coolify. I then deployed Minio without changing anything in the server or Minio configuration. I was able to log in to the dashboard, but without a secure connection. After I gave the Minio instance a custom domain with SSL, I couldn't log in again. Then I tried changing the proxy to Caddy as suggested by some people. It worked!
+
+For some reason, there's something in my existing server configuration that prevents me from logging in to Minio. After tinkering for hours, chatting back and forth with ChatGPT, and taking a nap, I finally figured out the problem. I'll share the solution here in case someone else runs into the same issue.
+
+**The problem is [UFW](https://help.ubuntu.com/community/UFW)**. On my server, I have UFW enabled. When I disabled it, everything worked as it should. I could log in to Minio using a secure connection. I figured maybe adding a rule to UFW that allows incoming traffic to port 9000 and 9001 would fix the problem since those are [the ports Minio uses](https://min.io/docs/minio/linux/administration/minio-console.html#id5). But it didn't work.
+
+What worked was adding a rule to UFW that **allows incoming traffic from the internal IP address of the docker container that runs Minio**!
+
+1. First, you need to find the IP address of the docker container. You can do this by running the following command: `sudo docker network inspect <minio service uuid>`. You can get the UUID from the URL in the Coolify dashboard when you're on the Minio service page, for example `https://coolifydomain/project/<project-id>/production/service/<the-minio-id-we-want>`.
+2. Note the "IPv4Address" of the container in the output of the command above.
+3. Then run `sudo ufw allow from <the ipv4 address from the previous command>`. For example, `sudo ufw allow from 192.168.0.2/20`.
+4. Finally, `sudo ufw reload`.
+
+You should be able to use Minio normally. That was a time-wasting experience, but I hope it helps someone else.
+
+---
+
+By the way, [I have a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi)!
+
+![](/static/images/articles/pull-request-best-practices.png)
