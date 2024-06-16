@@ -1,0 +1,235 @@
+---
+title: 'Simplify data fetching with RSC, Suspense, and use API in Next.js'
+date: '2024-06-19'
+summary: 'The new use API combined with React Server Components (RSC) and Suspense can simplify data fetching in Next.js'
+tags: ['dev', 'nextjs']
+---
+
+Data fetching in the React ecosystem has been a hot topic for a long time. Since React is not opinionated about how data is fetched, the community has come up with various solutions.
+
+## Fetch-in-effect
+
+One solution that is simple and doesn't need any dependencies is using JavaScript's `fetch` and the `useEffect` hook.
+
+```typescript
+function ProfilePage() {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    fetchUser().then(u => setUser(u));
+  }, []);
+
+  if (user === null) {
+    return <p>Loading profile...</p>;
+  }
+  return (
+    <>
+      <h1>{user.name}</h1>
+      <ProfileTimeline />
+    </>
+  );
+}
+
+function ProfileTimeline() {
+  const [posts, setPosts] = useState(null);
+
+  useEffect(() => {
+    fetchPosts().then(p => setPosts(p));
+  }, []);
+
+  if (posts === null) {
+    return <h2>Loading posts...</h2>;
+  }
+  return (
+    <ul>
+      {posts.map(post => (
+        <li key={post.id}>{post.text}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+However, this approach has some drawbacks. First, without careful handling, it can lead to [race conditions, as I have discussed before](/blog/react-strict-mode-and-race-condition), and memory leaks, which happen when the component is unmounted before the fetch is completed.
+
+**Second, the fetch-in-effect approach causes network waterfall.** This means that the data is fetched after the code for the component is downloaded and loaded. Now, if you have a component that fetches data in effect and it renders a child component that fetches data in effect, it will take a while for the child component to be rendered to the user.
+
+Third, you need to write the API endpoints to return the data that your component needs. This can be a bit tedious and error-prone.
+
+The lack of data fetching recommendations from the React team led to several popular solutions like [TanStack Query](https://tanstack.com/query/latest) and [SWR](https://swr.vercel.app/). They simplify data fetching by providing a set of APIs that handle fetching and caching for you.
+
+## Then came the Suspense
+
+Then React finally released [Suspense](https://react.dev/reference/react/Suspense). With Suspense, you can show a fallback component while the actual component is loading. Once the data is fetched, the Suspense component will render the component with the data. **Unlike fetch-in-effect, Suspense is designed so that data fetching and code downloading are done in parallel, avoiding the network waterfall problem**.
+
+However, it’s important to remember that Suspense is not a data fetching mechanism. If you look at the official [documentation of Suspense](https://react.dev/reference/react/Suspense), you'll notice that React doesn't specifically mention data fetching. It says that Suspense is a mechanism to show a fallback UI while the component is loading. In the examples, they don't even show how the data is fetched. **They don't show how you can actually suspend the component to activate Suspense.** They recommend using data fetching with Suspense-enabled frameworks like Relay and Next.js.
+
+Non-framework tools like [SWR](https://swr.vercel.app/) have finally supported Suspense, but it's still experimental and [React doesn't actually recommend it](https://react.dev/blog/2022/03/29/react-v18#suspense-in-data-frameworks). According to the announcement:
+
+> Suspense works best when it’s deeply integrated into your application’s architecture: your router, your data layer, and your server rendering environment.
+
+I honestly think this is a mistake by the React team. They created Suspense and know exactly how it works. React should have come with an official API for Suspense-enabled data fetching instead of leaving it to the community to figure out.
+
+## RSC and its controversy
+
+Sebastian Markbåge from the Next.js team, who is in the React core team, [tweeted](https://x.com/sebmarkbage/status/1801258093327593717) recently: _"React never released official Suspense support on the client because it leads to client waterfalls. Instead, we shifted to an RSC strategy."_ I guess making Suspense work on the client without waterfalls is a hard problem to solve. While they stated that [they might expose additional primitives that could make it easier to access your data without the use of opinionated frameworks](https://react.dev/blog/2022/03/29/react-v18#suspense-in-data-frameworks), as of this writing, they focus instead on React Server Components (RSC).
+
+RSC is a somewhat controversial technology. It was created to improve the efficiency of rendering React components on the server. Before RSC, React could already render components on the server, but it wasn't possible to feed the components with data fetched from the server. Frameworks like Next.js use a certain loader function like `getServerSideProps`, which allows us to fetch data from a database or third-party API and pass it to the page component as props in server-side rendering.
+
+With RSC, we don't need a dedicated loader function anymore. **Every server component can fetch its own data within the component itself.** This avoids the need to fetch all data in one place and pass it from the root component to all the child components.
+
+It's controversial because you cannot use RSC by itself. You need to use a framework like Next.js or Waku. And since Next.js is the poster child for RSC, many people accuse Vercel of forcing RSC to make more profit. The complicated [caching mechanism](https://nextjs.org/docs/app/building-your-application/data-fetching/fetching-caching-and-revalidating) and the many ways to [render a page](https://nextjs.org/docs/app/building-your-application/rendering) don't help the case.
+
+Not to mention that there are many easy-to-misinterpret terms. For example, although they are named server components, they are not only executed and rendered on the server whenever the page is requested. **They are also executed and rendered during build time**. However, they are also not _ALWAYS_ executed and rendered on the server when a request comes.
+
+By default, server components in Next.js are _static_, which means they are only executed and rendered during build time. They won't be executed and rendered again on the server when the page is requested. You have to explicitly tell Next.js that your server component is _dynamic_ by [exporting a `dynamic` constant with the `force-dynamic` value](https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config#dynamic), or by calling one of the [dynamic functions](https://nextjs.org/docs/app/building-your-application/rendering/server-components#dynamic-functions).
+
+Another confusing term is the `use server` directive. To mark a React component as a client component, you can add the `use client` directive at the top of the component. Naturally, people will assume that the `use server` directive is the opposite of `use client`, but it’s not. [`use server` is a directive that marks server-side functions that can be called from client-side code](<https://react.dev/reference/rsc/use-server#noun-labs-1201738-(2)>). It's actually related to Server Actions.
+
+## RSC, Suspense, and use API
+
+Despite the pitfalls mentioned above, RSC is fun to use in my experience. I've been using it in my work and personal projects for a while now. With RSC and Suspense, [we can immediately send the static parts of the page to the client, and the components that need data can be suspended and rendered once the data is ready](https://nextjs.org/docs/app/building-your-application/data-fetching/patterns#streaming).
+
+For example, in the following code, when the user visits the `/suspense` page, they will immediately see the static parts of the page like the `<h1>` and the `Footer`.
+
+```typescript:app/suspense/page.tsx
+import { Suspense } from 'react'
+import Albums from '../albums'
+import Songs from '../songs'
+import { headers } from 'next/headers'
+import Loading from '../loading'
+import Footer from '../footer'
+import ErrorBoundaryWithFallback from '../fallback-error'
+
+export default function Page() {
+  headers()
+
+  return (
+    <div>
+      <h1 className="text-xl font-bold">Suspense Demo</h1>
+      <div className="grid h-[400px] w-[400px] grid-cols-2 gap-4 overflow-scroll bg-gray-100 p-4">
+        <ErrorBoundaryWithFallback>
+          <Suspense fallback={<Loading />}>
+            <Albums />
+            <Songs />
+          </Suspense>
+        </ErrorBoundaryWithFallback>
+      </div>
+      <Footer />
+    </div>
+  )
+}
+```
+
+Meanwhile, the albums data is fetched on the server and sent to the client once it's available. While waiting for the albums data, the `Loading` component will be rendered. Once the data is fetched, the `Albums` component will be rendered with the data.
+
+```typescript:albums.tsx
+import { Suspense } from 'react'
+import { albumsData, relatedAlbums } from './albums-data'
+
+export default async function Albums() {
+  const albums = await albumsData()
+  return (
+    <div>
+      <h1 className="text-xl font-bold">Albums</h1>
+      {albums.map((album) => (
+        <div key={album.id}>
+          <h2>{album.name}</h2>
+          <p>{album.artist}</p>
+          <p>{album.year}</p>
+          <Suspense fallback={<div>Loading related...</div>}>
+            <RelatedAlbums albumId={album.id} />
+          </Suspense>
+        </div>
+      ))}
+    </div>
+  )
+}
+```
+
+You can see the demo [here](https://playground.nico.fyi/suspense/all).
+
+In the example above, the `Albums` component wrapped in `Suspense` is a server component. **But what if the component that needs data fetched on the server is a client component?** A client component cannot be an async function. This is where [the experimental `use` API](https://react.dev/reference/react/use) comes to the rescue. Side note: for some reason, React doesn't call it the `use` hook. Instead, it's called the `use` API. I wonder why.
+
+**With RSC, Suspense, and the `use` API, data fetching can start early on the server and be awaited on the client.**
+
+```typescript:app/suspense/hoisted-client/race/page.tsx
+import { headers } from 'next/headers'
+import Albums from './albums'
+import Songs from './songs'
+import { albumsData } from '../../albums-data'
+import { songsData } from '../../songs-data'
+import Footer from '../../footer'
+
+export default function Page() {
+  headers()
+
+  const getAlbumsData = albumsData() // returns a promise but we don't need to await it
+  const getSongsData = songsData() // returns a promise but we don't need to await it
+
+  return (
+    <div className="p-4">
+      <h1 className="text-xl font-bold">Suspense Hoisted Race Demo</h1>
+      <div className="grid h-[400px] w-[400px] grid-cols-2 gap-4 overflow-scroll bg-gray-100 p-4">
+        <Albums dataSource={getAlbumsData} />
+        <Songs dataSource={getSongsData} />
+      </div>
+      <Footer />
+    </div>
+  )
+}
+```
+
+```typescript:albums.tsx
+'use client'
+import { Suspense, use } from 'react'
+import { albumsData } from '../../albums-data'
+import ErrorBoundaryWithFallback from '../../fallback-error'
+
+export default function Albums({ dataSource }: { dataSource: ReturnType<typeof albumsData> }) {
+  return (
+    <div>
+      <h1 className="text-xl font-bold">Albums</h1>
+      <ErrorBoundaryWithFallback>
+        <Suspense fallback={<div>Loading albums...</div>}>
+          <AlbumsList dataSource={dataSource} />
+        </Suspense>
+      </ErrorBoundaryWithFallback>
+    </div>
+  )
+}
+
+function AlbumsList({ dataSource }: { dataSource: ReturnType<typeof albumsData> }) {
+  const albums = use(dataSource) // this causes the AlbumsList to be suspended until the data is available
+
+  return (
+    <>
+      {albums.map((album) => (
+        <div key={album.id}>
+          <h2>{album.name}</h2>
+          <p>{album.artist}</p>
+          <p>{album.year}</p>
+        </div>
+      ))}
+    </>
+  )
+}
+```
+
+You can check the demo [here](https://playground.nico.fyi/suspense/hoisted-client/race-nested). In the demo, the data fetching is intentionally delayed and randomly throw errors.
+
+## Delightful data fetching pattern
+
+There are several things I like about this pattern aside from how it avoids the network waterfall. First, **it's easy to test the component.** During the test, we can just pass a function to `AlbumsList` that returns a promise with the data needed by `AlbumsList`. We don't need an additional library to mock or stub the function.
+
+Second, the component is simplified, which makes it easier to understand. We don't need to implement data fetching with fetch-in-effect or use TanStack Query or SWR. The component doesn't need to know how to implement the fetching logic. **It just needs to wait for the data to be available, thanks to the `use` API.**
+
+Third, Suspense helps to reduce the complexity of the component even more. **There's no need to implement conditional rendering for the loading state.** It's all handled by Suspense. The component only needs to render the data when it's available.
+
+## It's all optional
+
+**I'm not saying that you have to use RSC, Suspense, and the `use` API.** You can still use fetch-in-effect or TanStack Query or SWR. It's all optional. That's one of the great things about React. They take backward compatibility seriously. If you don't like the new API, you can still use the old API. And if you don't like the old API, you can start using the new API. If you want to create a Single Page Application (SPA), you can. **The choice is yours.**
+
+---
+
+By the way, [I have a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
