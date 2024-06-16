@@ -1,0 +1,135 @@
+---
+title: 'How to deploy a Next.js app with Prisma and Postgres using Coolify'
+date: '2024-06-24'
+summary: 'The promise was to be able to deploy a Next.js app easily like to Vercel. But it turned out it was not so easy.'
+tags: ['ubuntu', 'cli', 'coolify', 'nextjs']
+---
+
+Ever since the drama around Vercel pricing, [Coolify](https://coolify.io/) has become a popular choice for self-hosting. Coolify makes it easy to deploy web apps in your own server in a few clicks. It came to birth to challenge the hosting platform like Vercel which is famous for its ease of use but pricey. But as I suspected, self hosting is never easy.
+
+Deploying static Next.js app via coolify is indeed easy. I moved my [Pull Request Best Practices](https://pr.nico.fyi) book website out of Vercel and deployed in my own server using Coolify. You just need to add the repository URL of your project to the coolify dashboard. Then you can click the "Deploy" button. Coolify will automatically build your app and deploy it to your server.
+
+But what if you want to deploy a Next.js app with Prisma and Postgres? It turns out it's not that easy. I hit several problems and I'm going to share my experience with you so that you can learn from it.
+
+First I installed and deployed a Postgres database from the Coolify dashboard. Once it's running, Coolify exposes the internal URL of the Postgres instance which I used as an environment variable for the Next.js app. I then tried to deploy the app via the coolify dashboard. I immediately hit the first problem.
+
+Before building the app, my project needed to run prisma migration first. But for some reason it cannot reach the database instance during the build.
+
+```shell
+13 1.227 > prisma migrate deploy
+13 1.227
+13 2.087 Environment variables loaded from .env
+13 2.088 Prisma schema loaded from prisma/schema.prisma
+13 2.092 Datasource "db": PostgreSQL database "postgres", schema "public" at "ycskg0w:5432"
+13 2.195
+13 2.196 Error: P1001: Can't reach database server at `ycskg0w:5432`
+13 2.196
+13 2.196 Please make sure your database server is running at `ycskg0w:5432`.
+```
+
+I have made sure that the database is running and can be accessed. So I assumed the error happened because the build container wasn't in the same network as the database container. Unfortunately I forgot what I did next but I managed to make it so that the build container can reach the database container.
+
+However, I remembered I hit another problem where I got "Schema engine error" without any further information. I found out that there were other people who also had similar problem which was caused because [Nixpacks doesn't support Prisma yet](https://github.com/railwayapp/nixpacks/issues/1030).
+
+Eventually I managed to deploy the app by using the following Dockerfile.
+
+```dockerfile:Dockerfile
+FROM node:18-alpine AS base
+
+# Step 1. Rebuild the source code only when needed
+FROM base AS builder
+
+WORKDIR /app
+
+# Install dependencies based on the preferred package manager
+COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
+# Omit --production flag for TypeScript devDependencies
+RUN \
+    if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
+    elif [ -f package-lock.json ]; then npm ci; \
+    elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i; \
+    # Allow install without lockfile, so example works even without Node.js installed locally
+    else echo "Warning: Lockfile not found. It is recommended to commit lockfiles to version control." && yarn install; \
+    fi
+
+# Adjust the files and folder that should be copied to the build container
+COPY app ./app
+COPY public ./public
+COPY components ./components
+COPY lib ./lib
+COPY next.config.mjs .
+COPY prisma ./prisma
+COPY components.json .
+COPY tailwind.config.ts .
+COPY tsconfig.json .
+COPY postcss.config.mjs .
+
+# Environment variables must be present at build time
+# https://github.com/vercel/next.js/discussions/14030
+ARG DATABASE_URL
+ENV DATABASE_URL=${DATABASE_URL}
+ARG BASIC_AUTH_USER
+ENV BASIC_AUTH_USER=${BASIC_AUTH_USER}
+ARG BASIC_AUTH_PASSWORD
+ENV BASIC_AUTH_PASSWORD=${BASIC_AUTH_PASSWORD}
+
+# Next.js collects completely anonymous telemetry data about general usage. Learn more here: https://nextjs.org/telemetry
+# Uncomment the following line to disable telemetry at build time
+# ENV NEXT_TELEMETRY_DISABLED 1
+
+# Build Next.js based on the preferred package manager
+RUN \
+    if [ -f yarn.lock ]; then yarn build; \
+    elif [ -f package-lock.json ]; then npm run build; \
+    elif [ -f pnpm-lock.yaml ]; then pnpm build; \
+    else npm run build; \
+    fi
+
+# Note: It is not necessary to add an intermediate step that does a full copy of `node_modules` here
+
+# Step 2. Production image, copy all the files and run next
+FROM base AS runner
+
+RUN apk --no-cache add curl
+
+WORKDIR /app
+
+# Don't run production as root
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+USER nextjs
+
+COPY --from=builder /app/public ./public
+
+# Automatically leverage output traces to reduce image size
+# https://nextjs.org/docs/advanced-features/output-file-tracing
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Environment variables must be redefined at run time
+ARG DATABASE_URL
+ENV DATABASE_URL=${DATABASE_URL}
+ARG BASIC_AUTH_USER
+ENV BASIC_AUTH_USER=${BASIC_AUTH_USER}
+ARG BASIC_AUTH_PASSWORD
+ENV BASIC_AUTH_PASSWORD=${BASIC_AUTH_PASSWORD}
+
+# Uncomment the following line to disable telemetry at run time
+# ENV NEXT_TELEMETRY_DISABLED 1
+
+EXPOSE 3000
+
+ENV PORT 3000
+
+CMD HOSTNAME=0.0.0.0 node server.js
+```
+
+The `DATABASE_URL` environment variable is set to the internal URL of the Postgres database instance exposed by Coolify. In the Coolify dashboard of the project, select "Dockerfile" as the Build Pack. Then add that Dockerfile to the repository and push it to the repository. Coolify will automatically build the app and deploy it to your server successfully.
+
+You can find the repository of the project [here](https://github.com/nicnocquee/playground.nico.fyi/tree/main) and the deployed app [here](https://playground.nico.fyi).
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi)!
+
+![](/static/images/articles/pull-request-best-practices.png)
