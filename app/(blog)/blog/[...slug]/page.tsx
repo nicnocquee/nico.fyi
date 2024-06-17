@@ -33,7 +33,7 @@ export async function generateMetadata({
   params: { slug: string[] }
 }): Promise<Metadata | undefined> {
   const slug = decodeURI(params.slug.join('/'))
-  const post = displayablePosts().find((p) => p.slug === slug)
+  const post = displayablePosts(true).find((p) => p.slug === slug)
   const authorList = post?.authors || ['default']
   const authorDetails = authorList.map((author) => {
     const authorResults = allAuthors.find((p) => p.slug === author)
@@ -87,15 +87,18 @@ export async function generateMetadata({
 }
 
 export const generateStaticParams = async () => {
-  const paths = displayablePosts().map((p) => ({ slug: p.slug.split('/') }))
+  const paths = displayablePosts(true).map((p) => ({ slug: p.slug.split('/') }))
 
   return paths
 }
 
 export default async function Page({ params }: { params: typeof routes.blogPage.params }) {
   const slug = decodeURI(params.slug.join('/'))
+
+  const posts = displayablePosts(true)
+
   // Filter out drafts in production
-  const sortedCoreContents = allCoreContent(displayablePosts())
+  const sortedCoreContents = allCoreContent(posts)
   const postIndex = sortedCoreContents.findIndex((p) => p.slug === slug)
   if (postIndex === -1) {
     return notFound()
@@ -103,7 +106,7 @@ export default async function Page({ params }: { params: typeof routes.blogPage.
 
   const prev = sortedCoreContents[postIndex + 1]
   const next = sortedCoreContents[postIndex - 1]
-  const post = displayablePosts().find((p) => p.slug === slug) as Blog
+  const post = posts.find((p) => p.slug === slug) as Blog
   const authorList = post?.authors || ['default']
   const authorDetails = authorList.map((author) => {
     const authorResults = allAuthors.find((p) => p.slug === author)

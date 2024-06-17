@@ -4,7 +4,7 @@ import { displayablePosts } from '@/app/(blog)/blogs-data'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const siteUrl = siteMetadata.siteUrl
-  const blogRoutes = displayablePosts().map((post) => ({
+  const blogRoutes = displayablePosts(true).map((post) => ({
     url: `${siteUrl}/${post.path}`,
     lastModified: post.lastmod || post.date,
   }))
