@@ -16,6 +16,7 @@ import { displayablePosts } from '@/app/(blog)/blogs-data'
 import { routes } from '../routes'
 import { PopularBlogs } from '../../components/popular'
 import { Promo } from './promo'
+import { env } from '@/env'
 
 export const revalidate = 60
 export const dynamicParams = true
@@ -92,6 +93,9 @@ export const generateStaticParams = async () => {
   return paths
 }
 
+const showFuturePosts =
+  !!env.NEXT_PUBLIC_SHOW_ALL_POSTS && env.NEXT_PUBLIC_SHOW_ALL_POSTS === 'true'
+
 export default async function Page({ params }: { params: typeof routes.blogPage.params }) {
   const slug = decodeURI(params.slug.join('/'))
 
@@ -104,8 +108,14 @@ export default async function Page({ params }: { params: typeof routes.blogPage.
     return notFound()
   }
 
-  const prev = sortedCoreContents[postIndex + 1]
-  const next = sortedCoreContents[postIndex - 1]
+  let prev: (typeof sortedCoreContents)[number] | undefined = sortedCoreContents[postIndex + 1]
+  if (prev && !showFuturePosts && new Date(prev.date) > new Date()) {
+    prev = undefined
+  }
+  let next: (typeof sortedCoreContents)[number] | undefined = sortedCoreContents[postIndex - 1]
+  if (next && !showFuturePosts && new Date(next.date) > new Date()) {
+    next = undefined
+  }
   const post = posts.find((p) => p.slug === slug) as Blog
   const authorList = post?.authors || ['default']
   const authorDetails = authorList.map((author) => {
