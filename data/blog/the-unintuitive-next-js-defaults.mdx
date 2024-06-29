@@ -1,0 +1,123 @@
+---
+title: 'The unintuitive default behaviors in Next.js 14 App Router'
+date: '2024-07-01'
+summary: 'Many fell victims to this questionable choice of default behaviors'
+tags: ['dev', 'nextjs']
+---
+
+While I personally enjoy using the Next.js App Router, many don't share my enthusiasm. Most of the time, they question the purpose of having React Server Components (RSC) in the Next.js App Router because they encounter some quirks. I share their frustration because it has happened to me too.
+
+I belive that this frustration stems from the fact that **there are some default behaviors in the Next.js App Router that are unintuitive**.
+
+# Static Rendering as the default for RSC
+
+This behaviour bit me multiple times. Take a look at this simple example:
+
+```typescript:app/page.tsx
+export default async function Page() {
+  return (
+    <div>
+      <p>{new Date().toISOString()}</p>
+    </div>
+  )
+}
+```
+
+In production, this page will show you a date and time, but not the current date and time! This wasted me several hours when I started using App Router. **This happened because the page is statically rendered, which means the displayed date and time reflect when the page was built.** I find this behavior unintuitive because I obviously want to render the current date and time. I'm pretty sure I'm not the only one who intuitively codes like that to render the current date and time.
+
+To actually render the current date and time when the page is requested, there are several ways to do it none of which are obvious:
+
+- Call one of the [dynamic functions](https://nextjs.org/docs/app/building-your-application/rendering/server-components#dynamic-functions) in the page component. For example, you can use `headers()` function even though you don't use the returned value:
+
+```typescript:app/page.tsx
+import { headers } from 'next/headers'
+
+export default async function Page() {
+  headers()
+  return (
+    <div>
+      <p>{new Date().toISOString()}</p>
+    </div>
+  )
+}
+```
+
+- Export a [`dynamic` constant](https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config#dynamic) set to `force-dynamic` in the page component:
+
+```typescript:app/page.tsx
+export const dynamic = 'force-dynamic'
+
+export default async function Page() {
+   headers()
+  return (
+    <div>
+      <p>{new Date().toISOString()}</p>
+    </div>
+  )
+}
+```
+
+# Agressive caching
+
+The [caching mechanism in Next.js](https://nextjs.org/docs/app/building-your-application/caching) is so complicated. The documentation is long and it took me several times reading it to understand. The overly aggressive caching is also a source of confusion and frustration for so many people that Next.js team has decided to [remove it](https://x.com/leeerob/status/1803824227704877236) in the upcoming Next.js 15.
+
+The caching is so aggressive that [you cannot even opt out in certain cases like client-side Router cache](https://nextjs.org/docs/app/building-your-application/caching#opting-out-3). You can only [invalidate it manually](https://nextjs.org/docs/app/building-your-application/caching#invalidation-1).
+
+One of the most commonly complained caching behaviour is the `fetch` caching. The server-side `fetch` function is being extended by not only Next.js but also by React!
+
+## Why is `fetch` being extended by React?
+
+React extended the `fetch` function to automatically memoize fetch requests while rendering a React component tree. This is required because of the introduction of React Server Components (RSC). In RSC, a React component can access data from the database or third party APIs and use the data to render the component. But what will happen if the there are multiple React components that need to access the same data? For example,
+
+```typescript:app/page.tsx
+export default async function Page() {
+  const data = await fetch('https://example.com/api/data')
+  return (
+    <div>
+      <p>{data}</p>
+      <Child />
+    </div>
+  )
+}
+
+const Child = async () => {
+  const data = await fetch('https://example.com/api/data')
+  return (
+    <div>
+      <p>{data}</p>
+    </div>
+  )
+}
+```
+
+Without memoization, the API server will be called twice during the rendering of the React component tree. Once by the `Page` component and once by the `Child` component. This will result in unnecessary API calls and slow down the page rendering.
+
+The `fetch` function is extended by React to automatically memoize fetch requests while rendering a React component tree. In the example above, the result of the `fetch` function will be memoized and reused. This means that the API server will be called only once during the rendering of the React component tree.
+
+This extension makes it so much easier to create a React component that fetches data from the database or third party APIs. We don't need to worry that rendering a React component tree will result in unnecessary API calls.
+
+## Why is `fetch` being extended by Next.js?
+
+Next.js extended the `fetch` function for the sake of caching too. But the scope of the caching is different. React's fetch caching applies during the received request's life cycle. This means that the cache is only valid for the duration of the request. Next.js's caching on the other hand covers multiple requests. The default behavior of Next.js's data cache is what took many people by surprise.
+
+Personally, I intuitively assume that when I call `fetch` in a React component during server-side rendering, the result of the call will not be cached because that is how it always works. But, unfortunately, Next.js makes it so confusing.
+
+The [`fetch` function by default is cached](https://nextjs.org/docs/app/building-your-application/data-fetching/fetching-caching-and-revalidating#caching-data). But not in a Server Action or in a Route Handler that uses the POST method. This causes confusion because if the data changes over time, you might not see the latest data. To make things worse, there are actually many conditions that will [prevent the fetch from being cached](https://nextjs.org/docs/app/building-your-application/data-fetching/fetching-caching-and-revalidating#opting-out-of-data-caching)!
+
+- The cache: 'no-store' is added to fetch requests.
+- The revalidate: 0 option is added to individual fetch requests.
+- The fetch request is inside a Router Handler that uses - the POST method.
+- The fetch request comes after - the usage of headers or cookies.
+- The const dynamic = 'force-dynamic' route segment option is used.
+- The fetchCache route segment option is configured to skip cache by default.
+- The fetch request uses Authorization or Cookie headers and there's an uncached request above it in the component tree.
+
+With that many conditions, I honestly think that it's better to not cache by default. It's more intuitive. Only when we need it to be cached should we be able to do it manually.
+
+## Caching in the future of Next.js
+
+But rejoice! According to Lee Robinson, the Next.js team has decided to [update the default behaviour of the caching mechanism](https://x.com/leeerob/status/1803824227704877236) in the upcoming Next.js 15. Hopefully it will be a better experience for everyone.
+
+---
+
+By the way, [I have a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
