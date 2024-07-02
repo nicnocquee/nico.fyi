@@ -1,0 +1,37 @@
+---
+title: 'Pull Request Best Practices: Name Nitpicking is OK'
+date: '2024-07-02'
+images: /static/images/articles/pull-request-best-practices.png
+summary: It's not always nitpicking, sometimes it's needed!
+tags: ['dev', 'pull request']
+---
+
+Some developers sometimes complain when their colleagues hold back their pull requests because they request some variable name changes. They think it's nitpicking.
+
+![](/static/images/articles/nitpicking.png.webp)
+
+I'm going to explain why it's not always nitpicking. Sometimes it's needed.
+
+## 🙅 Misleading Names
+
+When a variable name is misleading,it can justify a request for change. For example, a variable named `durationInSeconds` that actually holds an `object` instead of an `integer` is misleading. Such names can lead to incorrect assumptions about the type and use of the variable, potentially causing errors and confusion.
+
+## 😵‍💫 Confusing Names
+
+Names that cause logical confusion are also a valid concern. For instance, a variable like `isNotActive` used in a statement `if (!isNotActive)` creates a double negative that's hard to follow. In such cases, renaming to `isActive` simplifies understanding, making the code more readable and less prone to errors.
+
+## 😵 Non-descriptive Names
+
+Generic names like `x` or `temp`, especially when they represent specific and meaningful data, can be problematic. These names fail to convey the purpose or nature of the variable, making the code harder to understand and maintain.
+
+## 😤 Example of Nitpicking
+
+On the other hand, arguing over names that are stylistic preferences rather than clarity or correctness issues can be counterproductive. For example, debating whether to use `usersList` or `listOfUsers` is often unnecessary if both names adequately describe the data and are not misleading. Such discussions can detract from more critical aspects of the PR.
+
+## Be flexible
+
+If you think the examples I mentioned above are imaginary, you haven't worked in a team environment with different coding styles and skill levels. I've seen them in my work.
+
+At the end of the day, it's more important to recognize there are times to be rigid and times to be flexible. When the situation calls for it, all parties should be willing to compromise and find a solution that works for everyone.
+
+If you like this article, I have written more tips and advice on working efficiently with Pull Requests in my book, [Pull Request Best Practices](https://pr.nico.fyi), such as how to comment properly to get others on board and avoid conflicts. Check it out!
