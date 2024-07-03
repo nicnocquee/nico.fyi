@@ -211,9 +211,9 @@ export const AnimatedNavTabs = ({
 }
 ```
 
-Note that the `AnimatedNavTabs` component above does not depend on Next.js. It can be used in any React project. If you want the tabs to be the `<Link>` component of Next.js, and the selected tab depends on the current pathname, you can use the `LinkNavTabs`component below, which wraps the`AnimatedNavTabs` component.
+Note that the `AnimatedNavTabs` component above does not depend on Next.js. It can be used in any React project. If you want the tabs to be the `<Link>` component of Next.js, and the selected tab depends on the current pathname and search params, you can use the `LinkNavTabs`component below, which wraps the`AnimatedNavTabs` component.
 
-```typescript
+```typescript:link-nav-tabs.tsx
 'use client'
 
 import { usePathname } from 'next/navigation'
@@ -226,14 +226,37 @@ export const LinkNavTabs = ({
   tabs: Array<{ label: React.ReactNode; path: string }>
   springy?: boolean
 }) => {
-  const pathname = usePathname()
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
+  const fullPath =
+    pathname + (searchParamsString.length > 0 ? "?" : "") + searchParamsString;
   const runtimeTabs = tabs.map((tab) => ({
     label: tab.label,
     path: tab.path,
-    active: pathname === tab.path,
-  }))
+    active: fullPath === tab.path,
+  }));
 
   return <AnimatedNavTabs tabs={runtimeTabs} springy={springy} />
+}
+```
+
+Here's an example of using the `LinkNavTabs` above:
+
+```tsx:page.tsx
+import { LinkNavTabs } from './link-nav-tabs'
+import Link from 'next/link'
+
+export default function Page() {
+  return (
+    <div className="flex h-screen flex-col items-center justify-center">
+      <LinkNavTabs tabs={[
+        { label: <Link href="/">Home</Link>, path: '/' },
+        { label: <Link href="/about">About</Link>, path: '/about' },
+        { label: <Link href="/contact">Contact</Link>, path: '/contact' },
+      ]} springy />
+    </div>
+  )
 }
 ```
 
