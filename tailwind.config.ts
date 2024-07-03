@@ -117,6 +117,7 @@ export default {
             'h1,h2': {
               fontWeight: '700',
               letterSpacing: theme('letterSpacing.tight'),
+              a: { color: theme('colors.black') },
             },
             h3: {
               fontWeight: '600',
