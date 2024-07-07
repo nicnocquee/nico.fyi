@@ -31,6 +31,12 @@ npx degit 'timlrx/tailwind-nextjs-starter-blog'
 yarn
 ```
 
+## Generating OG images
+
+```bash
+npx og-screenshots -u https://www.nico.fyi/blog/how-to-clone-only-specific-folder-in-git-repo -o /path/to/repo/public/static/screenshots
+```
+
 ## Development
 
 First, run the development server:

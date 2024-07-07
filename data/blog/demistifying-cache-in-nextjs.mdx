@@ -1,0 +1,170 @@
+---
+title: 'Demistifying cache in Next.js'
+date: '2024-07-07'
+summary: 'The difference between cache and unstable_cache in Next.js'
+tags: ['dev', 'nextjs']
+---
+
+If you've been following my blog for a while, you might notice that I'm a big fan of React Server Components (RSC) in Next.js. For example, I've written about the new way of fetching data in the era of RSC and Suspense in [this post](/blog/simplify-data-fetching-with-rsc-suspense-and-use-api-in-next-js).
+
+In this blog post, I'm going to share one of the important tools when developing an RSC-powered app: **the cache**. You need to understand about the caching mechanism because RSC needs it to be performant as I will show later.
+
+In Next.js, you can use two different caching mechanisms: the default `cache` and the `unstable_cache`. The [`cache` function](https://react.dev/reference/react/cache) is provided by React while the [`unstable_cache` function](https://nextjs.org/docs/app/api-reference/functions/unstable_cache) is provided by Next.js.
+
+## cache
+
+Let's say you have a function that checks if a user is logged in.
+
+```typescript:session.ts
+import 'server-only';
+
+export const checkSessionValid = async () => {
+  console.log(" checkSessionValid");
+  const session = await getSession();
+  if (!session || !session.userId || new Date() > new Date(session.expires)) {
+    redirect("/login");
+  }
+
+  // Simulate a delay
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+  // In production, find the user from the database
+  const user = users.find((user) => user.id === parseInt(session.userId));
+
+  if (!user) {
+    redirect("/");
+  }
+  return user;
+}
+```
+
+The `checkSessionValid` function will first get the userId from the session saved in cookies, then check if the user with that `userId` exists in the database. If the user doesn't exist, the function will redirect the user to the login page. Otherwise, it will return the user.
+
+You can then use the `checkSessionValid` function in a page component like this:
+
+```typescript:app/page.tsx
+import { checkSessionValid } from "@/session";
+
+export default async function Page() {
+  const user = await checkSessionValid();
+  return (
+    <div>
+      <h1>Welcome, {user.name}</h1>
+    </div>
+  );
+}
+```
+
+But what if you have another server component within the page component that needs to know the logged in user? For example, we have a `Favorites` component that shows the user's favorites like this:
+
+```typescript:app/favorites.tsx
+import { checkSessionValid } from "@/session";
+
+export default async function Favorites() {
+  const user = await checkSessionValid();
+  const favorites = await getFavorites(user.id);
+  return (
+    <div>
+      <h1>Favorites for {user.name}</h1>
+    </div>
+  );
+}
+```
+
+And we display the favorites in the `Page` component like this:
+
+```typescript:app/page.tsx
+import { checkSessionValid } from "@/session";
+import Favorites from "@/favorites";
+
+export default async function Page() {
+  const user = await checkSessionValid();
+  return (
+    <div>
+      <h1>Welcome, {user.name}</h1>
+      <Suspense fallback={<div>Loading favorites...</div>}>
+        <Favorites />
+      </Suspense>
+    </div>
+  );
+}
+```
+
+The great thing about this is that we don't need to pass the `user` object to the `Favorites` component. **So we can avoid prop drilling and the lack of Context API in server side component is not a problem**. But the bad news is that now we are hitting the database twice. Once in the `app/page.tsx` and once in the `app/favorites.tsx`. Not only this could burden the database, but it also makes rendering the whole page slower.
+
+Here's where the React's `cache` function comes in handy. The `cache` function **caches the result of a function call during the rendering of the react tree**. When we wrap the `checkSessionValid` function with the `cache` function like this:
+
+```typescript:session.ts
+import 'server-only';
+import { cache } from 'react';
+
+export const checkSessionValid = cache(async () => { // <-- wrap the function with cache
+  console.log(" checkSessionValid");
+  const session = await getSession();
+  if (!session || !session.userId || new Date() > new Date(session.expires)) {
+    redirect("/login");
+  }
+
+  // Simulate a delay
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+  // In production, find the user from the database
+  const user = users.find((user) => user.id === parseInt(session.userId));
+
+  if (!user) {
+    redirect("/");
+  }
+  return user;
+})
+```
+
+the `checkSessionValid` function will only be called once during the rendering of the react tree!
+
+## unstable_cache
+
+The `unstable_cache` function is similar to the `cache` function. The difference is that the `unstable_cache` function **caches the result of a function call and returns the cached result accross multiple requests**. For example, say we have these functions that fetch data from the database:
+
+```typescript:data-source.ts
+// Get the data that are not user specific
+export const getAllData = unstable_cache(async () => {
+  // Simulate a delay
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+  // In production, fetch the data from the database
+  return allData;
+},
+["allData"],
+{
+  tags: ["allData"],
+});
+
+// Get the data that are user specific, in this case, the favorites
+export const getFavoriteData = unstable_cache(
+  async (userId: number) => {
+    // Simulate a delay
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    // In production, fetch the data from the database
+    const favorites = JSON.parse(
+      (await fs.readFile("./app/cache/favorites.json", "utf8")) as any
+    );
+    return favorites.filter((favorite: any) => favorite.userId === userId);
+  },
+  ["favorites"], // <-- cache key should be globally unique
+  {
+    tags: ["favorites"], // <-- cache tags which can be used to invalidate the cache
+  }
+);
+```
+
+When we call the `getAllData` function or the `getFavoriteData` function in a page component or any of its child components, the `unstable_cache` function will first check if the result is already cached. If it is, it will return the cached result. Otherwise, it will call the original function and cache the result. When another request comes in, the `unstable_cache` function will return the cached result immedately if it is available.
+
+## cache vs unstable_cache
+
+So when should you use `cache` and when should you use `unstable_cache`? As shown in the example above, you should use the React's `cache` when you only need cached data **during the rendering and different requests should not share the same cache**. On the other hand, you should use the `unstable_cache` when you need to cache data accross multiple requests.
+
+## Conclusion
+
+You can check out the example code in this [repository](https://github.com/nicnocquee/playground.nico.fyi/tree/main/app/cache) which includes an example of how to revalidate the cache.
+
+The `unstable_cache` function, as the name implies, is still experimental as of this writing. The only "bug" I notice so far is when the cache is invalidated, React component that uses the `unstable_cache` function will be rendered twice in the server. Hopefully this will be fixed in the future.
+
+---
+
+By the way, [I have a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
