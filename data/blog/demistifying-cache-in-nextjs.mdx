@@ -15,11 +15,10 @@ In Next.js, you can use two different caching mechanisms: the default `cache` an
 
 Let's say you have a function that checks if a user is logged in.
 
-```typescript:session.ts
+```typescript:session.ts showLineNumbers
 import 'server-only';
 
 export const checkSessionValid = async () => {
-  console.log(" checkSessionValid");
   const session = await getSession();
   if (!session || !session.userId || new Date() > new Date(session.expires)) {
     redirect("/login");
@@ -41,7 +40,7 @@ The `checkSessionValid` function will first get the userId from the session save
 
 You can then use the `checkSessionValid` function in a page component like this:
 
-```typescript:app/page.tsx
+```typescript:app/page.tsx {4} showLineNumbers
 import { checkSessionValid } from "@/session";
 
 export default async function Page() {
@@ -56,7 +55,7 @@ export default async function Page() {
 
 But what if you have another server component within the page component that needs to know the logged in user? For example, we have a `Favorites` component that shows the user's favorites like this:
 
-```typescript:app/favorites.tsx
+```typescript:app/favorites.tsx {4-5} showLineNumbers
 import { checkSessionValid } from "@/session";
 
 export default async function Favorites() {
@@ -72,7 +71,7 @@ export default async function Favorites() {
 
 And we display the favorites in the `Page` component like this:
 
-```typescript:app/page.tsx
+```typescript:app/page.tsx {10} showLineNumbers
 import { checkSessionValid } from "@/session";
 import Favorites from "@/favorites";
 
@@ -93,7 +92,7 @@ The great thing about this is that we don't need to pass the `user` object to th
 
 Here's where the React's `cache` function comes in handy. The `cache` function **caches the result of a function call during the rendering of the react tree**. When we wrap the `checkSessionValid` function with the `cache` function like this:
 
-```typescript:session.ts
+```typescript:session.ts {4} showLineNumbers
 import 'server-only';
 import { cache } from 'react';
 
@@ -122,7 +121,7 @@ the `checkSessionValid` function will only be called once during the rendering o
 
 The `unstable_cache` function is similar to the `cache` function. The difference is that the `unstable_cache` function **caches the result of a function call and returns the cached result accross multiple requests**. For example, say we have these functions that fetch data from the database:
 
-```typescript:data-source.ts
+```typescript:data-source.ts {2, 14, 24, 26} showLineNumbers
 // Get the data that are not user specific
 export const getAllData = unstable_cache(async () => {
   // Simulate a delay
