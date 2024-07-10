@@ -7,9 +7,9 @@ tags: ['dev', 'tailwind', 'css']
 
 There's a new CSS tool called [Open Props](https://open-props.style), an open-source collection of CSS variables. It's essentially a collection of [CSS variables](https://developer.mozilla.org/en-US/docs/Web/CSS/Using_CSS_custom_properties) that can be utilized anywhere CSS is used.
 
-Since these are merely CSS variables, we can integrate them with [Tailwind CSS](https://tailwindcss.com). We don't even need to utilize everything Open Props offers. For instance, we can selectively use the Easing variables to enhance our CSS animations. As an example, I've added the `ease-spring-5` animation to images when hovered over in the blog posts on this website. Try hovering over the image below.
+Since these are merely CSS variables, we can integrate them with [Tailwind CSS](https://tailwindcss.com). We don't even need to utilize everything Open Props offers. For instance, we can selectively use the Easing variables to enhance our CSS animations. As an example, I've added the `ease-elastic-in-out-5` animation to the blog post titles when hovered over on this website. Try hovering over the blog title above.
 
-![](/static/images/articles/open-props-easing.png.webp)
+## How to use
 
 First, let's install Open Props:
 
@@ -42,12 +42,16 @@ Next, we need to update the [tailwind.config.js file](https://github.com/nicnocq
       },
 ```
 
-Finally, we can simply use the added class names in our components. For example, I updated the [image component](https://github.com/nicnocquee/nico.fyi/blob/main/components/Image.tsx) in the blog posts:
+Finally, we can simply use the added class names in our components. For example, I updated the [blog title component](https://github.com/nicnocquee/nico.fyi/blob/main/components/PageTitle.tsx) in the blog posts:
 
-```typescript
-const Image = ({ ...rest }: ImageProps) => (
-  <NextImage className="duration-700 ease-spring-4 hover:scale-105" {...rest} />
-)
+```typescript:components/PageTitle.tsx {3} showLineNumbers
+export default function PageTitle({ children }: Props) {
+  return (
+    <h1 className="ease-elastic-in-out-5 ...other classes...">
+      {children}
+    </h1>
+  )
+}
 ```
 
 That's it!
