@@ -133,7 +133,7 @@ PGBOSS_URL=postgresql://DB_USER:DB_PASSWORD@pgbouncer-<service_uuid>:5432/DB_NAM
 
 Few notes:
 
-- Replace `<service_uuid>` with the UUID of the pgbouncer service as seen in the URL in Coolify dashboard. `pgbouncer-<service_uuid>` is the essentially container name of the PgBouncer service assigned by Coolify. You can actually find the full container name by clicking the "Edit Compose File" in the PgBouncer+Postgres application page in your Coolify dashboard, then click "Show Deployable Compose". You will see the name of the container in `container_name` or `COOLIFY_CONTAINER_NAME`.
+- Replace `<service_uuid>` with the UUID of the pgbouncer service as seen in the URL in Coolify dashboard. `pgbouncer-<service_uuid>` is essentially the container name of the PgBouncer service assigned by Coolify. You can find the full container name by clicking the "Edit Compose File" in the PgBouncer+Postgres application page in your Coolify dashboard, then click "Show Deployable Compose". You will see the name of the container in `container_name` or `COOLIFY_CONTAINER_NAME` values.
 - Replace `DB_USER`, `DB_PASSWORD`, and `DB_NAME` with the values of the `DB_USER`, `DB_PASSWORD`, and `DB_NAME` environment variables you set in the application's "Environment Variables" page in Coolify.
 - If your web application is not deployed via Coolify, you need to expose the port on which PgBouncer is listening. Then use the real IP address of the server instead of the `pgbouncer-<service_uuid>` value.
 
