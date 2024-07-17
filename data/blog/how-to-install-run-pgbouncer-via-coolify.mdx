@@ -1,0 +1,126 @@
+---
+title: 'How to install and run PgBouncer via Coolify'
+date: '2024-07-17'
+summary: 'You have to have PgBouncer if you are using PostgreSQL'
+tags: ['ubuntu', 'cli', 'coolify', 'postgres']
+---
+
+A month ago I wrote about [how to deploy a Next.js app that connects to Postgres with Prisma via Coolify](/blog/how-to-deploy-next-js-prisma-postgres-using-coolify). It turned out to be a popular post according to the number of visits from Google Search. So this time I'm sharing how to install an important tool if you are using PostgreSQL: [PgBouncer](https://www.pgbouncer.org).
+
+PgBouncer is a connection pooler for PostgreSQL. **In real world applications, it is almost always required to have a connection pooler like PgBouncer** because [new connections are expensive](https://stackoverflow.blog/2020/10/14/improve-database-performance-with-connection-pooling/) in PostgreSQL. Many of you might have seen error message saying that there no more connections available. The maximum number of connections usually depends on the spec of your server. For example, in managed PostgreSQL service in Digital Ocean, the maximum number of connections for 1GB RAM 1vCPU is 25 connections but 3 are already reserved for maintenance. Using PgBouncer we can virtually handle more clients than the maximum number of connections.
+
+![](/static/images/articles/num-of-connections-postgres-digital-ocean.png.webp)
+
+## Installing PgBouncer
+
+It's not difficult to install PgBouncer via Coolify if you follow my instruction here. First, you need to add new resource from your Coolify dashboard, and select "Docker Compose" method.
+
+![](/static/images/articles/coolify-new-resource-docker-compose.png.webp)
+
+Then you need to use the following Docker Compose file to install PgBouncer:
+
+```yaml:docker-compose.yml
+version: '3'
+services:
+  pgbouncer2:
+    image: edoburu/pgbouncer
+    environment:
+      - 'DB_USER=${DB_USER}'
+      - 'DB_PASSWORD=${DB_PASSWORD}'
+      - 'DB_HOST=${DB_HOST}'
+      - 'DB_NAME=${DB_NAME}'
+      - 'LISTEN_PORT=${LISTEN_PORT:-5432}'
+      - 'AUTH_TYPE=${AUTH_TYPE:-scram-sha-256}'
+      - 'POOL_MODE=${POOL_MODE:-transaction}'
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'pg_isready -h 127.0.0.1 -p ${LISTEN_PORT} -U $$DB_USER'
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+```
+
+Then from the "Environment Variables" page of the application, you need to provide the `DB_USER`, `DB_PASSWORD`, `DB_HOST`, and `DB_NAME` environment variables. These variables are used to connect to the PostgreSQL database that you want to pool with PgBouncer.
+
+By default, the `LISTEN_PORT` is 5432, `AUTH_TYPE` is `scram-sha-256`, and `POOL_MODE` is `transaction`. I use `scram-sha-256` because it's the default authentication type for new versions of PostgreSQL. And the `POOL_MODE` is `transaction` because it's a [requirement for the Prisma Client to work with PgBouncer](https://www.prisma.io/docs/orm/prisma-client/setup-and-configuration/databases-connections/pgbouncer#set-pgbouncer-to-transaction-mode).
+
+If the database you want to pool is also installed via Coolify, you can use the container name as the `DB_HOST` value. **But you have to make sure the "Connect To Predefined Network" is checked**.
+
+![](/static/images/articles/coolify-connect-to-predefined-network.png.webp)
+
+Finally, deploy the PgBouncer application. Once it's deployed and the status is running and healthy, you can now use the PgBouncer address instead of the database address in your Prisma schema file.
+
+```prisma:schema.prisma {4} showLineNumbers
+datasource db {
+  provider  = "postgresql"
+  directUrl = env("DATABASE_URL")
+  url       = env("DATABASE_URL_POOLING")
+}
+```
+
+The `directUrl` is the real database address and it will be used by Prisma when you run the migration. The `url` the address of the PgBouncer application. For example, you can have the following in your `.env` file:
+
+```env:.env {2} showLineNumbers
+DATABASE_URL=postgres://postgres:somepassword@postgress_container_name:5432/postgres
+DATABASE_URL_POOLING=postgres://postgres:somepassword@pgbouncer_container_name:5432/postgres?pgbouncer=true
+```
+
+Some notes:
+
+- Do not forget to add the `pgbouncer=true` in the `DATABASE_URL_POOLING` value. This tells [Prisma to use the PgBouncer connection pooling](https://www.prisma.io/docs/orm/prisma-client/setup-and-configuration/databases-connections/pgbouncer#add-pgbouncertrue-to-the-connection-url).
+- Replace `pgbouncer_container_name` with the container name of the PgBouncer application. The name is usually the name of the service followed by `-` and the UUID of the service. You can find the full container name by clicking the "Edit Compose File" in the PgBouncer application page in your coolify dashboard, then click "Show Deployable Compose". You will see the name of the container in `container_name` or `COOLIFY_CONTAINER_NAME` like the following:
+
+```yaml:docker-compose.yml {12,33} showLineNumbers
+services:
+  pgbouncer2:
+    image: edoburu/pgbouncer
+    environment:
+      DB_USER: '${DB_USER}'
+      DB_PASSWORD: '${DB_PASSWORD}'
+      DB_HOST: '${DB_HOST}'
+      DB_NAME: '${DB_NAME}'
+      LISTEN_PORT: '${LISTEN_PORT:-5432}'
+      AUTH_TYPE: '${AUTH_TYPE:-scram-sha-256}'
+      POOL_MODE: '${POOL_MODE:-transaction}'
+      COOLIFY_CONTAINER_NAME: pgbouncer2-ikk4gsg
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'pg_isready -h 127.0.0.1 -p ${LISTEN_PORT} -U $$DB_USER'
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      ikk4gsg: null
+    labels:
+      - coolify.managed=true
+      - coolify.version=4.0.0-beta.314
+      - coolify.serviceId=42
+      - coolify.type=service
+      - coolify.name=pgbouncer2-ikk4gsg
+      - coolify.pullRequestId=0
+      - coolify.service.subId=133
+      - coolify.service.subType=application
+    restart: unless-stopped
+    container_name: pgbouncer2-ikk4gsg
+volumes: {  }
+networks:
+  ikk4gsg:
+    name: ikk4gsg
+    external: true
+configs: {  }
+secrets: {  }
+```
+
+- If your web application is not deployed via Coolify, you need to expose the port PgBouncer is listening on. Then use the real IP address of the server instead of the container name in the `DB_HOST` value.
+
+That's it! Your application can now handle more connections than the maximum number of connections of your PostgreSQL database.
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi).
+
+![](/static/images/articles/pull-request-best-practices.png)
