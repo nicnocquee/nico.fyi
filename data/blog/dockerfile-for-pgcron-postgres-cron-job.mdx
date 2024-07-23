@@ -1,0 +1,46 @@
+---
+title: How to run pg_cron via Dockerfile
+date: '2024-07-23'
+summary: To quickly have a cron job in Postgres
+tags: ['dev', 'docker']
+---
+
+Few months ago I wrote about [how you can have cron jobs in Postgres using pg_cron](/blog/cron-job-with-postgres). But I didn't really specify how to install pg_cron. While pg_cron is a great addition to Postgres, it's not a built-in feature.
+
+So in this post, I'll show you how to quickly have a Postgres that has pg_cron installed. You can simply use the following Dockerfile to install pg_cron:
+
+```dockerfile:Dockerfile showLineNumbers
+FROM postgres:15
+RUN apt-get update && apt-get install -y curl
+RUN apt-get -y install postgresql-15-cron
+RUN echo "shared_preload_libraries='pg_cron'" >> /usr/share/postgresql/postgresql.conf.sample
+RUN echo "cron.database_name='postgres'" >> /usr/share/postgresql/postgresql.conf.sample
+```
+
+Then you need to build the image first:
+
+```shell
+docker build -t postgres-with-cron .
+```
+
+Once the image is built, you can run it with the following command:
+
+```shell
+docker run  \
+  --name postgres-cron \
+  -e POSTGRES_PASSWORD=mysecretpassword \
+  -p 5432:5432 \
+  postgres-with-cron
+```
+
+One last thing to do is to run the following query in the postgres database:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+```
+
+That's it! Now you can use pg_cron in your Postgres database.
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi).
