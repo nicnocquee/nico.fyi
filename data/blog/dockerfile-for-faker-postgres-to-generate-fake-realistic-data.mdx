@@ -1,0 +1,137 @@
+---
+title: How to generate fake data in Postgres with faker_fdw
+date: '2024-07-29'
+summary: Make your staging or development database look like production
+tags: ['dev', 'docker', 'postgres']
+---
+
+Few months ago I wrote about [how to populate a Postgres database quickly using `generate_series` function](/blog/populate-postgres-fake-data). It is a function that generates a set of values, from start to stop, at the interval specified by step. But in my example, the samples have values selected from a limited set of options.
+
+In this post, I'll show you a better way to generate fake data in Postgres using [faker_fdw](https://github.com/guedes/faker_fdw). You can follow the installation steps from the repository of faker_fdw to install faker_fdw. But if you want to quickly give it a try, you can simply use the following Dockerfile to create a Docker image that has Postgres and faker_fdw installed:
+
+```dockerfile:Dockerfile showLineNumbers
+# Stage 1: Build environment
+FROM postgres:16 AS builder
+
+# Switch to root to install dependencies
+USER root
+
+# Install necessary build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    wget \
+    postgresql-server-dev-16 \
+    python3 python3-dev python3-setuptools python3-pip python3.11-venv
+
+# Create a virtual environment
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install Faker and faker_fdw
+RUN pip3 install --no-cache-dir Faker
+RUN pip3 install https://github.com/guedes/faker_fdw/archive/v0.2.4.zip
+
+# Install multicorn2
+RUN wget https://github.com/pgsql-io/multicorn2/archive/refs/tags/v2.5.tar.gz && \
+    tar -xvf v2.5.tar.gz && \
+    cd multicorn2-2.5 && \
+    make && \
+    make install
+
+# Stage 2: Runtime environment
+FROM postgres:16
+
+# Copy the built artifacts from the builder stage
+COPY --from=builder /usr/lib/postgresql/16/lib/multicorn.so /usr/lib/postgresql/16/lib/
+COPY --from=builder /usr/lib/postgresql/16/lib/bitcode/multicorn /usr/lib/postgresql/16/lib/bitcode/multicorn
+COPY --from=builder /usr/share/postgresql/16/extension/multicorn* /usr/share/postgresql/16/extension/
+COPY --from=builder /opt/venv /opt/venv
+
+# Set environment variable for the virtual environment
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install Python and required libraries
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-dev \
+    libpython3.11 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set the library path to include Python libraries
+ENV LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
+
+# Switch back to postgres user
+USER postgres
+
+# Expose the PostgreSQL port
+EXPOSE 5432
+
+# Set the default command to run when starting the container
+CMD ["postgres"]
+```
+
+Then you can run the container with the following command:
+
+```shell
+docker run  \
+    --name postgres-faker \
+    -e POSTGRES_PASSWORD=mysecretpassword \
+    -p 5432:5432 \
+    postgres_faker_fdw
+```
+
+Once the container is running, run the following query in the Postgres database:
+
+```sql
+CREATE EXTENSION multicorn;
+
+CREATE SERVER faker_srv
+ FOREIGN DATA WRAPPER multicorn
+ OPTIONS (wrapper 'faker_fdw.FakerForeignDataWrapper');
+```
+
+Then you can use the `faker_srv` server to generate fake data. First, create a foreign table, then you can use the `people` table to generate fake data:
+
+```sql {1,8} showLineNumbers
+CREATE FOREIGN TABLE "public".people_random (
+    ssn varchar,
+    name varchar,
+    address text,
+    msisdn  text,
+    email text,
+    ipv4_public text
+) SERVER faker_srv OPTIONS (max_results '100');
+
+SELECT * FROM people_random;
+```
+
+You'll see something like this:
+
+![](/static/images/articles/faker-fdw.png.webp)
+
+You can use any of [the provider names from Faker as the table name here](https://faker.readthedocs.io/en/latest/providers.html) to generate the data that you want. For example, you can use `credit_card_number` and `credit_card_provider` as explained in [the credit_card providers document](https://faker.readthedocs.io/en/latest/providers/faker.providers.credit_card.html) to generate credit card numbers and providers.
+
+One thing to note is that the foreign table will return different results every time you run the query. To make it deterministic, you can either set a seed option
+
+```sql
+alter foreign table fake.person options ( add seed '1234' );
+```
+
+or insert the data into a normal table first
+
+```sql {10} showLineNumbers
+create TABLE "public".people (
+    ssn varchar,
+    name varchar,
+    address text,
+    msisdn  text,
+    email text,
+    ipv4_public text
+);
+
+insert into people select * from people_random;
+```
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi).
