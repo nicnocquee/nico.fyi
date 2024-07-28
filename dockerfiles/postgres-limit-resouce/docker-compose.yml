@@ -1,0 +1,15 @@
+version: '3.7'
+
+services:
+  db:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: mydatabase
+      POSTGRES_USER: myuser
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '1.0'
+    command: postgres -c shared_buffers=128MB -c work_mem=4MB
