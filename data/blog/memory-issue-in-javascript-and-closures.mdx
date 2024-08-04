@@ -1,0 +1,105 @@
+---
+title: Subtle memory issues in JavaScript thanks to closures
+date: '2024-08-04'
+summary: I found out that setTimeout can accept more than two arguments
+tags: ['dev', 'javascript']
+---
+
+Recently, I came across an interesting blog post by Jake Archibald titled [Garbage collection and closures](https://jakearchibald.com/2024/garbage-collection-and-closures) where he shows how mishandling closures can lead to memory leaks. The `demo` function in the following snippet is the problematic code:
+
+```html:memory-leak.html {12-19, 30} showLineNumbers
+<!doctype html>
+<html>
+  <head>
+    <title>Memory Leak Test</title>
+  </head>
+  <body>
+    <button id="runDemo">Run Demo</button>
+    <button id="cancelDemo">Cancel Demo</button>
+    <button id="forceGC">Force Garbage Collection</button>
+
+    <script>
+      function demo() {
+        const bigArrayBuffer = new ArrayBuffer(100_000_000)
+        const id = setTimeout(() => {
+          console.log(bigArrayBuffer.byteLength)
+        }, 1000)
+
+        return () => clearTimeout(id)
+      }
+
+      let cancelDemo
+
+      document.getElementById('runDemo').addEventListener('click', () => {
+        cancelDemo = demo()
+      })
+
+      document.getElementById('cancelDemo').addEventListener('click', () => {
+        if (cancelDemo) {
+          cancelDemo()
+          cancelDemo = null
+        }
+      })
+
+      document.getElementById('forceGC').addEventListener('click', () => {
+        if (window.gc) {
+          window.gc()
+        }
+      })
+    </script>
+  </body>
+</html>
+```
+
+At first glance, this code seems straightforward:
+
+1. It creates a large `ArrayBuffer` of 100 million bytes (about 100 MB).
+2. It sets a timeout to log the size of this buffer after 1 second.
+3. The cancellation function is persisted and assigned to `cancelDemo`.
+
+## The Subtle Issue
+
+While this code doesn't have a traditional memory leak, it does have a subtle memory retention issue. The large `ArrayBuffer` is kept in memory by the closure created in the `setTimeout` callback. This happens because the returned function of `demo` is still around after the `demo()` function has finished executing.
+
+The `ArrayBuffer` cannot be garbage collected until the `cancelDemo` function is set to `null` (line 30). Forcing the garbage collection by clicking the "Force Garbage Collection" button also will not help in this case because the memory is still retained by the closure.
+
+## Analyzing with Chrome DevTools
+
+To visualize this issue, I used Chrome DevTools' Memory tab to take heap snapshots. Here's what I observed:
+
+1. Before running the `demo()` function, the baseline memory usage was relatively low.
+2. After running `demo()`, there was a significant increase in memory usage, with a large `ArrayBuffer` object present in the heap.
+3. This increased memory usage persisted, even though the `demo()` function had already returned.
+
+![](/static/images/articles/memory-leak-js.png.webp)
+
+## The Fix
+
+One of the ways to fix this led me to find out that `setTimeout` can accept more than two arguments. We can modify the code to pass the `ArrayBuffer` as the third argument to `setTimeout`. **This prevents the creation of a closure that captures the entire `ArrayBuffer`**. Here's the improved version:
+
+```javascript:memory-leak-fix.html {4-6, 8} showLineNumbers
+function demo() {
+  const bigArrayBuffer = new ArrayBuffer(100_000_000)
+  const id = setTimeout(
+    (buffer) => {
+      console.log(buffer.byteLength)
+    },
+    1000,
+    bigArrayBuffer
+  )
+
+  return () => clearTimeout(id)
+}
+
+let cancelDemo = demo()
+```
+
+## Analyzing the Fix
+
+After implementing this fix, I took new heap snapshots. As shown in the following image, the memory usage never stayed high after the `demo()` function had finished executing. Instead, it decreased to a more manageable level.
+
+![](/static/images/articles/memory-leak-js-fix.png.webp)
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
