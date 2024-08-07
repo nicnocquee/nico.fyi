@@ -1,0 +1,110 @@
+---
+title: Closure vs Function in JavaScript
+date: '2024-08-07'
+summary: Understanding this will help you avoid subtle memory issues in JavaScript
+tags: ['dev', 'javascript']
+---
+
+In [the last blog post](/blog/memory-issue-in-javascript-and-closures) I discussed about a subtle memory issue in JavaScript and how I found out that `setTimeout` can accept more than two arguments. It's reassuring that, based on some Twitter comments, I wasn't the only one to discover this.
+
+But then [Ryan Dsouza on Twitter asked why the fix in the post worked](https://x.com/ryands1701/status/1821087444445307003). I thought I understood the solution but it turned out to be a bit more complicated than I thought. After spending a few hours pondering, I think I can explain it
+
+# The original problem
+
+So let's take a look at the original code:
+
+```javascript:memory-leak-js.html {2-7} showLineNumbers
+function demo() {
+  const bigArrayBuffer = new ArrayBuffer(100_000_000)
+  const id = setTimeout(() => {
+    console.log(bigArrayBuffer.byteLength)
+  }, 1000)
+
+  return () => clearTimeout(id)
+}
+
+let cancelDemo
+
+document.getElementById('runDemo').addEventListener('click', () => {
+  cancelDemo = demo()
+})
+```
+
+Honestly, I have no idea how the browser exactly executes this code, but based on the outcome, I imagine it's something like this:
+
+![](/static/images/articles/closure-1.png.webp)
+
+1. When the `demo()` function is called (line 13 in the code), a reference to it is created.
+2. Then it creates `bigArrayBuffer` (line 2) which means the demo function owns the reference to the `bigArrayBuffer` as indicated by the arrow 1 in the image above.
+3. Then it creates a callback function (line 3) which is passed to `setTimeout` as indicated by the arrow 2 in the image above.
+4. However, the callback function _**captures**_ the reference to `bigArrayBuffer` (line 4) as indicated by the arrow 3. Here are two important assumptions about a function that captures a variable outside of its scope which could explain the memory issue: **(a) the function implicitly keeps a reference to the owner of the variable too**, **(b) the closure somehow instructs the owner of the variable to keep a reference to it as long as the owner is still around**. I said "assumptions" because this is where I don't have a solid evidence. The first assumption is indicated by arrow 4 and the second assumption is indicated by arrow 1 which stays around even when the `demo` function has finished executing.
+5. Then the `demo` function creates an anonymous function (line 7) which is shown in the image above as the arrow 5. This anonymous function captures the variable `id`. And since it's another closure, the anonymous function also holds a reference to the `demo` function as shown in the image above as the arrow 6.
+6. Then we assign the anonymous function to a variable called `cancelDemo` which is owned by the `globalThis` object. So the `globalThis` object holds a reference to the anonymous function (line 13) as shown in the image above as the arrow 7.
+
+The image above shows the what I imagine the memory graph of the code above would look like by the end of the `demo()` function. **As you can see, the `bigArrayBuffer` is still in memory after the `demo()` function has finished executing because of my second assumption about how closures work.**
+
+Now when the `setTimeout` callback function is called and finishes executing, the memory graph would look like this:
+
+![](/static/images/articles/closure-2.png.webp)
+
+1. The `setTimeout` callback function is called. Once it reaches the end of the function, it will be garbage collected. This causes the references 2, 3, and 4 to be removed from the memory graph.
+2. Unfortunately, since the `bigArrayBuffer` is still being referenced by `demo` function, it cannot be garbage collected! And the `demo` function cannot be garbage collected either because it's still referenced by the `cancelDemo` function.
+
+![](/static/images/articles/closure-3.png.webp)
+
+Finally, as proven by my experiment in the previous blog post, the only way to clear up everything is by setting `cancelDemo` to `null`. When the `cancelDemo` variable is set to `null`, the references 5, 6, and 7 are removed from the memory graph as shown in the image above. Then the `demo` function has no more references to it and it can be garbage collected. As a result, the `bigArrayBuffer` is also garbage collected.
+
+# The Solution
+
+In the previous blog post, I mentioned that the solution to this problem is to pass the `bigArrayBuffer` as the third argument to `setTimeout`:
+
+```javascript:memory-leak-fix.html {4-6, 8} showLineNumbers
+function demo() {
+  const bigArrayBuffer = new ArrayBuffer(100_000_000)
+  const id = setTimeout(
+    (buffer) => {
+      console.log(buffer.byteLength)
+    },
+    1000,
+    bigArrayBuffer
+  )
+
+  return () => clearTimeout(id)
+}
+
+let cancelDemo = demo()
+```
+
+This is how I imagine the memory graph would look like after the `demo()` function has finished executing:
+
+![](/static/images/articles/pass-by-argument-1.png.webp)
+
+1. When the `demo()` function is called (line 14 in the code), a reference to it is created.
+2. Then it creates `bigArrayBuffer` (line 2) which means the `demo` function own the reference to the `bigArrayBuffer` as indicated by the arrow 1 in the image above.
+3. Just like the problematic code, it then creates a callback function (line 4) which is passed to `setTimeout` as indicated by the arrow 2 in the image above. But unlike the original code, this callback function doesn't capture the `bigArrayBuffer`. Instead, we pass the `bigArrayBuffer` as the third argument to `setTimeout`. So the the callback function still holds a reference to the `bigArrayBuffer` as indicated by the arrow 3 just like in the original code.
+4. Then it follows the same step 5 and 6 as in the original code.
+
+The main difference is that by the end of the `demo()` function, the `demo` function doesn't hold the reference to the `bigArrayBuffer` anymore. It already passes the reference to the `setTimeout` callback function as the third argument. That's why arrow 3 in the image above is dotted. By the end of the `demo()` function, there is no longer a reference to the `bigArrayBuffer` from the `demo` function. There is only one reference to the `bigArrayBuffer` from the `setTimeout` callback function!
+
+After a second, the `setTimeout` callback function is called and finishes executing. The memory graph would look like this:
+
+![](/static/images/articles/pass-by-argument-2.png.webp)
+
+The `setTimeout` callback function finishes executing. Once it reaches the end of the function, it will be garbage collected. This causes the references 2 and 3 to be removed from the memory graph. As a result, the `bigArrayBuffer` is also garbage collected because it no longer has any references. This is why the there is no more 100 MB of memory allocated as I've shown in the memory heap in the Chrome DevTools in the previous blog post.
+
+And when the `cancelDemo` variable is set to `null`, the references 5 and 6 are removed from the memory graph which finally releases the `demo` function too as shown in the image below.
+
+![](/static/images/articles/pass-by-argument-3.png.webp)
+
+# Disclaimer
+
+My explanation above only holds true if my two assumptions about how closure in JavaScript works is correct:
+
+1. The closure keeps a reference not only to the variable, but implicitly also a reference to the owner of the variable too.
+2. The closure instructs the owner of the variable to keep a reference to it as long as the owner is still around.
+
+I'd be glad to change my mind if someone can prove me wrong.
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
