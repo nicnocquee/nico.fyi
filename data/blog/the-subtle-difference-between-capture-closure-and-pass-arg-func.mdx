@@ -100,7 +100,7 @@ And when the `cancelDemo` variable is set to `null`, the references 5 and 6 are 
 
 My explanation above only holds true if my two assumptions about how closure in JavaScript works is correct:
 
-1. The closure keeps a reference not only to the variable, but implicitly also a reference to the owner of the variable too.
+1. The closure maintains a reference not only to the variable, but also implicitly holds a reference to the variable's owning scope.
 2. The closure instructs the owner of the variable to keep a reference to it as long as the owner is still around.
 
 I'd be glad to change my mind if someone can prove me wrong.
