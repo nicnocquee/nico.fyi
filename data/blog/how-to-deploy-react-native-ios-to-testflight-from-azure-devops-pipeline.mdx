@@ -227,7 +227,15 @@ platform :ios do
 end
 ```
 
-Few notes about this Fastfile:
+and the Appfile:
+
+```ruby:Appfile showLineNumbers
+app_identifier("com.your.app") # The bundle identifier of your app
+itc_team_id("xxxxxx") # App Store Connect Team ID
+apple_id("xxxxxx") # Apple ID
+```
+
+Few notes about the Fastfile and Appfile:
 
 - I use the Azure DevOps build id to set the build number of the app because it's the easiest to have different build numbers every time. This way, I won't have to worry about App Store Connect complaining about duplicate build numbers.
 - The `skip_waiting_for_build_processing`, `apple_id`, and `username` are required to upload the app to TestFlight using the app-specific password. Otherwise, it will use the normal login and it will ask for the 2FA code which we cannot enter since it's running in a non-interactive pipeline.
