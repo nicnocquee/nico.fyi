@@ -8,7 +8,7 @@ tags: ['dev', 'react native']
 
 When you develop an iOS app, Android app, or a cross-platform app using React Native in a company, there is one thing you need to implement as soon as possible to save you tons of troubles in the future: **the CI/CD (Continuous Integration/Continuous Deployment) pipeline to deploy or submit the app to App Store or Play Store**. Because unlike deploying websites, deploying mobile apps has a lot of steps. The sooner you can automate the deployment process, the faster you can get the app out to users, and in return, you can get feedback faster too. Even if only to internal users.
 
-Aside from being able to have a quick feedback loop, the main purpose of the CI/CD pipeline to deploy or submit the app to App Store or Play Store is to prevent only a single person from being able to deploy the app. We don't want to be unable to deploy the app if the person is not available or having problems with their computer.
+Aside from being able to have a quick feedback loop, the main purpose of the CI/CD pipeline to deploy or submit the app to App Store or Play Store is **to prevent only a single person from being able to deploy the app**. We don't want to be unable to deploy the app if the person is not available or having problems with their computer.
 
 In the Apple ecosystem, we can deploy beta versions of our apps to TestFlight. In this guide, I'll show you how to deploy a React Native app to TestFlight from an Azure DevOps pipeline because that's what the company I work for uses.
 
@@ -44,7 +44,7 @@ Once ruby is installed, you can install `bundler` by running the following comma
 
 Once we have bundler installed, we can create a Gemfile in the root directory of the repository to list the gems we need. Here's the Gemfile:
 
-```ruby
+```ruby:Gemfile showLineNumbers
 source 'https://rubygems.org'
 
 gem 'fastlane'
@@ -71,7 +71,7 @@ The pipeline will need to perform tasks that require authentication like deployi
 | `FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD` | The app-specific password.                                  | **Make sure to keep it secret**.                                                               |
 | `AZURE_PAT`                                    | The Azure DevOps personal access token.                     | **Make sure to keep it secret**.                                                               |
 
-This table format should be easy to read and integrate into markdown documentation.
+There is another way to interact with the AppStore connect which uses the API key instead of the app-specific password. But at the time of implementing the pipeline, I didn't have the rights to create an API key. So I used the app-specific password instead.
 
 ## The pipeline configuration
 
