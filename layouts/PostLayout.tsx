@@ -111,7 +111,7 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                   <Comments slug={slug} />
                 </div>
               )}
-              <Card className="bg-slate-100">
+              {/* <Card className="bg-slate-100">
                 <CardHeader>
                   <CardTitle>Did you like this post?</CardTitle>
                 </CardHeader>
@@ -127,7 +127,7 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                     </p>
                   </div>
                 </CardContent>
-              </Card>
+              </Card> */}
             </div>
             <footer>
               <div className="divide-gray-200 text-sm font-medium leading-5 dark:divide-gray-700 xl:col-start-1 xl:row-start-2 xl:divide-y">
