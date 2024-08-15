@@ -1,0 +1,46 @@
+---
+title: 'Quickly generate Postgres database in a single command'
+date: '2024-08-15'
+summary: 'How I thought I could let AI do all the work but it turns out it can only do so much'
+tags: ['ubuntu', 'cli', 'coolify', 'postgres']
+---
+
+I was curious if it's possible to create a small app entirely by AI. After a day or so, with the help of Claude Sonnet 3.5 and GPT-4 via Raycast, I finally created a Node.js CLI tool called [create-postgresql](https://github.com/nicnocquee/create-postgresql) that can quickly generate a Postgres database in a single command. You can use it for FREE and without any registration, but the server deletes all the generated databases every day at midnight UTC.
+
+![](/static/images/articles/create-postgresql-raycast.png.webp)
+
+The whole app actually consists of several parts:
+
+- A Node.js CLI tool that connects to the server and creates the database.
+- An Express server that receives the request from the CLI tool and creates the database.
+- A static web page to verify the request before creating the database.
+- A PostgreSQL instance that is used to store the databases.
+- A PgBouncer instance that is used to pool the PostgreSQL instance.
+
+I wanted all the server parts including the PostgreSQL and PgBouncer to be deployable easily using a [docker compose file](https://github.com/nicnocquee/create-postgresql/blob/main/docker-compose.yml). After a lot of back and forth with the AI, I finally got it working. The whole server parts are deployed using [Coolify](https://coolify.io) to my server in Hetzner. You can host them yourself if you want.
+
+You can quickly give it a try by running the following command:
+
+```shell
+npx create-postgresql
+```
+
+To prevent abuse, the CLI will open up a static web page where you can verify the request before creating the database. The submission is rate-limited and protected by Google reCAPTCHA v3.
+
+If you want to use your own server, you can specify the URL via the command line:
+
+```shell
+npx create-postgresql --api-url https://api.example.com --frontend-url https://app.example.com
+```
+
+## Closing Thoughts
+
+Overall, the experience confirms my belief that at the current level, **AI is a great tool to create software only if you have the software development skills.** For example, I still need to tell the AI if some code is not right or not efficient. Moreover, the code it generates doesn't work most of the time. I need to tell it the error message, and it will attempt to fix the code. There were times when I had to manually fix the code it generated because it just couldn't figure out the problem.
+
+AI will not replace software developer jobs in the near future. On the other hand, it will make software developers more productive.
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi).
+
+![](/static/images/articles/pull-request-best-practices.png)
