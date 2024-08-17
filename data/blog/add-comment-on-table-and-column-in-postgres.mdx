@@ -1,0 +1,46 @@
+---
+title: 'How to add comment on table and column in Postgres'
+date: '2024-08-17'
+summary: "I was just wondering if it's possible and it turns out it is"
+tags: ['dev', 'postgres']
+---
+
+I was just wondering if it's possible to add a comment on a table and column in Postgres. After a quick talk with AI, I found out that it's possible. Here's how you can do it:
+
+```sql
+COMMENT ON TABLE "public"."table_name" IS 'This is a comment';
+COMMENT ON COLUMN "public"."table_name"."column_name" IS 'This is a comment';
+```
+
+When you look at the table and column using a GUI client like TablePlus, you will see the comments:
+
+![](/static/images/articles/postgres-comment.png.webp)
+
+I think it's a pretty useful feature to have since there are times when a developer uses a non-descriptive name for a table or column. I was kind of hoping that Prisma supports this, where comments in the schema file are automatically added to the migration files. The only workaround I can think of is to run Prisma's migration without executing it first and then add the comments manually.
+
+For example, say you just created a schema file or you make some changes to the schema file. First, create a draft migration:
+
+```bash
+npx prisma migrate dev --create-only
+```
+
+Then add the comments manually:
+
+```sql
+COMMENT ON TABLE "public"."table_name" IS 'This is a comment';
+COMMENT ON COLUMN "public"."table_name"."column_name" IS 'This is a comment';
+```
+
+Finally, apply the migration:
+
+```shell
+npx prisma migrate dev
+```
+
+Have you ever added a comment to a table or column in Postgres?
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi).
+
+![](/static/images/articles/pull-request-best-practices.png)
