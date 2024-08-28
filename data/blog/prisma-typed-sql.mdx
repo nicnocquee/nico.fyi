@@ -1,0 +1,87 @@
+---
+title: 'The new TypedSQL in Prisma: Raw query with type safety'
+date: '2024-08-28'
+summary: 'Raw dogging your SQL query safely!'
+tags: ['dev', 'prisma']
+---
+
+Prisma has just announced a new feature in v5.19.0: [TypedSQL](https://www.prisma.io/docs/orm/prisma-client/using-raw-sql/typedsql). With this new feature, you can write SQL queries as usual and get a type-safe result. And as this is from Prisma, they designed it to be statically generated like the prisma client functions.
+
+## Usage
+
+First you need to upgrade your Prisma version to `5.19.0` or higher. Then you need to enable the preview feature in your schema:
+
+```prisma:schema.prisma
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["typedSql"]
+}
+```
+
+Next, you just need to write your SQL in a file inside the `prisma/sql` directory. For example, say I have the following schema:
+
+```prisma:schema.prisma
+model Question {
+  id                       String                    @id @default(uuid())
+  code                     String
+  question_sets            String[]
+  names                    Json
+  status                   Int                       @default(0)
+  category                 Category                  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  flavor                   Flavor                    @relation(fields: [flavorId], references: [id], onDelete: Cascade)
+  categoryId               String
+  flavorId                 String
+  created                  DateTime                  @default(now())
+  updated                  DateTime                  @default(now())
+
+  @@map("questions")
+}
+```
+
+In my project, I need to get 50 random questions from the database given a certain `flavorId`, `question_sets`, and whose `status` equals to `0`. I use the following SQL query:
+
+```sql:prisma/sql/randomQuestions.sql showLineNumbers
+-- @param {String} $1:flavorId
+-- @param {Json} $2:questionSets
+-- @param {Int} $3:limit
+SELECT q.*
+FROM questions q
+WHERE q."status" = 0
+  AND q."flavorId" = $1
+  AND q."question_sets" && $2
+ORDER BY RANDOM()
+LIMIT $3;
+```
+
+Then I need to run `prisma generate --sql` to generate the TypeScript functions. This command will show errors if there's a problem with the SQL query. You can also add `--watch` to automatically regenerate the functions when the SQL file changes. Note that we can specify the parameter names and types in the SQL file which will be used to generate the TypeScript functions.
+
+If the TypeScript functions are generated successfully, you can use function like this:
+
+```typescript:app/api/questions/route.ts {5} showLineNumbers
+import { randomQuestions } from '@/prisma/client/sql' // import the generated TypeScript function
+import { prismaClient } from '@/database' // import the Prisma client
+
+export const GET = async (_request: Request) => {
+  const questions = await prismaClient.$queryRawTyped(randomQuestions(
+    '1',
+    JSON.parse(JSON.stringify(['1', '2', '3'])),
+    50,
+  ))
+}
+```
+
+As you can see, the `randomQuestions` function is a TypeScript function that takes a `flavorId`, `questionSets`, and `limit` as parameters which we specified in the `randomQuestions.sql` file. The `questions` variable is automatically typed as an array of `Question` objects.
+
+![](/static/images/articles/typed-sql-autocomplete-prisma.png.webp)
+
+In line 7, I need to do the dance of JSON parse and stringify because simply passing array of string resulted in TypeScript error. It seems like the generated function doesn't have the correct type for array or json arguments as of this writing. Hopefully it will be fixed in the future.
+
+I really like this approach of introducing type safety to raw SQL queries. By having the functions generated before hand, it doesn't introduce any runtime overhead. Having different files for different queries is also a good idea because it makes it easier to maintain the codebase.
+
+Side note: I found out that [`order by random()` is considered to be bad idea](https://www.reddit.com/r/SQL/comments/10it6af/comment/j5j4sey/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button) because it's slow. However since the data in my `questions` table is not that big, the speed is negligible.
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi)!
+
+![](/static/images/articles/pull-request-best-practices.png)
