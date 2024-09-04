@@ -1,0 +1,204 @@
+---
+title: How to Show Task Sequence Progress with React Suspense and RSC in Next.js
+date: '2024-09-04'
+summary: Without useState, useEffect, client side fetch, or any other networking library
+tags: ['dev', 'nextjs']
+---
+
+Imagine you allow a user to make a purchase of a service or product. If you use one of the popular payment gateways, you can easily show the payment page provided by the payment gateway. Once the user completes the payment, the payment gateway usually does two things:
+
+1. Redirects the user to a confirmation or success page that you own.
+2. At the same time, it notifies your server that the payment is completed via a webhook.
+
+Now say you want to show the steps that are performed on the confirmation or success page:
+
+1. Confirm that the payment is completed successfully. Sometimes your server might not have received the webhook from the provider yet by the time the user reaches the confirmation page. So the user needs to stay on this first step until the webhook is received and the payment is confirmed.
+2. Once the payment is confirmed, let's imagine that you need to call another third-party API to create a resource. For example, you might use a third-party API to create a personalized PDF file for the user.
+3. After the PDF is created, you need to upload it to a cloud storage service like AWS S3.
+4. Finally, you need to send an email to the user with the PDF file.
+
+All of these steps won't happen instantly. So you want to show the user which step is currently being performed to keep the user informed. Something similar to this:
+
+![](/static/images/articles/progress-stepper.png.webp)
+
+## The solution
+
+There are several ways to achieve this. One way is to use services like [Inngest](https://www.inngest.com) and [Trigger.dev](https://trigger.dev). Once you set up the tasks in one of those services, you can trigger the functions and then [check the status of the tasks](https://www.inngest.com/docs/examples/fetch-run-status-and-output#fetching-triggered-function-status-and-output) by calling the endpoints provided by the services.
+
+Or you can simply create multiple route handlers and call them one after another from the client side. But for every endpoint call, you need to manually maintain the state of the progress and keep the UI in sync using `useState` or `useEffect`.
+
+Both of these approaches are very doable, but they have a few drawbacks: they are tedious to code and maintain.
+
+## RSC and Suspense: The new way
+
+If you haven't read, I wrote about [a new way to fetch data in the era of React Server Components and Suspense](/blog/simplify-data-fetching-with-rsc-suspense-and-use-api-in-next-js). Using the technique described in the article, we can easily implement the confirmation page above.
+
+This is how it will look like:
+
+<iframe
+  src="https://player.cloudinary.com/embed/?public_id=cnpk5smp7nqg6rvakmxa&cloud_name=dlampxaex&player[showLogo]=false"
+  width="640"
+  height="360"
+  allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+  undefined
+  allowfullscreen
+  style={{ height: 'auto', width: '100%', aspectRatio: 640 / 360 }}
+  frameborder="0"
+></iframe>
+
+As shown in the video, every task is represented by a component that has either a checkmark icon or a spinner icon, a title and a description which I call the `StepComponent`:
+
+```typescript:app/confirm/components.tsx {11} showLineNumbers
+type Step = {
+  title: string;
+  description: string;
+  work: Promise<any>;
+};
+
+type StepProps = Step & {
+  isLast: boolean;
+};
+
+export function StepComponent({ title, description, work, isLast }: StepProps) {
+  return (
+    <li className={`ml-6 ${isLast ? "" : "mb-10"}`}>
+      <span className="absolute -left-4 flex h-8 w-8 items-center justify-center rounded-full bg-white ring-4 ring-white dark:bg-gray-700 dark:ring-gray-900">
+        <Suspense fallback={<StepIcon status={"in-progress"} />}>
+          <Asyncable work={work}>
+            <StepIcon status={"done"} />
+          </Asyncable>
+        </Suspense>
+      </span>
+      <Suspense fallback={<Title disabled={true}>{title}</Title>}>
+        <Asyncable work={work}>
+          <Title>{title}</Title>
+        </Asyncable>
+      </Suspense>
+      <p className="text-sm">{description}</p>
+    </li>
+  );
+}
+
+const Asyncable = ({
+  work,
+  children,
+}: {
+  work: Promise<any>;
+  children: React.ReactNode;
+}) => {
+  use(work); // tell React to suspend the component until the promise is resolved which will show the nearest fallback component
+
+  return <>{children}</>;
+};
+
+const Title = ({
+  children,
+  disabled,
+}: {
+  children: React.ReactNode;
+  disabled?: boolean;
+}) => {
+  return (
+    <h3
+      className={cn(
+        `font-medium leading-tight text-green-500 dark:text-green-400`,
+        disabled && "text-gray-500",
+      )}
+    >
+      {children}
+    </h3>
+  );
+};
+```
+
+The `StepComponent` receives a promise that represents the work that needs to be done. This promise is used in React's `use` hook to suspend the component until the promise is resolved. Once the promise is resolved, the component will render the checkmark icon. While the component is suspended, it will show the fallback component.
+
+In this component, the icon and the color of the title are determined by whether the promise is resolved or not. If the promise is resolved, the icon is a checkmark and the title's color is green. Otherwise, the icon is a spinner and the title's color is gray.
+
+In the era before Suspense, we would have to use conditional rendering to determine whether to show the icon or the spinner. But with Suspense, we can keep everything modular. We can think of the spinner as the fallback component while the checkmark is the main component. And since we want to show the fallback when the component is suspended, I created a helper component called `Asyncable` which is used to suspend the component until the promise is resolved:
+
+```typescript
+<Suspense fallback={<Title disabled={true}>{title}</Title>}>
+    <Asyncable work={work}>
+        <Title>{title}</Title>
+    </Asyncable>
+</Suspense>
+```
+
+By making things composable like this, we can keep the main component clean, dumb, and only does one thing. In the example above, the `Title` component is only responsible for rendering the title and the color of the title based on the `disabled` prop. It doesn't have the responsibility of suspending the component. The `Asyncable` component does that. If the fallback component could be a completely different component, the `Title` component wouldn't even need to render different color conditionally.
+
+Now let's talk about the tasks. First, I made a function that executes several tasks in sequence:
+
+```typescript
+export function unsafe_createSequentialProcesses<T extends any[], R>(
+  ...processes: [(arg?: any) => Promise<T[0]>, ...((arg: any) => Promise<any>)[]]
+): Promise<R>[] {
+  return processes.reduce((acc, process, index) => {
+    if (index === 0) {
+      return [process(undefined)]
+    }
+    return [...acc, acc[acc.length - 1].then(process)]
+  }, [] as Promise<any>[])
+}
+```
+
+The `unsafe_createSequentialProcesses` function takes an array of promises and executes them in sequence. The resolved value of the promise is passed to the next promise in the array. The function then returns an array of promises that represent the sequence of tasks without awaiting them.
+
+I prefixed the function with `unsafe_` because it's not strongly typed. I tried to make it strongly typed but my TypeScript skills are not good enough to do that. Not even LLMs can help me 🫠. If you know how to strongly type this function, please let me know!
+
+We can use this function in a Next.js Page component which is a React Server Component like this:
+
+```typescript:app/confirm/page.tsx showLineNumbers
+export default async function AsyncWorks({
+  params: { id },
+}: {
+  params: { id: string };
+}) {
+  const [first, second, third] = unsafe_createSequentialProcesses(
+    () => firstProcess(id),
+    secondProcess,
+    thirdProcess,
+  );
+
+  return (
+    <div className="flex flex-col space-y-4 px-4 py-8">
+      <VerticalSteps>
+        <StepComponent
+          title="This is process 1"
+          description="It starts immediately when the page is loaded. After it finishes, the UI will automatically update and show the green checkmark."
+          work={first}
+          isLast={false}
+        />
+        <StepComponent
+          title="This is process 2"
+          description="This process will run after the first one finishes."
+          work={second}
+          isLast={false}
+        />
+        <StepComponent
+          title="This is process 3"
+          description="While waiting, the component is suspended and shows the loader."
+          work={third}
+          isLast={true}
+        />
+      </VerticalSteps>
+    </div>
+  );
+}
+```
+
+The `firstProcess`, `secondProcess`, and `thirdProcess` are async functions. We pass down these promises to each of the `StepComponent` components. The `StepComponent` component will suspend the component until the passed promise is resolved. Once the promise is resolved, the component will show the checkmark icon. While the component is suspended, it will show the loader.
+
+As you can see, a lot of things happen automatically. We just need to make sure the tasks are executed sequentially in the server and the UI is updated automatically. We don't need to manually fetch statuses of the tasks from the client component. In result, we don't need to maintain the states of the progresses and keep the UI in sync using `useState` or `useEffect`.
+
+## Conclusion
+
+I really like this pattern. It doesn't feel tedious. Everything is composed in a modular way. The React components are clean and only do one thing.
+
+The only drawback of this approach is that a task can only be in one of the two states: `pending` or `done`. It doesn't have the `waiting` state. This is due to the nature of React's Suspense which is based on the nature of Promise. I have an idea to solve this problem but that's an idea for another day.
+
+Another thing to note if you deploy your app to Vercel, you may want to [increase the serverless function timeout](https://vercel.com/changelog/serverless-functions-can-now-run-up-to-5-minutes) to avoid timeout errors.
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
