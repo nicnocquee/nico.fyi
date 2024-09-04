@@ -62,7 +62,7 @@ The Switch games I bought but haven't played:
 
 In 2019, I still listened to mostly japanese songs as shown in my Spotify 2019 Top Songs. I really love songs from Mrs. Green Apple, Official HIGE DANdism, and Aimyon. Not included in this list is songs by Hirai Ken, because for whatever reasons, his songs are not available in Swiss Spotify. 😞 I really like his new song, [#302](https://www.youtube.com/watch?v=fWNWHEvmaPU).
 
-<iframe src="https://open.spotify.com/embed/user/spotify/playlist/37i9dQZF1EtlrePewZUdzm" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+<iframe src="https://open.spotify.com/embed/user/spotify/playlist/37i9dQZF1EtlrePewZUdzm" width="300" height="380" frameBorder="0" allowtransparency="true" allow="encrypted-media"></iframe>
 
 # Work
 
