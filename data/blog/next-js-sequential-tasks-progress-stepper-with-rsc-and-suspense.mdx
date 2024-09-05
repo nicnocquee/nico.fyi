@@ -46,7 +46,7 @@ This is how it will look like:
   frameBorder="0"
 ></iframe>
 
-As shown in the video, every task is represented by a component that has either a checkmark icon or a spinner icon, a title and a description which I call the `StepComponent`:
+As shown in the video, every task is represented by a component that has either a checkmark icon or a spinner icon, a title, and a description which I call the `StepComponent`:
 
 ```typescript:app/confirm/components.tsx {11} showLineNumbers
 type Step = {
@@ -142,11 +142,11 @@ export function unsafe_createSequentialProcesses<T extends any[], R>(
 }
 ```
 
-The `unsafe_createSequentialProcesses` function takes an array of promises and executes them in sequence. The resolved value of the promise is passed to the next promise in the array. The function then returns an array of promises that represent the sequence of tasks without awaiting them.
+The `unsafe_createSequentialProcesses` function takes an array of functions that returns a promise and executes them in sequence. The resolved value of the promise is passed to the next promise in the array. The `unsafe_createSequentialProcesses` function then returns an array of promises that represent the sequence of tasks without awaiting them.
 
 I prefixed the function with `unsafe_` because it's not strongly typed. I tried to make it strongly typed but my TypeScript skills are not good enough to do that. Not even LLMs can help me 🫠. If you know how to strongly type this function, please let me know!
 
-We can use this function in a Next.js Page component which is a React Server Component like this:
+We can use this function in a Next.js `page` component which is a React Server Component like this:
 
 ```typescript:app/confirm/page.tsx showLineNumbers
 export default async function AsyncWorks({
