@@ -1,0 +1,84 @@
+---
+title: 'Interesting behaviour of useTransition in Next.js'
+date: '2024-09-10'
+summary: 'I just found out about its two use cases'
+tags: ['dev', 'nextjs', 'react']
+---
+
+One of the very common user interaction in a web application is calling an API end point where data mutation is performed when a button is clicked. Since it performs a mutation, **usually we don't want the user to be able to click the button again until the mutation is completed**. Otherwise there will be inconsistency in the user's data. For example, user needs to click a button to spend some points. But if the button is clicked again before the points are spent, the points will be deducted again.
+
+The common way to solve this little problem in React is to use `useState` to store the loading state of the API call. Then we can use the `disabled` prop to disable the button until the loading state is `false`.
+
+```typescript:do-something.tsx {3,6,10,13,22} showLineNumbers
+"use client";
+
+import { useState } from "react";
+
+export default function DoSomething() {
+  const [isPending, setIsPending] = useState(false);
+  return (
+    <div>
+      <button
+        disabled={isPending}
+        className="border rounded-md"
+        onClick={async () => {
+          setIsPending(true);
+          await fetch("/about/api", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          console.log("Success");
+          setIsPending(false);
+        }}
+      >
+        Click me
+      </button>
+    </div>
+  );
+}
+```
+
+But there is another not-so-known way to do this using [useTransition](https://react.dev/reference/react/useTransition) like this:
+
+```typescript:do-something.tsx {3,6,10,13} showLineNumbers
+"use client";
+
+import { useTransition } from "react";
+
+export default function DoSomething() {
+  const [isPending, startTransition] = useTransition();
+  return (
+    <div>
+      <button
+        disabled={isPending}
+        className="border rounded-md"
+        onClick={() => {
+          startTransition(async () => {
+            await fetch("/about/api", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            });
+
+            console.log("Success");
+          });
+        }}
+      >
+        Click me
+      </button>
+    </div>
+  );
+}
+```
+
+As you can see, as long as the function passed to `startTransition` is running, the `isPending` value will stay `true`. And when the function is finished, the `isPending` value will be automatically set to `false`. Interestingly, this kind of usage is not documented in the [useTransition](https://react.dev/reference/react/useTransition) page.
+
+One more interesting thing to note when used in Next.js is that the **`startTransition` blocks navigation.** So if you click a `<Link>` component after clicking the button in the code above, the navigation will be blocked until the transition is finished. I think this is a convenient feature if you want to prevent the user from navigating away from the page while the transition, for example a data mutation, is running.
+
+---
+
+By the way, [I have a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
