@@ -1,0 +1,218 @@
+---
+title: 'How to deploy a single file website to Vercel'
+date: '2024-09-15'
+summary: 'No build steps, no 3rd party dependencies, just a single file'
+tags: ['dev', 'vercel']
+---
+
+Vercel is well known for deploying Next.js apps. But it is less known that it also supports [deploying projects from other frameworks](https://vercel.com/docs/frameworks/more-frameworks) like Angular, Solid, Svelte, and many more. Something even more obscure is that you can deploy a single file website to Vercel.
+
+The secret is to use Vercel's Serverless functions. All you have to do is create a file in a directory called `api`, e.g., `api/hello.js`. In this file, you need to export a `GET` function that will be called by Vercel when the user visits the `/api/hello` endpoint.
+
+```typescript:api/hello.js
+export function GET(request) {
+  return new Response(`Hello from ${process.env.VERCEL_REGION}`);
+}
+```
+
+## Serving HTML
+
+To show a website in this end point, we need to return a HTML response instead of text response as shown in the example above.
+
+```typescript:api/hello.js
+export async function GET() {
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Vercel Region</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                margin: 0;
+                background-color: #f0f0f0;
+            }
+            .container {
+                text-align: center;
+                padding: 20px;
+                background-color: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                max-width: 800px;
+                width: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Hello from ${process.env.VERCEL_REGION}</h1>
+    </body>
+    </html>
+  `;
+
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" },
+  });
+}
+```
+
+That's it! Now you just need to deploy the project to Vercel. You can initialize a Git repository and push the code to it then add a project in Vercel that points to the Git repository. Or you can use the [Vercel CLI](https://vercel.com/docs/cli) to deploy the project directly.
+
+```shell
+npx vercel
+```
+
+Once deployed, you can visit the website by visiting the URL of the project in Vercel. For example, if you deployed the project to `my-project.vercel.app`, you can visit `https://my-project.vercel.app/api/hello`. If you want to be able to access the website from the root URL, unfortunately we need to add another file called `vercel.json` to the project.
+
+```json:vercel.json
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/api/hello"
+    }
+  ]
+}
+```
+
+## Getting Data
+
+Now let's try to serve a more than basic HTML page. Let's display a list of users which are stored in a database in [Turso](https://turso.tech). First, you need to create a database in Turso and get an auth token to access the database by following the [quick start guide](https://docs.turso.tech/sdk/http/quickstart).
+
+Then let's add a function to the `api/hello.js` file to fetch the users from the database.
+
+```javascript:api/hello.js
+function _getData() {
+  const url = `${process.env.TORSO_DB_HTTP_URL}/v2/pipeline`;
+  const authToken = process.env.TORSO_TOKEN;
+
+  return fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${authToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      requests: [
+        { type: "execute", stmt: { sql: "SELECT * FROM users" } },
+        { type: "close" },
+      ],
+    }),
+  })
+    .then((res) => res.json())
+    .then((data) => data.results[0].response.result.rows) // [[{"type":"integer","value":"1"},{"type":"text","value":"Nico"}],[{"type":"integer","value":"2"},{"type":"text","value":"Jobs"}]]
+    .catch((err) => console.log(err));
+}
+```
+
+Next we need to update the `GET` function in the `api/hello.js` file to fetch the data from the database before returning the HTML response.
+
+```javascript:api/hello.js
+export async function GET() {
+  const data = await _getData();
+
+  // Create a formatted table for users
+  const userTable = `
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data
+            .map(
+              (user) => `
+            <tr>
+              <td>${user[0].value}</td>
+              <td>${user[1].value}</td>
+            </tr>
+          `
+            )
+            .join("")}
+        </tbody>
+      </table>
+    `;
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Vercel Region</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                margin: 0;
+                background-color: #f0f0f0;
+            }
+            .container {
+                text-align: center;
+                padding: 20px;
+                background-color: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                max-width: 800px;
+                width: 100%;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+            }
+            th, td {
+                padding: 10px;
+                border: 1px solid #ddd;
+            }
+            th {
+                background-color: #f2f2f2;
+                font-weight: bold;
+            }
+            tr:nth-child(even) {
+                background-color: #f9f9f9;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>Users</h2>
+            ${userTable}
+        </div>
+    </body>
+    </html>
+  `;
+
+  return new Response(html, {
+    headers: { "Content-Type": "text/html" },
+  });
+}
+```
+
+We can even add a form to allow visitor to add new users to the database. The complete code is available [in my repo](https://github.com/nicnocquee/just-js).
+
+## Conclusion
+
+We often hear people complain that web development has become too complicated. They usually mention how they miss the simplicity of making websites without build steps, without CI/CD, and just uploading files to a server via SFTP. In this post, I want to show these people that it's _still_ possible to deploy a website by uploading it to Vercel directly using the Vercel CLI.
+
+Moreover, if you hate having multiple files in your project and only want to have a single file like that _famous million-dollar PHP indie hacker guy (you know who)_, you can do it too! Well, two files, actually, sorry. But it's still possible.
+
+Bonus:
+
+- [Do you know you can even deploy a Python, Ruby, and Go function to Vercel?](https://vercel.com/docs/functions/runtimes/python)
+- If you're wondering if you should use Vercel, read [my article here](/blog/should-you-use-vercel).
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
