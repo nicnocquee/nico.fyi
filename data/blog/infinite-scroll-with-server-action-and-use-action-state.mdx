@@ -1,0 +1,179 @@
+---
+title: How to create infinite scroll with server action and useActionState in Next.js
+date: '2024-09-22'
+summary: No fetching, no useState, and no API endpoint
+tags: ['dev', 'react', 'next.js', 'typescript']
+---
+
+Let's imagine we want to show a list of posts. At the bottom of the list, we want to show a button that allows the user to load more posts. Before [React Server Components](https://nextjs.org/docs/app/building-your-application/rendering/server-components) and [Server Actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations), we would have to
+
+- store the posts in a state using `useState`
+- fetch the posts from an API endpoint using `fetch`
+- store the loading state in a state using `useState`
+- create the API end point
+
+But Server Actions and [`useActionState`](https://react.dev/reference/react/useActionState) simplify all of this. First, let's create a page component that [starts the work of getting the posts from the database and stream the promise to the client](http://localhost:3000/blog/simplify-data-fetching-with-rsc-suspense-and-use-api-in-next-js) as shown in the following code:
+
+```typescript:app/infinite-scroll/page.tsx {6,11} showLineNumbers
+import { getPostsFromDbOrSomething } from "./db";
+import Posts from "./posts-list";
+import { Suspense } from "react";
+
+export default async function Page() {
+  const posts = getPostsFromDbOrSomething(0);
+  return (
+    <div className="mx-auto max-w-md w-full p-4">
+      <h1 className="text-xl font-bold">Infinite Scroll Demo</h1>
+      <Suspense fallback={<div>Loading...</div>}>
+        <Posts work={posts} />
+      </Suspense>
+    </div>
+  );
+}
+```
+
+Then we have the client component that will be suspended when the page is first loaded until the promise is resolved as shown in the following code:
+
+```typescript:app/infinite-scroll/posts-list.tsx {14,16, 26} showLineNumbers
+"use client";
+
+import { use, useActionState } from "react";
+import { getPostsFromDbOrSomething } from "./db";
+import { PostComponent } from "@/components/custom-posts";
+import { Button } from "@/components/ui/button";
+import { getPostsAction } from "./actions";
+
+export default function PostsList({
+  work,
+}: {
+  work: ReturnType<typeof getPostsFromDbOrSomething>;
+}) {
+  const posts = use(work); // suspend the component until the promise is resolved
+
+  const [state, loadMore, isPending] = useActionState(getPostsAction, posts);
+
+  const lastId = state.data.at(-1)?.id;
+
+  return (
+    <div className="space-y-2">
+      {state.data.map((t) => {
+        return <PostComponent key={t.id} {...t} />;
+      })}
+      {state.hasMore ? (
+        <form action={loadMore}>
+          <input type="hidden" name="lastId" value={lastId} />
+          <Button
+            disabled={isPending}
+            type="submit"
+            className="w-full"
+            variant={"outline"}
+          >
+            {isPending ? "Loading..." : "Load more"}
+          </Button>
+        </form>
+      ) : null}
+    </div>
+  );
+}
+```
+
+We use the upcoming `useActionState` hook to get the returned value of the server action and the loading state of the action (line 16). The `useActionState` hook also returns a function that we have to use to trigger the server action instead of calling the server action directly.
+
+The server action itself receives the previous state of the action and the new data from the client as shown in the following code:
+
+```typescript:app/infinite-scroll/actions.tsx {21} showLineNumbers
+"use server";
+
+import { PostsProps } from "@/components/custom-posts";
+import { getPostsFromDbOrSomething } from "./db";
+
+export const getPostsAction = async (
+  prev: {
+    hasMore: boolean;
+    data: PostsProps[];
+  },
+  formData: FormData
+) => {
+  // Before continuing, check here if the user is authorized to get the posts.
+  // Remember, server action is technically a public end point by default so you should treat it as such.
+  // Read about how to secure your server action here: https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations#security
+  const lastId = parseInt(formData.get("lastId") as string) || 0;
+  const { data: posts, hasMore } = await getPostsFromDbOrSomething(lastId);
+
+  return {
+    hasMore,
+    data: prev.data.concat(posts),
+  };
+};
+```
+
+Since the server action receive both the previous state and the new data from the client, we can simply concatenate the new data to the previous state and return it as the new state (line 21). You can check out the demo [here](https://playground.nico.fyi/suspense/infinite-scroll). However, you can also store the posts in the client instead using `useState` and concatenate with the data returned by the server action.
+
+The nice thing about `useActionState` is that it automatically handles the loading state, unlike the current `useFormState` hook which will be deprecated in the future. If you still cannot upgrade the React you use in your project, you can use the `useFormState` hook instead as shown in the following code:
+
+```typescript:app/infinite-scroll/posts-list-with-form-state-hook.tsx {8,17,37} showLineNumbers
+"use client";
+
+import { use } from "react";
+import { getPostsFromDbOrSomething } from "./db";
+import { PostComponent } from "@/components/custom-posts";
+import { Button } from "@/components/ui/button";
+import { getPostsAction } from "./actions";
+import { useFormState, useFormStatus } from "react-dom";
+
+export default function PostsList({
+  work,
+}: {
+  work: ReturnType<typeof getPostsFromDbOrSomething>;
+}) {
+  const posts = use(work);
+
+  const [state, loadMore] = useFormState(getPostsAction, posts);
+
+  const lastId = state.data.at(-1)?.id;
+
+  return (
+    <div className="space-y-2">
+      {state.data.map((t) => {
+        return <PostComponent key={t.id} {...t} />;
+      })}
+      {state.hasMore ? (
+        <form action={loadMore}>
+          <input type="hidden" name="lastId" value={lastId} />
+          <FormButton />
+        </form>
+      ) : null}
+    </div>
+  );
+}
+
+const FormButton = () => {
+  const { pending } = useFormStatus();
+  return (
+    <Button
+      disabled={pending}
+      type="submit"
+      className="w-full"
+      variant={"outline"}
+    >
+      {pending ? "Loading..." : "Load more"}
+    </Button>
+  );
+};
+```
+
+Unfortunately, since `useFormState` doesn't return the loading state, we need to use another hook called [`useFormStatus`](<https://react.dev/reference/react-dom/hooks/useFormStatus#noun-labs-1201738-(2)>) to get the loading state. But `useFormStatus` [doesn't work when it's used in the component that renders the form](https://react.dev/reference/react-dom/hooks/useFormStatus#pending-is-never-true). It should be in a component that is a children of the form. That's why we have to create a separate component called `FormButton` that will read the loading state from `useFormStatus` and render the button accordingly.
+
+# Closing
+
+If you've been using Next.js App router, you have most likely used or at least heard about Server Actions. Server Actions are basically functions that are executed on the server and can be called "directly" from the client. React actually converts the functions into end points under the hood and when the "function" is called in the client, it's actually making an HTTP request to the synthesized end point. That's why you have to treat it as [a public-facing end point and secure it properly](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations#security)!
+
+When a form receives a server action as an `action` prop in React, React will automatically send a POST request to the synthesized end point when the form is submitted. Since it's a POST request, naturally most people would expect data mutation to happen on the server. But that's not obligatory. You can just return data from the server action without any mutation. And that's how we could implement the infinite scroll
+
+- without manually creating an API end point
+- without manually sending the request to the end point
+- without using additional state to concatenate the new data to the existing data
+
+---
+
+By the way, [I have a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
