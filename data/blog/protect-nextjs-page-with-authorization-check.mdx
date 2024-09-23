@@ -1,0 +1,101 @@
+---
+title: How to protect Next.js App Router's page with authorization check
+date: '2024-09-23'
+summary: When we don't want anyone to be able to access the page
+tags: ['dev', 'react', 'next.js', 'typescript']
+---
+
+If you haven't read it, Next.js has updated their docs [Authentication and Authorization](https://nextjs.org/docs/app/building-your-application/authentication). One of the most important gems in the docs, in my opinion, is the [Authorization Check](https://nextjs.org/docs/app/building-your-application/authentication#authorization-check) section. Since there are a lot of parts that are involved when a request is made to a server such as middleware, layout, page, etc, it's great to finally have an official guide on how to perform authorization checks.
+
+In this post I'm going to share a practical way to check authorization when a user visits a page. But before that, you should know the three important take aways from the docs:
+
+- Perform _only_ optimistic authorization checks in the middleware. It's a fancy way of saying that you should do checks that doesn't require any database or other external APIs because it can cause performance issues since middleware runs on every request by default.
+- Don't perform authorization checks in the Layout because layout is not re-rendered on navigation, so the check won't always run.
+- Perform checks close to your data source or the component that'll be conditionally rendered.
+
+## Protecting a page
+
+Let's say we want to protect a page in `/dashboard` route. Following the third take away I mentioned above, we should do the authorization check in a page component that will render the `/dashboard` route as shown in the following code:
+
+```typescript:app/dashboard/page.tsx {5, 7-8, 11-12} showLineNumbers
+import { checkSessionValid, checkRolePermission } from "./auth";
+import { NotAuthorized } from "./not-authorized";
+
+export default async function DashboardPage() {
+  const loggedInUser = await checkSessionValid(true);
+
+  if (!loggedInUser) {
+    notFound();
+  }
+
+  if (!checkRolePermission(loggedInUser.role, `/dashboard`)) {
+    return <NotAuthorized />;
+  }
+
+  return (
+    <div className="mx-auto max-w-md w-full p-4">
+      <h1 className="text-xl font-bold">Dashboard</h1>
+      <p>{`This is user ${loggedInUser.name}'s dashboard`}</p>
+    </div>
+  );
+}
+```
+
+The `checkSessionValid` function is a function that checks if the request is made by a logged in user. You can achive that by checking the session cookie for example. If the function doesn't return the logged in user, we render a 404 page. Otherwise, we can continue checking if the logged in user has the permission to view the page by calling the `checkRolePermission` function. You can achieve that by checking the user's role in the database. If the user doesn't have the required role, you can return a `NotAuthorized` component. I leave the implementation of both functions to you.
+
+Everything looks good so far. But we have a slight problem. We need to write those 7 lines of code in every page that we want to protect. It's tedious and error-prone. The solution is to create a [higher order component (HOC)](https://legacy.reactjs.org/docs/higher-order-components.html) like this:
+
+```typescript:app/dashboard/with-auth.tsx showLineNumbers
+import { ReactElement } from "react";
+import { notFound } from "next/navigation";
+import { checkSessionValid } from "@/app/cookies";
+import { checkRolePermission, rolePermissions } from "@/app/role-permissions";
+import NotAuthorized from "./not-authorized";
+
+export function withAuth(
+  WrappedComponent: React.ComponentType<any>,
+  pathname: string,
+) {
+  return async function AuthComponent(props: any): Promise<ReactElement> {
+    const loggedInAdmin = await checkSessionValid(true);
+
+    if (!loggedInAdmin) {
+      notFound();
+    }
+
+    if (!checkRolePermission(loggedInAdmin.role, pathname)) {
+      return <NotAuthorized />;
+    }
+
+    return <WrappedComponent {...props} loggedInAdmin={loggedInAdmin} />;
+  };
+}
+```
+
+Then we can use the `withAuth` HOC to protect the `/dashboard` page as shown in the following code:
+
+```typescript:app/dashboard/page.tsx {5, 15} showLineNumbers
+import { checkSessionValid } from "./auth";
+import { withAuth } from "./with-auth";
+
+const DashboardPage = async () => {
+  const loggedInUser = await checkSessionValid(true);
+
+  return (
+    <div className="mx-auto max-w-md w-full p-4">
+      <h1 className="text-xl font-bold">Dashboard</h1>
+      <p>{`This is user ${loggedInUser.name}'s dashboard`}</p>
+    </div>
+  );
+}
+
+export default withAuth(DashboardPage, "/dashboard");
+```
+
+Using the HOC, we don't need to conditionally render the `NotAuthorized` component or the 404 anymore in the `DashboardPage` component. We can be certain that the `loggedInUser` is not `null` and the user has the required role.
+
+One important thing you should remember is to memoize the `checkSessionValid` function with [React's cache](https://react.dev/reference/react/cache) function so that the function is only executed once during the React's render pass. That means, if you query the database in the `checkSessionValid` function, it will only hit the database once even though the function is called twice in the code above: once in the `withAuth` and once in the `DashboardPge` component.
+
+---
+
+By the way, [I have a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
