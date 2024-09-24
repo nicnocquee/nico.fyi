@@ -1,0 +1,230 @@
+---
+title: 'How to reset the state of useActionState in React'
+date: '2024-09-24'
+summary: "It's kinda weird that the state cannot be reseted easily"
+tags: ['dev', 'react']
+---
+
+I wrote before about how easy it is to create [infinite scroll with server action and useActionState in Next.js](/blog/infinite-scroll-with-server-action-and-use-action-state). `useActionState` is that hook that I'm so glad that it's created to replace the confusing and less capable `useFormState` hook.
+
+But there's one thing that is still bugging me. The `useActionState` hook doesn't have a way to reset the state. It's kinda weird that the state cannot be reseted easily. Imagine I have a form that allows user to submit something. When the submission completes successfully, they will see some message from the server. But then I want them to be able to reset the form and fill the fields with another information. When they reset the form, the message from the server should not be shown anymore. For example,
+
+```typescript:app/products/page.tsx showLineNumbers
+"use client";
+import { useRef, useActionState } from "react";
+import { doSomething } from "./actions";
+
+export default function Form() {
+  const [state, submit, isPending] = useActionState(
+    doSomething,
+    null
+  );
+  const formRef = useRef<HTMLFormElement>(null);
+
+  return (
+    <form
+      id="theform"
+      ref={formRef}
+      action={submit}
+    >
+      {state && state.error && (
+        <p className="bg-red-500 text-white p-4">{state.error}</p>
+      )}
+      <p>{state && state.data?.message}</p>
+      <input
+        disabled={isPending}
+        type="text"
+        name="name"
+        id="name"
+        placeholder="Enter your name"
+        defaultValue={(state?.data?.name as string) || ""}
+      />
+
+      <div className="flex flex-row justify-between items-center w-full">
+        <button
+          type="button"
+          onClick={() => {
+            // reset the form somehow
+          }}
+        >
+          Reset
+        </button>
+        <button
+          form="theform"
+          disabled={isPending}
+          type="submit"
+        >
+          {isPending ? "Loading..." : "Submit"}
+        </button>
+      </div>
+    </form>
+  );
+}
+```
+
+As far as I know, the only way to reset the form right now is by reloading the page. Even reseting the form using `formRef.current.reset()` doesn't work. So how can we reset the form without reloading the page?
+
+The solution is by not passing the server action directly to the `useActionState` hook. Instead, we pass a function that will return the initial state when the submit function is called with certain value, for example, the `null` value.
+
+```typescript:app/products/page.tsx {6-16, 42} showLineNumbers
+"use client";
+import { useRef, useActionState } from "react";
+import { doSomething } from "./actions";
+
+export default function Form() {
+  const [state, submit, isPending] = useActionState(
+    async (state, payload) => {
+        if (payload === null) { // if the `submit` function is called with null as the argument, return the initial state, which in this case is null
+            return null; // the initial state
+        }
+
+        const response = await doSomething(state, payload);
+        return response
+    },
+    null // the initial state
+  );
+  const formRef = useRef<HTMLFormElement>(null);
+
+  return (
+    <form
+      id="theform"
+      ref={formRef}
+      action={submit}
+    >
+      {state && state.error && (
+        <p className="bg-red-500 text-white p-4">{state.error}</p>
+      )}
+      <p>{state && state.data?.message}</p>
+      <input
+        disabled={isPending}
+        type="text"
+        name="name"
+        id="name"
+        placeholder="Enter your name"
+        defaultValue={(state?.data?.name as string) || ""}
+      />
+
+      <div className="flex flex-row justify-between items-center w-full">
+        <button
+          type="button"
+          onClick={() => {
+            submit(null); // reset the form by passing null as the payload
+          }}
+        >
+          Reset
+        </button>
+        <button
+          form="theform"
+          disabled={isPending}
+          type="submit"
+        >
+          {isPending ? "Loading..." : "Submit"}
+        </button>
+      </div>
+    </form>
+  );
+}
+```
+
+By "wrapping" the server action in line 6 to 16, we can reset the form by passing `null` as the payload to the `submit` function as shown in line 42.
+
+To make it less tedious, we can create a custom hook called `useResetableActionState` that does exactly that. Here's the code:
+
+```typescript:app/products/use-resetable-action-state.tsx showLineNumbers
+import { useActionState } from 'react';
+
+export function useResetableActionState<State, Payload>(
+  action: (state: Awaited<State>, payload: Payload) => State | Promise<State>,
+  initialState: Awaited<State>,
+  permalink?: string,
+): [
+  state: Awaited<State>,
+  dispatch: (payload: Payload | null) => void,
+  isPending: boolean,
+  reset: () => void,
+] {
+  const [state, submit, isPending] = useActionState(
+    async (state: Awaited<State>, payload: Payload | null) => {
+      if (!payload) {
+        return initialState;
+      }
+      const data = await action(state, payload);
+      return data;
+    },
+    initialState,
+    permalink,
+  );
+
+  const reset = () => {
+    submit(null);
+  };
+
+  return [state, submit, isPending, reset];
+}
+```
+
+You can simply copy and paste the code above to your project and use it as shown in the following code:
+
+```typescript:app/products/page.tsx {7-10, 31} showLineNumbers
+'use client';
+import { useRef } from 'react';
+import { doSomething } from './actions'; // server action
+import { useResetableActionState } from './use-resetable-action-state';
+
+export default function Form() {
+  const [state, submit, isPending, reset] = useResetableActionState(
+    doSomething,
+    null, // this doesn't have to be null. It can be any initial state you want.
+  );
+
+  return (
+    <form action={submit}>
+      {state && state.error && (
+        <p className="bg-red-500 text-white p-4">{state.error}</p>
+      )}
+      <p>{state && state.data?.message}</p>
+      <input
+        disabled={isPending}
+        type="text"
+        name="name"
+        id="name"
+        placeholder="Enter your name"
+        defaultValue={(state?.data?.name as string) || ''}
+      />
+
+      <div className="flex flex-row justify-between items-center w-full">
+        <button
+          type="button"
+          onClick={() => {
+            reset();
+          }}
+        >
+          Reset
+        </button>
+        <button form="theform" disabled={isPending} type="submit">
+          {isPending ? 'Loading...' : 'Submit'}
+        </button>
+      </div>
+    </form>
+  );
+}
+```
+
+Or you can also install the package from npm:
+
+```shell
+npm install use-resetable-action-state
+```
+
+And then import it in your project:
+
+```typescript:app/products/page.tsx showLineNumbers
+'use client';
+
+import { useResetableActionState } from 'use-resetable-action-state';
+
+```
+
+---
+
+By the way, [I have a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
