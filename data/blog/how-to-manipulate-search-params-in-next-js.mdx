@@ -1,0 +1,206 @@
+---
+title: 'How to manipulate search params in Next.js easily'
+date: '2024-09-28'
+summary: "It's not that simple!"
+keywords: ['nextjs']
+tags: ['dev', 'nextjs', 'react']
+---
+
+In Next.js App Router, you can get the current URL's query string by using [`useSearchParams` hook](https://nextjs.org/docs/app/api-reference/functions/use-search-params). When called, **it returns read-only version of the URLSearchParams**. That means, if you to set a new value to the search params, you need to create a new search params string by merging the current search params with the new value like this:
+
+```jsx {2,5,10-11} showLineNumbers
+'use client';
+import { useSearchParams, useRouter } from 'next/navigation'
+
+const Component = () => {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const createQueryString = useCallback(
+    (name: string, value: string) => {
+      const params = new URLSearchParams(searchParams.toString())
+      params.set(name, value)
+
+      return params.toString()
+    },
+    [searchParams]
+  )
+
+  return (
+    <button onClick={() => {
+        router.push(pathname + '?' + createQueryString('sort', 'asc'))
+      }}>
+        ASC
+    </button>
+  )
+}
+```
+
+It seems simple enough, right? But did you know that a search parameter key can have more than one value, e.g. `?filter=age&filter=size`? You can use the [append](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams/append) method to append a new value to the search params.
+
+Because of that, deleting a search parameter is not as simple as it seems. When the current search params is `?filter=age&filter=size`, you can either delete all key-value pairs of the `filter` key by calling [`searchParams.delete('filter')`](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams/delete#delete_all_parameters_with_specified_name) or you can delete a specific value by calling [`searchParams.delete('filter', 'age')`](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams/delete#delete_parameters_with_specified_name_and_value).
+
+Your code then would become somehow messy when you need to **manipulate multiple search params with multiple operations**, e.g., appending, setting, deleting all, or deleting a specific value. But fear not cause I've made an NPM package called [use-push-router](https://github.com/nicnocquee/use-push-router) that allows you to manipulate search params in a much more easy way.
+
+## Installation
+
+```shell
+npm install use-push-router
+```
+
+## Usage
+
+This package exposes several function including the main custom hook called `usePushRouter`. The `usePushRouter` returns a function called `pushSearchParams` that you can use to manipulate the search params. The function accepts an object with the following properties:
+
+```typescript
+{
+  add?: Record<string, string | string[]>;
+  remove?: Record<string, string | string[] | undefined>;
+  set?: Record<string, string | string[]>;
+}
+```
+
+## Adding search params
+
+```tsx
+import { usePushRoute } from 'use-push-router'
+
+const Component = () => {
+  const { pushSearchParams } = usePushRoute()
+
+  const handleClick = () => {
+    pushSearchParams({
+      add: {
+        foo: 'bar', // adds foo=bar to the search params. If there is already a value for foo, it will be an array of values.
+        baz: ['qux', 'quux'], // adds baz=qux&baz=quux to the search params.
+      },
+    })
+  }
+
+  return <button onClick={handleClick}>Add search params</button>
+}
+```
+
+Therea are two ways to add parameters to the URL:
+
+1. Specify a key-value pair to add a specific parameter value: `foo: 'bar'`. After calling this function, `foo=bar` will be added to the URL. If there is already a value for `foo`, for example `/?foo=bar`, it will become `/?foo=bar&foo=qux` after calling this function.
+2. Use an array to add multiple values for the same parameter: `baz: ['qux', 'quux']`. After calling this function, `baz=qux&baz=quux` will be added to the URL.
+
+## Setting search params
+
+```tsx
+import { usePushRoute } from 'use-push-router'
+
+const Component = () => {
+  const { pushSearchParams } = usePushRoute()
+
+  const handleClick = () => {
+    pushSearchParams({
+      set: {
+        foo: 'bar', // sets foo=bar in the search params. If there is already a value for foo, it will be overwritten.
+        baz: ['qux', 'quux'], // sets baz=qux&baz=quux in the search params.
+      },
+    })
+  }
+
+  return <button onClick={handleClick}>Set search params</button>
+}
+```
+
+There are two ways to set parameters in the URL:
+
+1. Specify a key-value pair to set a specific parameter value: `foo: 'bar'`. After calling this function, `foo=bar` will be set in the URL. If there is already a value for `foo`, for example `?foo=qux`, it will become `?foo=bar` after calling this function.
+2. Use an array to set multiple values for the same parameter: `baz: ['qux', 'quux']`. After calling this function, `baz=qux&baz=quux` will be set in the URL and replace any existing values for `baz`.
+
+## Removing search params
+
+```tsx
+import { usePushRoute } from 'use-push-router'
+
+const Component = () => {
+  const { pushSearchParams } = usePushRoute()
+
+  const handleClick = () => {
+    pushSearchParams({
+      remove: {
+        foo: 'bar', // removes foo=bar from the search params.
+        baz: ['qux', 'quux'], // removes baz=qux&baz=quux from the search params.
+        qux: undefined, // removes qux from the search params.
+      },
+    })
+  }
+
+  return <button onClick={handleClick}>Remove search params</button>
+}
+```
+
+You can remove parameters in three ways:
+
+1. Specify a key-value pair to remove a specific parameter value: `foo: 'bar'`. After calling this function, `foo=bar` will be removed from the URL if it exists.
+2. Use an array to remove multiple values for the same parameter: `baz: ['qux', 'quux']`. After calling this function, `baz=qux&baz=quux` will be removed from the URL if they exist.
+3. Set a parameter to `undefined` to remove it entirely: `qux: undefined`. After calling this function, `qux` will be removed from the URL if it exists.
+
+## Closing
+
+If you don't want to use the package, you can copy and paste the main code below to your project:
+
+```typescript
+export type ArgAdd = { [key: string]: string | string[] }
+export type ArgRemove = { [key: string]: string | string[] | undefined }
+export type ArgSet = { [key: string]: string | string[] }
+type UpdateSearchParamsAdd = Record<'add', ArgAdd>
+type UpdateSearchParamsRemove = Record<'remove', ArgRemove>
+type UpdateSearchParamsSet = Record<'set', ArgSet>
+export type UpdateSearchParamsArgs =
+  | UpdateSearchParamsSet
+  | UpdateSearchParamsRemove
+  | UpdateSearchParamsAdd
+
+export const updateSearchParams =
+  (currentSearchParams: URLSearchParams) => (params: UpdateSearchParamsArgs) => {
+    const newSearchParams = new URLSearchParams(currentSearchParams)
+    if ('add' in params && params.add) {
+      Object.entries(params.add).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+          value.forEach((v) => {
+            newSearchParams.append(key, v)
+          })
+        } else {
+          newSearchParams.append(key, value)
+        }
+      })
+    }
+    if ('remove' in params && params.remove) {
+      Object.entries(params.remove).forEach(([key, value]) => {
+        if (typeof value === 'undefined') {
+          newSearchParams.delete(key)
+        } else if (Array.isArray(value)) {
+          value.forEach((v) => {
+            newSearchParams.delete(key, v)
+          })
+        } else {
+          newSearchParams.delete(key, value)
+        }
+      })
+    }
+    if ('set' in params && params.set) {
+      Object.entries(params.set).forEach(([key, value]) => {
+        newSearchParams.delete(key)
+        if (Array.isArray(value)) {
+          value.forEach((v) => {
+            newSearchParams.append(key, v)
+          })
+        } else {
+          newSearchParams.set(key, value)
+        }
+      })
+    }
+    return newSearchParams
+  }
+```
+
+PS: I had [a bit of problem with the type definitions](https://x.com/2co_p/status/1839589673255026911) when I made this package. But thankfully [Loris Sigrist of ParaglideJS](https://x.com/loris_sigrist/status/1839609426380034069) helped me solve it!
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
