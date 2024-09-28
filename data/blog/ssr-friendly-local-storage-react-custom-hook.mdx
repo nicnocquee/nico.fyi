@@ -1,0 +1,106 @@
+---
+title: 'SSR-friendly Custom React Hook for Local Storage Read and Write'
+date: '2024-09-29'
+summary: "I learned something new about window's storage event!"
+keywords: ['react', 'nextjs']
+tags: ['dev', 'nextjs', 'react']
+---
+
+There are hundreds of [custom React hooks to access the local storage](https://www.npmjs.com/search?q=use-local-storage) out there. But I was tempted to create my own using [useSyncExternalStore](/blog/use-sync-external-store-in-react) since I figured it's the proper hooks for this kind of use case. Now I'm sure there are already a package that does exactly what I want, but I wanted to create it by myself, for the sake of learning.
+
+This was my first attempt.
+
+```jsx:app/use-local-storage.ts showLineNumbers
+const useLocalStorage = (
+  key: string,
+  initialValue: string
+) => {
+  const data = useSyncExternalStore(
+    (onChange) => {
+      window.addEventListener("storage", onChange);
+      return () => {
+        window.removeEventListener("storage", onChange);
+      };
+    },
+    () => {
+      const data = localStorage.getItem(key);
+      return data || initialValue;
+    },
+    () => initialValue
+  );
+
+  const setData = useCallback(
+    (value: string) => {
+      localStorage.setItem(key, value);
+    },
+    [key]
+  );
+
+  return [data, setData] as const;
+};
+```
+
+Everything seemed to work at first. When I called `setData` function, the value was persisted in the local storage. But then I noticed that the **`data` value was not updated which didn't re-render the component that used the hook** in result. The weird thing was that when I directly modified the value in the local storage, the `data` value was updated and the component re-rendered. That caused me to think that the change subscription of useSyncExternalStore wasn indeed working.
+
+After few hours of debugging, I finally reached out to my sometimes-genius-sometimes-idiot companion, the gpt-4o which I am using via [Supermaven](https://supermaven.com). It immediately pointed out the problem with the code. At first, I didn't believe its explanation so I asked for the proof by giving me the documentation link. By the way, **you should not blindly trust what LLM says**. Always verify! Anyway, it gave me the link and once again I learned something new thanks to AI.
+
+So the problem is that **the "storage" events are only fired when local storage is changed by a different document, not the document where the change originated**. It's properly documented in the [MDN docs](https://developer.mozilla.org/en-US/docs/Web/API/Window/storage_event) but I didn't know it. So when I save the value in the local storage from the `setData` function, the event is not fired hence the `useSyncExternalStore` doesn't return the updated value.
+
+Equipped with this knowledge, I was able to fix the code by adding a custom event listener:
+
+```jsx:app/use-local-storage.ts {4-14, 33-35} showLineNumbers
+const useLocalStorage = (key: string, initialValue: string) => {
+  const data = useSyncExternalStore(
+    (onChange) => {
+      const onStorageEvent = (e: Event) => {
+        const customEvent = e as CustomEvent;
+        if (customEvent.detail.key === key) {
+          onChange();
+        }
+      };
+      window.addEventListener("storage", onChange);
+      window.addEventListener(
+        "local-storage-change",
+        onStorageEvent as EventListener
+      );
+      return () => {
+        window.removeEventListener("storage", onChange);
+        window.removeEventListener(
+          "local-storage-change",
+          onStorageEvent as EventListener
+        );
+      };
+    },
+    () => {
+      const data = localStorage.getItem(key);
+      return data || initialValue;
+    },
+    () => initialValue
+  );
+
+  const setData = useCallback(
+    (value: string) => {
+      localStorage.setItem(key, value);
+      window.dispatchEvent(
+        new CustomEvent("local-storage-change", { detail: { key } })
+      );
+    },
+    [key]
+  );
+
+  return [data, setData] as const;
+};
+```
+
+This custom hook basically does two things:
+
+- listens to the `storage` event and the custom event `local-storage-change`.
+- sends a custom event `local-storage-change` after storing the value in the local storage.
+
+I still add the official `storage` event listener because I want the component to still re-redner when the local storage is changed by another document.
+
+Finally thanks to `useSyncExternalStore`, this hook doesn't cause [hydration mismatch error](https://react.dev/reference/react-dom/client/hydrateRoot#hydrating-server-rendered-html) because it accepts the `getServerSnapshot` function which is run on the server when generating the HTML and on the client during hydration, i.e. when React takes the server HTML and makes it interactive.
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
