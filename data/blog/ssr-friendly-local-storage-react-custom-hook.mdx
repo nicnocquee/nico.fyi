@@ -49,7 +49,7 @@ So the problem is that **the "storage" events are only fired when local storage 
 Equipped with this knowledge, I was able to fix the code by adding a custom event listener:
 
 ```jsx:app/use-local-storage.ts {4-14, 33-35} showLineNumbers
-const useLocalStorage = (key: string, initialValue: string) => {
+const useLocalStorage = (key: string, initialValue?: string | null) => {
   const data = useSyncExternalStore(
     (onChange) => {
       const onStorageEvent = (e: Event) => {
