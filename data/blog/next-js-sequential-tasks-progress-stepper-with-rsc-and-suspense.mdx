@@ -130,21 +130,17 @@ By making things composable like this, we can keep the main component clean, dum
 Now let's talk about the tasks. First, I made a function that executes several tasks in sequence:
 
 ```typescript
-export function unsafe_createSequentialProcesses<T extends any[], R>(
-  ...processes: [(arg?: any) => Promise<T[0]>, ...((arg: any) => Promise<any>)[]]
-): Promise<R>[] {
-  return processes.reduce((acc, process, index) => {
+export function createSequentialProcesses(processes: (() => Promise<unknown>)[]) {
+  return processes.reduce<Promise<unknown>[]>((acc, process, index) => {
     if (index === 0) {
-      return [process(undefined)]
+      return [process()]
     }
     return [...acc, acc[acc.length - 1].then(process)]
-  }, [] as Promise<any>[])
+  }, [])
 }
 ```
 
-The `unsafe_createSequentialProcesses` function takes an array of functions that returns a promise and executes them in sequence. The resolved value of the promise is passed to the next promise in the array. The `unsafe_createSequentialProcesses` function then returns an array of promises that represent the sequence of tasks without awaiting them.
-
-I prefixed the function with `unsafe_` because it's not strongly typed. I tried to make it strongly typed but my TypeScript skills are not good enough to do that. Not even LLMs can help me 🫠. If you know how to strongly type this function, please let me know!
+The `createSequentialProcesses` function takes an array of functions that return a promise and executes them in sequence. The resolved value of the promise is passed to the next promise in the array. The `createSequentialProcesses` function then returns an array of promises that represent the sequence of tasks without awaiting them.
 
 We can use this function in a Next.js `page` component which is a React Server Component like this:
 
@@ -154,7 +150,7 @@ export default async function AsyncWorks({
 }: {
   params: { id: string };
 }) {
-  const [first, second, third] = unsafe_createSequentialProcesses(
+  const [first, second, third] = createSequentialProcesses(
     () => firstProcess(id),
     secondProcess,
     thirdProcess,
