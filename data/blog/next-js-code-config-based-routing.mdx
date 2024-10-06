@@ -1,0 +1,66 @@
+---
+title: Code based routing in Next.js
+date: '2024-10-06'
+summary: For those who hate the file-based routing in Next.js
+tags: ['dev', 'nextjs']
+---
+
+Some people seem to hate the file-based routing in Next.js. They prefer to use code-based routing instead. And with [Remix, a.k.a, React Router 7](https://x.com/remix_run/status/1841926043080523813) is going to release the new config based routing, many people seem to be excited about it.
+
+But many don't seem to know that it has been possible to do code-based routing in Next.js. You just have to use the [optional catch-all segments of the dynamic routes](https://nextjs.org/docs/app/building-your-application/routing/dynamic-routes#optional-catch-all-segments) and library like [path-to-regexp](https://github.com/pillarjs/path-to-regexp).
+
+First, create a file in `app/[[...paths]]/page.tsx`:
+
+```typescript:app/[[...paths]]/page.tsx {6-9, 26-36} showLineNumbers
+import UserIdPage from "@/page-components/user-id";
+import UsersPage from "@/page-components/users";
+import { match } from "path-to-regexp";
+
+// define your routes here
+const routes = [
+  { matcher: match("/users/:userId"), component: UserIdPage },
+  { matcher: match("/users"), component: UsersPage },
+] as const;
+
+export default function CatchAll({
+  params,
+}: {
+  params?: { paths?: string[] };
+}) {
+  if (!params?.paths) return <div>Main page</div>;
+
+  let route:
+    | {
+        component: React.ElementType;
+        params: Record<string, unknown> | undefined;
+        path: string[];
+      }
+    | undefined;
+
+  for (const r of routes) {
+    const matched = r.matcher(`/${params.paths.join("/")}`);
+    if (matched) {
+      route = {
+        component: r.component,
+        params: matched.params,
+        path: params.paths,
+      };
+      break;
+    }
+  }
+
+  if (route) {
+    return <route.component {...route.params} />;
+  }
+
+  return <div>CatchAll: {params.paths.join("/")}</div>;
+}
+```
+
+What's cool about this is that you can still use the file-based routing in the `app` directory if you want. So if you have a file in `app/admins/page.tsx`, you can still use it as `/admins` in the URL.
+
+Furthermore, you don't actually need to use this code-based routing approach from the root URL. You can use it from some other nested paths like `app/dashboard/[[...paths]]/page.tsx` and it will work as expected.
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
