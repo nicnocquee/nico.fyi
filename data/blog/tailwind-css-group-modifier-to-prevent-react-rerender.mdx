@@ -1,0 +1,247 @@
+---
+title: How to prevent re-render in React with Tailwind CSS
+date: '2024-10-10'
+summary: Sometimes all you need is just CSS and HTML. No JavaScript needed.
+tags: ['dev', 'nextjs', 'react', 'tailwind']
+---
+
+Recently I was tasked with updating a minor change in [Hyperjump Technology's website](https://hyperjump.tech). But I thought it was a good chance to completely rewrite the website from scratch using Next.js because previously it was just a bunch of HTML and CSS files (I was lazy 😂). The good thing was we already used Tailwind CSS for the styling. So I simply just needed to copy the HTML to the new Next.js-powered website.
+
+In the old website, there is a sticky navigation bar on the top of the page which has transparent background when the scoll position is at the top. But when user scrolls down, the background becomes white. It was implemented as follows:
+
+```html:index.html showLineNumbers
+<nav id="header" class="fixed w-full z-30 top-0 text-white">
+  <!-- content of the navigation -->
+</nav>
+```
+
+```javascript:main.js {7,10} showLineNumbers
+var header = document.getElementById("header");
+document.addEventListener("scroll", function () {
+  /*Apply classes for slide in bar*/
+  scrollpos = window.scrollY;
+
+  if (scrollpos > 10) {
+    header.classList.add("bg-white");
+    // some other code
+  } else {
+    header.classList.remove("bg-white");
+    // some other code
+  }
+});
+```
+
+## The straightforward solution
+
+In React, we can implement it pretty much the same way:
+
+```typescript:sticky-nav.tsx {27} showLineNumbers
+export function StickyNav({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const shouldBeScrolled = window.scrollY > 0;
+      setIsScrolled(shouldBeScrolled);
+    };
+
+    handleScroll(); // Call once to set initial state
+    window.addEventListener("scroll", handleScroll);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  return (
+    <nav className="sticky top-0 z-50 group">
+      <div
+        className={cn(
+          "flex items-center justify-between h-16 transition-colors duration-300",
+          isScrolled ? "bg-white shadow-md" : "bg-transparent shadow-none"
+        )}
+      >
+        {children}
+      </div>
+    </nav>
+  );
+}
+```
+
+We added the scroll listener in the `useEffect` hook and then conditionally set the Tailwind's class names based on the `isScrolled` state. Honestly there's no problem with this code. It works. But I thought of another way that is more composable and Tailwind-y.
+
+## The alternative solution
+
+I remembered Adam Wathan, the creator of Tailwind CSS, [tweeted about a pattern that I thought was pretty cool](https://x.com/adamwathan/status/1838938627289583764). So instead of using ternary operator as shown in the previous code, we can use the [data-\* attribute](https://tailwindcss.com/docs/hover-focus-and-other-states#data-attributes) and the [group modifier](https://tailwindcss.com/docs/hover-focus-and-other-states#styling-based-on-parent-state) to achive the same result.
+
+First I created a component that listens to the scroll event:
+
+```typescript:scroll-observer.tsx {27} showLineNumbers
+"use client";
+
+import { useEffect } from "react";
+
+export default function ScrollObserver() {
+  useEffect(() => {
+    let rafId: number | null = null;
+    let isScrolled = false;
+
+    const handleScroll = () => {
+      if (rafId) return;
+
+      rafId = requestAnimationFrame(() => {
+        const shouldBeScrolled = window.scrollY > 0;
+        if (isScrolled !== shouldBeScrolled) {
+          isScrolled = shouldBeScrolled;
+          document.body.setAttribute(
+            "data-scroll",
+            isScrolled ? "true" : "false"
+          );
+        }
+        rafId = null;
+      });
+    };
+
+    handleScroll(); // Call once to set initial state
+    window.addEventListener("scroll", handleScroll);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, []);
+
+  return null;
+}
+```
+
+Then I can put this `ScrollObserver` component in `layout.tsx`, or any component that wants to observe the scroll event.
+
+```typescript:layout.tsx {11,12} showLineNumbers
+import Hero from "@/app/components/hero";
+import Nav from "@/app/components/nav";
+import ScrollObserver from "@/app/components/scroll-observer";
+
+export default function MainLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <body data-scroll="false" className="group">
+      <ScrollObserver />
+      <Nav />
+      <Hero />
+      {children}
+    </body>
+  );
+}
+```
+
+There are two important things to note here:
+
+1. add the `data-scroll="false"` attribute to the `<body>` element. **The idea is when the scroll position changes, the `data-scroll` attribute will be updated by `ScrollObserver` component.**
+2. add the `group` class to the `<body>` element so that **any child component can refer it when they need it**.
+
+Now this is the cool thing. Any component that needs to **conditionally use different class names** based on the scroll position can just use the `data-scroll` attribute. For example, the `StickyNav` component can be as simple as:
+
+```typescript:sticky-nav.tsx {8} showLineNumbers
+export default function StickyNav({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <nav className="sticky top-0 z-50">
+      <div className="group-[[data-scroll='true']]:bg-white group-[[data-scroll='true']]:shadow-md ...other classes">
+        {children}
+      </div>
+    </nav>
+  );
+}
+```
+
+On line 8, the `bg-white` and `shadow-md` class names will be applied only when the `data-scroll` attribute in the parent component is `true`, which in this case is the `body` element. Which is the reason we added the `group` class name in the `body` element in the first place.
+
+With this approach, the `StickyNav` component is so much simpler:
+
+- 🙅 no `useState`
+- 🙅 no `useEffect`
+- 🙅 and no ternary operator.
+
+But there's more advantage: **no re-render**.
+
+In the first example, the `StickyNav` component was re-rendered every time the `isScrolled` state changed as shown in this demo. In this video, I enabled the `Highlight updates when component re-renders` option in the React DevTools so that you can see the re-render happening: The navigation bar is highlighted when it re-renders.
+
+<iframe
+  title="video"
+  src="https://player.cloudinary.com/embed/?public_id=ternary-rerender_am33im&cloud_name=dlampxaex&player[showLogo]=false"
+  width="640"
+  height="360"
+  style={{ height: 'auto', width: '100%', aspectRatio: 640 / 360 }}
+  allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+></iframe>
+
+Meanwhile, when using the `group` modifier approach, the component is not re-rendered!
+
+<iframe
+  src="https://player.cloudinary.com/embed/?public_id=group-data-no-rerender_rkcfig&cloud_name=dlampxaex&player[showLogo]=false"
+  width="640"
+  height="360"
+  allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+  style={{ height: 'auto', width: '100%', aspectRatio: 640 / 360 }}
+  allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+></iframe>
+
+**Obviously this tiny re-render is not a big deal.** But I just find it interesting that it's possible to avoid re-rendering by utilizing just CSS (with Tailwind in this case) and HTML.
+
+I then use the same technique to toggle the logo from white colored logo when the scroll position is at the top to the full colored logo when the user scrolls down.
+
+```typescript:nav.tsx {16-17} showLineNumbers
+import WhiteLogo from "@/public/images/hyperjump-white.png";
+import ColoredLogo from "@/public/images/hyperjump-colored.png";
+
+function Logo() {
+
+  return (
+    <div>
+    {[WhiteLogo, ColoredLogo].map((image, i) => {
+        return (
+          <Image
+            key={i}
+            id="brandlogo"
+            className={cn(
+              "w-32",
+              image.src.includes("hyperjump-white")
+                ? `group-[[data-scroll='false']]:block group-[[data-scroll='true']]:hidden`
+                : `group-[[data-scroll='true']]:block group-[[data-scroll='false']]:hidden`
+            )}
+            src={image}
+            alt="Hyperjump Logo"
+            width={128}
+            height={32}
+          />
+        );
+      })}
+      </div>
+  )
+}
+```
+
+In that `Logo` component, there are actually two images which are shown depending on the `data-scroll` attribute. Unfortunately I couldn't find a way to use a single `Image` component in this case. If you know how to do that, please let me know. You can check out the code in the GitHub repository [here](https://github.com/hyperjumptech/hyperjump.tech) and the [live website here](https://hyperjump.tech).
+
+## Closing thoughts
+
+Another idea of _abusing_ (😂) this approach is to avoid using React's context. If many different sibling or child components need to conditionally use different class names based on certain value, we don't need to initiate a React context and the components don't need to read the value from the context. Just use the `data-*` attribute.
+
+I think this is a pretty cool approach that **simplifies a component, reduce JavaScript code, and has an extra benefit of not re-rendering the component**. But of course this doesn't work in every case. There are cases when you actually need to use conditional operator.
+
+If you only need to conditionally apply different class names in your component however, maybe give this approach a try instead of reaching for `useState`, `useEffect` and ternary operator.
+
+---
+
+By the way, [I'm making a book about Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
