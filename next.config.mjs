@@ -77,7 +77,7 @@ export default () => {
       dirs: ['app', 'components', 'layouts', 'scripts'],
     },
     images: {
-      domains: ['picsum.photos', 'avatars.githubusercontent.com'],
+      domains: ['picsum.photos', 'avatars.githubusercontent.com', 'www.gravatar.com'],
     },
     async redirects() {
       return [
