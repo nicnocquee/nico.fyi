@@ -17,7 +17,7 @@ In this article, I will share how we handle long processes in [our uptime monito
 
 ## Prerequisites
 
-Before we jump into handling long processes, let’s make sure we’ve got the basics covered. First off, you’ll need a Next.js app (but you probably already have that, right?) that you deploy to your own server. **Note that the guide I'm sharing here doesn't work with Vercel.**
+Before we jump into handling long processes, let’s make sure we’ve got the basics covered. First off, you’ll need a Next.js app (but you probably already have that, right?). You can later deploy the Next.js app to Vercel or to your own server. However, the background process cannot be deployed to Vercel since Vercel only has serverless offerings. Hence it will need to be deployed to your own server.
 
 Next, we need to install two key packages: **Bull for managing the job queue and Redis for storing and managing the queues**.
 
@@ -356,7 +356,7 @@ Proceed by hitting the mail or push notification route to send a job to the queu
 
 ## Running in Production
 
-As mentioned at the beginning, this technique is not possible to run in Vercel. In our project, we deploy both the Next.js app and the workers to our own server using [Docker](https://www.docker.com) and [dokku](https://dokku.com). To run the queues in production, we use the following steps:
+As mentioned at the beginning, this queue is not possible to be run on Vercel. In our project, we deploy both the Next.js app and the workers to our own server using [Docker](https://www.docker.com) and [dokku](https://dokku.com). To run the queues in production, we use the following steps:
 
 1. Add several scripts to the `package.json` file to build and run the queues:
 
