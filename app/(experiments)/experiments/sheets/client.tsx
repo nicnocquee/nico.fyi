@@ -6,7 +6,7 @@ import { revalidateSheets } from './actions'
 export const RefreshButton = () => {
   return (
     <Button onClick={() => revalidateSheets()} type="submit">
-      Refresh
+      Refresh feature flags
     </Button>
   )
 }
