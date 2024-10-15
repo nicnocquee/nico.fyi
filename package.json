@@ -61,13 +61,16 @@
     "cmdk": "^1.0.0",
     "contentlayer2": "0.4.4",
     "date-fns": "^3.6.0",
+    "dotenv": "^16.4.5",
     "embla-carousel-react": "^8.0.0",
     "esbuild": "0.20.2",
     "github-slugger": "^2",
+    "googleapis": "^144.0.0",
     "gray-matter": "^4.0.3",
     "image-size": "^1.1.1",
     "input-otp": "^1.2.3",
     "jotai": "^2.7.2",
+    "l": "^0.6.0",
     "lucide-react": "^0.363.0",
     "nanoid": "^5.0.6",
     "next": "^14",
@@ -110,6 +113,7 @@
     "@tanstack/eslint-plugin-query": "^5.28.11",
     "@types/mdx": "^2.0.13",
     "@types/react": "^18",
+    "@types/react-dom": "^18",
     "@typescript-eslint/eslint-plugin": "^7.3.1",
     "@typescript-eslint/parser": "^7.3.1",
     "@vitejs/plugin-react": "^4.2.1",
@@ -149,6 +153,9 @@
   "trustedDependencies": [
     "@vercel/speed-insights",
     "contentlayer2",
-    "protobufjs"
+    "esbuild",
+    "msw",
+    "protobufjs",
+    "sharp"
   ]
 }
