@@ -11,7 +11,8 @@ export const getPrivateGoogleSheetsData = unstable_cache(
     serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '',
     privateKey = process.env.GOOGLE_PRIVATE_KEY || '',
     sheetId = process.env.GOOGLE_SHEETS_ID || '',
-    range = 'A1:B',
+    range = process.env.GOOGLE_SHEETS_RANGE || 'A1:B',
+    version = process.env.GOOGLE_API_VERSION || 'v4',
   } = {}) => {
     try {
       const auth = new google.auth.JWT({
@@ -20,7 +21,7 @@ export const getPrivateGoogleSheetsData = unstable_cache(
         scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
       })
 
-      const sheets = google.sheets({ version: 'v4', auth })
+      const sheets = google.sheets({ version, auth })
 
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: sheetId,
@@ -50,6 +51,7 @@ export const getPublicGoogleSheetsData = async ({
   sheetId = process.env.GOOGLE_SHEET_ID || '',
   sheetName = process.env.GOOGLE_SHEET_NAME || '',
   apiKey = process.env.GOOGLE_API_KEY || '',
+  version = process.env.GOOGLE_API_VERSION || 'v4',
   nextFetchOptions = {
     next: {
       tags: ['sheets_data'],
@@ -58,7 +60,7 @@ export const getPublicGoogleSheetsData = async ({
 } = {}): Promise<SheetData> => {
   try {
     const response = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${sheetName}!A1:B?key=${apiKey}`,
+      `https://sheets.googleapis.com/${version}/spreadsheets/${sheetId}/values/${sheetName}!A1:B?key=${apiKey}`,
       nextFetchOptions
     )
 
