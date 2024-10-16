@@ -1,13 +1,13 @@
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { RefreshButton } from './client'
-import { SheetData, getSheetDataWithServiceAccount } from './sheets'
+import { SheetData, getPrivateGoogleSheetsData } from './sheets'
 
 export default async function PublicGoogleSheetKVDisplay() {
   let data: SheetData | null = null
   let error: string | null = null
 
   try {
-    data = await getSheetDataWithServiceAccount()
+    data = await getPrivateGoogleSheetsData()
   } catch (err) {
     error = 'Error fetching data from Google Sheet'
   }
