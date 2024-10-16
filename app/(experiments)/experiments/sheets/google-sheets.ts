@@ -1,10 +1,12 @@
+import 'server-only'
 import { google } from 'googleapis'
+import { unstable_cache } from 'next/cache'
 
 export interface SheetData {
   [key: string]: string
 }
 
-export const getPrivateGoogleSheetsData = async ({
+export const _getPrivateGoogleSheetsData = async ({
   serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '',
   privateKey = process.env.GOOGLE_PRIVATE_KEY || '',
   sheetId = process.env.GOOGLE_SHEETS_ID || '',
@@ -74,3 +76,11 @@ export const getPublicGoogleSheetsData = async ({
     throw new Error('Failed to fetch Google Sheet data')
   }
 }
+
+export const getPrivateGoogleSheetsData = unstable_cache(
+  _getPrivateGoogleSheetsData,
+  ['sheets_data'],
+  {
+    tags: ['sheets_data'],
+  }
+)
