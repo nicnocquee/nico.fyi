@@ -123,7 +123,7 @@ export default function ListLayoutWithTags({
           <div>
             <ul>
               {displayPosts.map((post) => {
-                const { path, date, title, summary, tags, slug } = post
+                const { path, date, title, commentary, summary, tags, slug } = post
                 return (
                   <li key={path} className="py-5">
                     <article className="flex flex-col space-y-2 xl:space-y-0">
@@ -148,7 +148,7 @@ export default function ListLayoutWithTags({
                           </div>
                         </div>
                         <div className="prose max-w-none text-gray-500 dark:text-gray-400">
-                          {summary}
+                          {commentary || summary}
                         </div>
                       </div>
                     </article>

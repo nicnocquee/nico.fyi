@@ -31,7 +31,7 @@ interface LayoutProps {
 }
 
 export default function PostLayout({ content, authorDetails, next, prev, children }: LayoutProps) {
-  const { filePath, path, slug, date, title, tags } = content
+  const { filePath, path, slug, date, title, tags, commentary, summary } = content
   const basePath = path.split('/')[0]
 
   return (
@@ -51,8 +51,9 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                   </dd>
                 </div>
               </dl>
-              <div>
+              <div className="space-y-2">
                 <PageTitle>{title}</PageTitle>
+                <p className="text-md text-muted-foreground">{commentary || summary}</p>
               </div>
             </div>
           </header>
