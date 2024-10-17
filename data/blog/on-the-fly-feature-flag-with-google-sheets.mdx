@@ -133,7 +133,7 @@ export const getPrivateGoogleSheetsData = unstable_cache(
 )
 ```
 
-`_getPrivateGoogleSheetsData` function is the main function that fetches the data from the Google Sheets. It's wrapped in [`unstable_cache` function](https://nextjs.org/docs/app/api-reference/functions/unstable_cache) (line 44) because we don't want to always hit the Google Sheets API every time a user visits the page. And the great thing about `unstable_cache` is that it reuse the values of the function across multiple requests.
+`_getPrivateGoogleSheetsData` function is the main function that fetches the data from the Google Sheets. It's wrapped in [`unstable_cache` function](https://nextjs.org/docs/app/api-reference/functions/unstable_cache) (line 44) because we don't want to always hit the Google Sheets API every time a user visits the page. And the great thing about `unstable_cache` is that it reuses the values of the function across multiple requests.
 
 We also import the `server-only` package just [to make sure that the function is only executed on the server](https://nextjs.org/docs/app/building-your-application/rendering/composition-patterns#keeping-server-only-code-out-of-the-client-environment).
 
