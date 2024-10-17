@@ -200,7 +200,7 @@ export default async function Page() {
 }
 ```
 
-If you noticed, the `Page` component above is a server component that is [statically rendered during build time](https://nextjs.org/docs/app/building-your-application/rendering/server-components#static-rendering-default). So that means it will not change even when you change the `FEATURE_FLAG_1` in the Google Sheets. But thanks to setting the tags in `unstable_cache` (line 48 in google-sheets.ts), we can force Next.js to rebuild the page in the background by manually [revalidating the data](https://nextjs.org/docs/app/building-your-application/data-fetching/fetching-caching-and-revalidating#revalidating-data). This can be achieved by creating a Route Handler as follows:
+If you noticed, the `Page` component above is a server component that is [statically rendered during build time](https://nextjs.org/docs/app/building-your-application/rendering/server-components#static-rendering-default). So that means it will not change even when you change the `FEATURE_FLAG_1` in the Google Sheets once it's deployed to production. But thanks to setting the tags in `unstable_cache` (line 48 in google-sheets.ts), we can force Next.js to rebuild the page in the background by manually [revalidating the data](https://nextjs.org/docs/app/building-your-application/data-fetching/fetching-caching-and-revalidating#revalidating-data). This can be achieved by creating a route handler as follows:
 
 ```typescript:app/api/refresh-flags/route.ts {5} showLineNumbers
 import { revalidateTag } from 'next/cache'
