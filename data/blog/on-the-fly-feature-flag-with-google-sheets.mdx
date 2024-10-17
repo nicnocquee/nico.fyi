@@ -1,7 +1,7 @@
 ---
 title: On-the-fly feature flag in Next.js with Google Sheets
 date: '2024-10-16'
-summary: It works with static site generation and very performant!
+summary: Learn how to implement dynamic feature flags in Next.js using Google Sheets. This guide covers setting up a Google service account, reading data from private spreadsheets, and caching results for optimal performance. Discover how to toggle features on-the-fly without rebuilding your app, perfect for teams looking for a collaborative, trackable, and free feature flag solution. Includes step-by-step code examples and best practices for server-side rendering and revalidation in Next.js
 keywords: ['nextjs', 'feature flags', 'google sheets', 'react']
 tags: ['dev', 'nextjs']
 ---
@@ -50,7 +50,13 @@ GOOGLE_SERVICE_ACCOUNT_EMAIL=the-value-of-client_email-from-json-file
 GOOGLE_PRIVATE_KEY=the-value-of-private_key-from-json-file
 ```
 
-Another thing that is important to the ID of the Google Sheets that you want to use. You can find it in the URL of the sheet. For example, if the URL is `https://docs.google.com/spreadsheets/d/1-2-3/edit`, then the ID is `1-2-3`.
+Another thing that is important is the ID of the Google Sheets that you want to use. You can find it in the URL of the sheet. For example, if the URL is
+
+```
+https://docs.google.com/spreadsheets/d/1-2-3/edit
+```
+
+then the ID is `1-2-3`.
 
 In the Google Sheets, we use column A as the key of flag and column B as the value of the flag as shown in the following image:
 
@@ -194,7 +200,7 @@ export default async function Page() {
 }
 ```
 
-If you noticed, the `Page` component above is a server component that is statically rendered during build time. So that means it will not change even when you change the `FEATURE_FLAG_1` in the Google Sheets. But thanks to setting the tags in `unstable_cache` (line 48 in google-sheets.ts), we can force Next.js to rebuild the page in the background by manually [revalidating the data](https://nextjs.org/docs/app/building-your-application/data-fetching/fetching-caching-and-revalidating#revalidating-data). This can be achieved by creating a Route Handler as follows:
+If you noticed, the `Page` component above is a server component that is [statically rendered during build time](https://nextjs.org/docs/app/building-your-application/rendering/server-components#static-rendering-default). So that means it will not change even when you change the `FEATURE_FLAG_1` in the Google Sheets. But thanks to setting the tags in `unstable_cache` (line 48 in google-sheets.ts), we can force Next.js to rebuild the page in the background by manually [revalidating the data](https://nextjs.org/docs/app/building-your-application/data-fetching/fetching-caching-and-revalidating#revalidating-data). This can be achieved by creating a Route Handler as follows:
 
 ```typescript:app/api/refresh-flags/route.ts {5} showLineNumbers
 import { revalidateTag } from 'next/cache'
