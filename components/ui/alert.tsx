@@ -29,7 +29,7 @@ const AlertTitle = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLHeadingElement> & {
-  ref: React.RefObject<HTMLParagraphElement>
+  ref?: React.RefObject<HTMLParagraphElement>
 }) => (
   // eslint-disable-next-line jsx-a11y/heading-has-content
   <h5
@@ -45,7 +45,7 @@ const AlertDescription = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement> & {
-  ref: React.RefObject<HTMLParagraphElement>
+  ref?: React.RefObject<HTMLParagraphElement>
 }) => <div ref={ref} className={cn('text-sm [&_p]:leading-relaxed', className)} {...props} />
 AlertDescription.displayName = 'AlertDescription'
 

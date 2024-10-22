@@ -100,7 +100,7 @@ const AlertDialogCancel = ({
   className,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Cancel> & {
-  ref: React.RefObject<React.ElementRef<typeof AlertDialogPrimitive.Cancel>>
+  ref?: React.RefObject<React.ElementRef<typeof AlertDialogPrimitive.Cancel>>
 }) => (
   <AlertDialogPrimitive.Cancel
     ref={ref}

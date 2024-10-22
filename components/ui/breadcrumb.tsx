@@ -12,7 +12,7 @@ const BreadcrumbList = ({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<'ol'> & {
-  ref: React.RefObject<HTMLOListElement>
+  ref?: React.RefObject<HTMLOListElement>
 }) => (
   <ol
     ref={ref}
@@ -30,7 +30,7 @@ const BreadcrumbItem = ({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<'li'> & {
-  ref: React.RefObject<HTMLLIElement>
+  ref?: React.RefObject<HTMLLIElement>
 }) => <li ref={ref} className={cn('inline-flex items-center gap-1.5', className)} {...props} />
 BreadcrumbItem.displayName = 'BreadcrumbItem'
 
@@ -52,7 +52,7 @@ const BreadcrumbPage = ({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<'span'> & {
-  ref: React.RefObject<HTMLSpanElement>
+  ref?: React.RefObject<HTMLSpanElement>
 }) => (
   <span
     ref={ref}

@@ -9,7 +9,7 @@ const Textarea = ({
   className,
   ...props
 }: TextareaProps & {
-  ref: React.RefObject<HTMLTextAreaElement>
+  ref?: React.RefObject<HTMLTextAreaElement>
 }) => {
   return (
     <textarea
