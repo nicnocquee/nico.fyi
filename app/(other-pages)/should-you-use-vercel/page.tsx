@@ -5,11 +5,12 @@ import OGImageYes from './ogimage-yes.jpg'
 import OGImageNo from './ogimage-no.jpg'
 
 type Props = {
-  params: { id: string }
-  searchParams: { [key: string]: string | string[] | undefined }
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
-export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const searchParams = await props.searchParams
   const image = searchParams
     ? searchParams.use
       ? searchParams.use === '1'

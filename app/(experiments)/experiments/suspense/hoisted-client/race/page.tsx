@@ -9,8 +9,8 @@ import Footer from '../../footer'
 import Loading from '../../loading'
 import ErrorBoundaryWithFallback from '../../fallback-error'
 
-export default function Page() {
-  headers()
+export default async function Page() {
+  await headers()
 
   return (
     <div>

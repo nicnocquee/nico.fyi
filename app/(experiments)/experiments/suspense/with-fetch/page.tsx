@@ -3,8 +3,8 @@ import Footer from '../footer'
 import Albums from './albums'
 import Songs from './songs'
 
-export default function Page() {
-  headers()
+export default async function Page() {
+  await headers()
 
   return (
     <div className="p-4">

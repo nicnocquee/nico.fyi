@@ -2,18 +2,52 @@ import dynamic from 'next/dynamic'
 import { ComponentType, createContext, useContext } from 'react'
 
 export const defaultWebsiteBuilderValue = {
-  Link: dynamic(() => import('./website-builder-components').then((m) => m.DefaultLink)),
-  // eslint-disable-next-line @next/next/no-img-element
-  Image: dynamic(() => import('./website-builder-components').then((m) => m.DefaultImage)),
-  Heading: dynamic(() => import('./website-builder-components').then((m) => m.DefaultHeading)),
-  Paragraph: dynamic(() => import('./website-builder-components').then((m) => m.DefaultParagraph)),
-  List: dynamic(() => import('./website-builder-components').then((m) => m.DefaultList)),
-  Table: dynamic(() => import('./website-builder-components').then((m) => m.DefaultTable)),
-  Code: dynamic(() => import('./website-builder-components').then((m) => m.DefaultCode)),
-  Blockquote: dynamic(() =>
-    import('./website-builder-components').then((m) => m.DefaultBlockquote)
+  Link: dynamic(() =>
+    import('./website-builder-components').then((m) => ({
+      default: m.DefaultLink,
+    }))
   ),
-  Pre: dynamic(() => import('./website-builder-components').then((m) => m.DefaultPre)),
+  // eslint-disable-next-line @next/next/no-img-element
+  Image: dynamic(() =>
+    import('./website-builder-components').then((m) => ({
+      default: m.DefaultImage,
+    }))
+  ),
+  Heading: dynamic(() =>
+    import('./website-builder-components').then((m) => ({
+      default: m.DefaultHeading,
+    }))
+  ),
+  Paragraph: dynamic(() =>
+    import('./website-builder-components').then((m) => ({
+      default: m.DefaultParagraph,
+    }))
+  ),
+  List: dynamic(() =>
+    import('./website-builder-components').then((m) => ({
+      default: m.DefaultList,
+    }))
+  ),
+  Table: dynamic(() =>
+    import('./website-builder-components').then((m) => ({
+      default: m.DefaultTable,
+    }))
+  ),
+  Code: dynamic(() =>
+    import('./website-builder-components').then((m) => ({
+      default: m.DefaultCode,
+    }))
+  ),
+  Blockquote: dynamic(() =>
+    import('./website-builder-components').then((m) => ({
+      default: m.DefaultBlockquote,
+    }))
+  ),
+  Pre: dynamic(() =>
+    import('./website-builder-components').then((m) => ({
+      default: m.DefaultPre,
+    }))
+  ),
 }
 
 const WebsiteBuilderContext = createContext<{

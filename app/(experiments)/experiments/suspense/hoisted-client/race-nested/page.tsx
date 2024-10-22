@@ -5,8 +5,8 @@ import { albumsData } from '../../albums-data'
 import { songsData } from '../../songs-data'
 import Footer from '../../footer'
 
-export default function Page() {
-  headers()
+export default async function Page() {
+  await headers()
 
   const getAlbumsData = albumsData() // returns a promise but we don't need to await it
   const getSongsData = songsData() // returns a promise but we don't need to await it

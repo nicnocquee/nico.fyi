@@ -1,7 +1,8 @@
 import { Suspense } from 'react'
 import Content from './content'
 
-export default async function Page({ searchParams }: { searchParams: Record<string, string> }) {
+export default async function Page(props: { searchParams: Promise<Record<string, string>> }) {
+  const searchParams = await props.searchParams
   const user = searchParams['user'] as string
 
   return (

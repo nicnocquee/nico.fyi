@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { fakeUserData } from './data'
 
-export default function Page({ searchParams }: { searchParams: Record<string, string> }) {
+export default async function Page(props: { searchParams: Promise<Record<string, string>> }) {
+  const searchParams = await props.searchParams
   const user = fakeUserData[searchParams['user'] as keyof typeof fakeUserData]
   return (
     <div className="flex flex-col space-y-2 px-4 [&_a]:text-primary-500 [&_a]:underline">
