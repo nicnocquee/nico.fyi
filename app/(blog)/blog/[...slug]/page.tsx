@@ -28,11 +28,10 @@ const layouts = {
   PostBanner,
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: { slug: string[] }
+export async function generateMetadata(props: {
+  params: Promise<{ slug: string[] }>
 }): Promise<Metadata | undefined> {
+  const params = await props.params
   const slug = decodeURI(params.slug.join('/'))
   const post = displayablePosts(true).find((p) => p.slug === slug)
   const authorList = post?.authors || ['default']
@@ -96,7 +95,8 @@ export const generateStaticParams = async () => {
 const showFuturePosts =
   !!env.NEXT_PUBLIC_SHOW_ALL_POSTS && env.NEXT_PUBLIC_SHOW_ALL_POSTS === 'true'
 
-export default async function Page({ params }: { params: typeof routes.blogPage.params }) {
+export default async function Page(props: { params: Promise<typeof routes.blogPage.params> }) {
+  const params = await props.params
   const slug = decodeURI(params.slug.join('/'))
 
   const posts = displayablePosts(true)

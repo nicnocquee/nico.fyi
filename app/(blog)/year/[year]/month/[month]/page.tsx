@@ -29,7 +29,8 @@ export const generateStaticParams = async () => {
   return paths
 }
 
-export default function Page({ params }: { params: { month: string; year: string } }) {
+export default async function Page(props: { params: Promise<{ month: string; year: string }> }) {
+  const params = await props.params
   let posts = allCoreContent(displayablePosts())
   const month = parseInt(params.month as string)
   const year = parseInt(params.year as string)

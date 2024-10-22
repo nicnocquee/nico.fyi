@@ -1,6 +1,7 @@
 import Image from 'next/image'
-import { Dialog, DialogContent, DialogTrigger } from './ui/dialog'
+import { Dialog, DialogContent, DialogTrigger, DialogTitle } from './ui/dialog'
 import { DetailedHTMLProps, ImgHTMLAttributes } from 'react'
+import * as VisuallyHidden from '@radix-ui/react-visually-hidden'
 import { cn } from '@/lib/utils'
 
 export default function ZoomableImage({
@@ -11,6 +12,9 @@ export default function ZoomableImage({
   if (!src) return null
   return (
     <Dialog>
+      <VisuallyHidden.Root asChild>
+        <DialogTitle>Image</DialogTitle>
+      </VisuallyHidden.Root>
       <DialogTrigger asChild>
         <Image
           src={src}

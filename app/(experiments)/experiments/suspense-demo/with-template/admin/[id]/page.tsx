@@ -10,7 +10,8 @@ export const generateStaticParams = async () => {
   return [1, 2, 3].map((i) => ({ id: i.toString() }))
 }
 
-export default async function AdminPage({ params }: { params: { id: string } }) {
+export default async function AdminPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params
   const time = await getServerTime()
   let nextId = parseInt(params.id) + 1
   if (nextId > 3) nextId = 1

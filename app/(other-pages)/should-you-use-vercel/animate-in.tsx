@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { JSX, useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 const AnimateIn = ({
@@ -18,7 +18,7 @@ const AnimateIn = ({
   duration?: number
   className?: string
   style?: React.CSSProperties
-  as?: keyof React.ReactHTML
+  as?: keyof JSX.IntrinsicElements
 }) => {
   const [animate, setAnimate] = useState(from)
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
