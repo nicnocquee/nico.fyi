@@ -19,7 +19,14 @@ const alertVariants = cva(
   }
 )
 
-const Alert = ({ ref, className, variant, ...props }) => (
+const Alert = ({
+  ref,
+  className,
+  variant,
+  ...props
+}: React.ComponentProps<'div'> & {
+  variant?: 'default' | 'destructive'
+}) => (
   <div ref={ref} role="alert" className={cn(alertVariants({ variant }), className)} {...props} />
 )
 Alert.displayName = 'Alert'
