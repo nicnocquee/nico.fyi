@@ -158,6 +158,7 @@
   },
   "trustedDependencies": [
     "@vercel/speed-insights",
+    "bun",
     "contentlayer2",
     "esbuild",
     "msw",
