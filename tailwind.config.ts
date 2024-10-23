@@ -11,7 +11,7 @@ export default {
     './layouts/**/*.{js,ts,tsx}',
     './data/**/*.mdx',
   ],
-  darkMode: 'class',
+  darkMode: 'selector',
   prefix: '',
   theme: {
     container: {

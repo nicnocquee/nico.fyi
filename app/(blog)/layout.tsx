@@ -9,7 +9,6 @@ import Footer from '@/components/Footer'
 import siteMetadata from '@/data/siteMetadata'
 import { Metadata } from 'next'
 import { CSPostHogProvider, CookieBanner, UmamiAnalytics, VercelAnalytics } from '@/app/analytics'
-import { ThemeProviders } from '@/app/theme-providers'
 import { Toaster } from '@/components/ui/toaster'
 
 const space_grotesk = Space_Grotesk({
@@ -78,17 +77,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Toaster />
 
         <CSPostHogProvider>
-          <ThemeProviders>
-            <SectionContainer>
-              <div className="flex h-screen flex-col justify-between font-sans">
-                <SearchProvider searchConfig={siteMetadata.search as SearchConfig}>
-                  <Header />
-                  <main className="mb-auto">{children}</main>
-                </SearchProvider>
-                <Footer />
-              </div>
-            </SectionContainer>
-          </ThemeProviders>
+          <SectionContainer>
+            <div className="flex h-screen flex-col justify-between font-sans">
+              <SearchProvider searchConfig={siteMetadata.search as SearchConfig}>
+                <Header />
+                <main className="mb-auto">{children}</main>
+              </SearchProvider>
+              <Footer />
+            </div>
+          </SectionContainer>
           <CookieBanner />
         </CSPostHogProvider>
         <VercelAnalytics />
