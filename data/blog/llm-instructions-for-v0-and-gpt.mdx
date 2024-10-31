@@ -1,0 +1,48 @@
+---
+title: 'Instructions for v0 and GPT to generate high quality React code'
+date: '2024-10-31'
+commentary: This instructions make v0 a much better code companion
+summary: 'Discover proven instructions to enhance AI code generation with v0 and GPT. Learn how to get cleaner, maintainable TypeScript React components using custom prompts that follow best practices for hooks, server components, and TypeScript.'
+tags: ['dev', 'ai', 'react']
+---
+
+I've been using LLMs for the past few months and I can't imagine going back to the old way of writing code. At the beginning, I tried Copilot but didn't like it because it actually slowed me down. The generated code frequently missed parentheses, brackets, etc. So I gave it up.
+
+Then I tried [Supermaven](https://supermaven.com). It blew my mind. Not only is it fast in showing code suggestions, but it also generates the code that I need. It's like it can read my mind. But it actually only reads the files across the project. I feel so productive with it. And what I like the most is that **it generates the code that I want**. It's like having a jetpack that can boost me to the finish line. It's different from using ChatGPT where I _ask_ it to create something for me. With Supermaven, I know what I want to write and it will generate it for me.
+
+Then came along [v0](https://v0.dev) by Vercel. It wasn't great. The generated components weren't very good. I just didn't have the knack for writing prompts that could make it produce nice components. So I gave it up. But then Vercel upgraded it to be like ChatGPT which completely changed the game. Being able to iterate quickly in a chat-based interface was a game changer. And the code it generates also became much better. So I decided to pay for it. And I've been a happy user ever since.
+
+It's not always perfect though. While the generated components look good, sometimes the code is not so good in the sense that it's hard to maintain. For example, it uses unnecessary React useEffect and useState hooks when it could simply calculate the value. Many times TypeScript and ESLint give me errors and warnings when I copy the code to my project. But this can be easily solved by adding custom instructions!
+
+In v0, you can add custom instructions by creating a project. Then in every chat, you can attach the project to the chat. These are the custom instructions I've been using:
+
+```
+When generating React component:
+
+- Always use TypeScript.
+- Avoid using any type.
+- Always use Shadcn and Tailwind.
+- Don't type React.FC on the component.
+- The component must adhere to composable pattern of React.
+- Don't overuse useState and useEffect hooks. Use computed state if possible.
+- Use useMemo and useCallback when necessary to prevent unnecessary rendering.
+- Use server action and useActionState if possible. Otherwise, use fetch and API route handler. When the component needs to do data mutation, make it so that it accepts server action as props.
+- Create server component if possible. Otherwise, create client component.
+- Use Suspense and streaming when possible.
+- Always validate inputs using zod in the server action and API end point.
+- When possible create a custom hook to group useState and useEffect that encapsulates certain logic.
+- Create a higher order component when needed to add certain functionalities that are not completely coupled to the component.
+- When makes sense, combine related components, hooks, functions in the same file so that it's easy to distribute and use.
+- Text content must be HTML-escaped.
+```
+
+Every item was added based on my experience with it. It has been generating code that fits my taste and needs so far. I also use it in [Raycast AI](https://www.raycast.com) as a preset.
+
+Give it a try! And let me know what would you add to this list 😁
+
+---
+
+By the way,
+
+- I created [Crossword Puzzle Creator](https://crossword-puzzle-creator.com) on the weekend. Check it out!
+- I also have a book about [Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
