@@ -16,7 +16,7 @@ const siteMetadata = {
   github: 'https://github.com/nicnocquee',
   twitter: 'https://twitter.com/2co_p',
   locale: 'en-US',
-
+  bluesky: 'https://bsky.app/profile/nico.fyi',
   search: {
     provider: 'kbar', // kbar or algolia
     kbarConfig: {
