@@ -1,0 +1,263 @@
+---
+title: 'Implementing Exclusive Relationships in PostgreSQL and Prisma'
+date: '2024-11-02'
+commentary: 'A Real-World Example with Triggers'
+summary: 'Learn how to enforce exclusive relationships in PostgreSQL and Prisma using triggers and custom functions. This practical guide shows how to ensure a single record can only relate to one of multiple possible tables - a common requirement in real-world applications. Includes working examples with Prisma schema and migration code.'
+tags: ['dev', 'postgres', 'prisma']
+---
+
+Recently we needed to implement a system where a user can do the following by themselves:
+
+- Request for a first-aid card replacement.
+- Cancel their course enrollment.
+- Reschedule their course enrollment.
+
+And then our admins would like to be able to see the self-service actions that the user has performed with the following information:
+
+- Name
+- Course name
+- Type of action
+- Date
+- Paid amount
+
+My co-worker first implemented the model in Prisma something like this:
+
+```prisma:prisma/schema.prisma {11-13} showLineNumbers
+enum SelfServiceActionType {
+  REQUEST_FIRST_AID_CARD_REPLACEMENT
+  CANCEL_COURSE_ENROLLMENT
+  RESCHEDULE_COURSE_ENROLLMENT
+}
+
+model SelfServiceAction {
+  id            Int      @id @default(autoincrement())
+  type          SelfServiceActionType
+  participantId Int
+  certificateId Int?
+  courseId      Int?
+  newCourseId   Int?
+  paidAt        DateTime?
+  paidAmount    Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+```
+
+While there's nothing wrong with this approach, it's not well-structured in my opinion. For one, the `SelfServiceAction` model has a lot of nullable fields. If a user requested a first-aid card replacement, a row in `SelfServiceAction` will have `type` as `REQUEST_FIRST_AID_CARD_REPLACEMENT` and `certificateId` won't be `null`. At the same time, the `courseId` and `newCourseId` value **must be null**. Otherwise, the state of the application is inconsistent.
+
+So I proposed another approach where we completely separate the actions of the user into three models:
+
+```prisma:prisma/schema.prisma {44-46} showLineNumbers
+model FirstAidCardReplacementRequest {
+  id                  String             @id @default(cuid())
+  course              Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId            String
+  selfServiceAction   SelfServiceAction? @relation(fields: [selfServiceActionId], references: [id])
+  selfServiceActionId String?            @unique
+
+  @@index([courseId])
+  @@map("first_aid_requests_replacement")
+}
+
+model CourseCancellation {
+  id                  String             @id @default(cuid())
+  course              Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId            String
+  selfServiceAction   SelfServiceAction? @relation(fields: [selfServiceActionId], references: [id])
+  selfServiceActionId String?            @unique
+
+  @@index([courseId])
+  @@map("course_cancellations")
+}
+
+model CourseReschedule {
+  id                  String             @id @default(cuid())
+  course              Course             @relation(fields: [courseId], references: [id], onDelete: Cascade, name: "previousCourse")
+  courseId            String
+  newCourseId         String
+  newCourse           Course             @relation(fields: [newCourseId], references: [id], onDelete: Cascade, name: "newCourse")
+  selfServiceAction   SelfServiceAction? @relation(fields: [selfServiceActionId], references: [id])
+  selfServiceActionId String?            @unique
+
+  @@index([courseId])
+  @@map("course_reschedules")
+}
+
+model SelfServiceAction {
+  id                   String                @id @default(cuid())
+  participant          Participant           @relation(fields: [participantId], references: [id])
+  participantId        String
+  paidAmount           Float
+  paidAt               DateTime?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @default(now()) @updatedAt
+  firstAidCardRequest  FirstAidCardReplacementRequest? // relations to the first aid card replacement request
+  courseCancellation   CourseCancellation? // relations to the course cancellation
+  courseReschedule     CourseReschedule? // relations to the course reschedule
+
+  @@index([participantId])
+  @@map("self_service_actions")
+}
+```
+
+**Now we have a clean separation of concerns** with the `FirstAidCardReplacementRequest`, `CourseCancellation`, and `CourseReschedule` models.
+
+The next problem is to aggregate the data from the three models so that our admins can see the self-service actions that the users have performed. Thus, the `SelfServiceAction` model was added which has relations to the three models. Every row in `SelfServiceAction` table indicates an action that the user has performed which can only be one of the available actions: `FirstAidCardReplacementRequest`, `CourseCancellation`, or `CourseReschedule`. All of them have a one-to-one relationship with the `SelfServiceAction` model which is the reason why we define the relations in the three models instead of in the `SelfServiceAction` model.
+
+But now we have the same problem as before. We have three nullable fields in the `SelfServiceAction` model. While the problem is the same, we have a better structure in this case because instead of having multiple nullable fields, we have only nullable relations. This is more intuitive and easier to reason about.
+
+I still wanted to enforce the exclusive relationships in this model though: **There should only be one non-null relationship in the `SelfServiceAction` model**. For example, when a user requests a first-aid card replacement, the `SelfServiceAction` model should have a `firstAidCardRequest` relationship but not a `courseCancellation` or `courseReschedule` relationship.
+
+And I also wanted to avoid the enforcement in the application code for the same reason we enforce uniqueness of a field in the database using `@unique` in Prisma: **enforcing constraints in the application code is error-prone**. Imagine there were no unique constraints in the database and a newly hired developer who is not so familiar with the whole project writes an insert statement without first checking if a field is unique. It would cause the state of the application to be inconsistent. That's why we want to enforce the constraints in the database.
+
+## Superseded solution
+
+This was actually the most fitting case for [Postgres View](https://www.postgresql.org/docs/current/sql-createview.html) or [Materialized View](https://www.postgresql.org/docs/current/rules-materializedviews.html). We have three "raw" data from the three models and we want to create a view that combines the data from the three models which will be displayed in the application.
+
+However, I decided not to pursue this approach due to the lack of support in Prisma for Postgres View. As of this writing, [the support for views in Prisma](https://www.prisma.io/docs/orm/prisma-schema/data-model/views) is still in a very early preview feature.
+
+## The implemented solution
+
+Instead, I decided to keep using the `SelfServiceAction` model that acts like a "view" in the application. And to solve the problem of enforcing exclusive relationships, I created a custom function in Postgres that will be called after a new row is inserted into the three models. This function will check if the assigned self service action only has one or less non-null relationship. If it has more than one non-null relationship, the function will throw an error.
+
+To install the function to the database as part of Prisma migration process, we need to create an empty migration file. First make sure you have applied all the migrations to the database. Then to create an empty migration file, run the following command:
+
+```shell
+npx prisma migrate dev --create-only  --name <nameofyourmigration>
+```
+
+And then in the migration file, add the following code:
+
+```sql:prisma/migrations/20241101091519_add_self_service_action_constrain/migration.sql showLineNumbers
+/*
+  Warnings:
+
+  - Custom SQL migration
+*/
+
+-- Drop existing trigger and function if they exist to ensure clean migration
+DROP TRIGGER IF EXISTS ensure_one_relation_first_aid ON first_aid_requests_replacement;
+DROP TRIGGER IF EXISTS ensure_one_relation_cancellation ON course_cancellations;
+DROP TRIGGER IF EXISTS ensure_one_relation_reschedule ON course_reschedules;
+DROP FUNCTION IF EXISTS check_self_service_action_relations();
+
+-- Create a function that checks if a self service action has more than one related record
+-- This ensures that a self_service_action can only be associated with either:
+-- - One first_aid_request OR
+-- - One course_cancellation OR
+-- - One course_reschedule OR
+-- - No relation at all
+CREATE FUNCTION check_self_service_action_relations()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF (
+    -- Count all relations for this selfServiceActionId across all tables
+    (SELECT COUNT(*)
+     FROM (
+       -- first_aid_requests_replacement is the table name as defined in the @@map directive in Prisma schema
+       SELECT ers."selfServiceActionId" FROM first_aid_requests_replacement ers WHERE ers."selfServiceActionId" = NEW."selfServiceActionId"
+       UNION ALL
+       -- course_cancellations is the table name as defined in the @@map directive in Prisma schema
+       SELECT cc."selfServiceActionId" FROM course_cancellations cc WHERE cc."selfServiceActionId" = NEW."selfServiceActionId"
+       UNION ALL
+       -- course_reschedules is the table name as defined in the @@map directive in Prisma schema
+       SELECT cr."selfServiceActionId" FROM course_reschedules cr WHERE cr."selfServiceActionId" = NEW."selfServiceActionId"
+     ) as relations
+    ) > 1
+  ) THEN
+    RAISE EXCEPTION 'A self service action must have zero or one related records';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create triggers that run the check whenever a related record is created or updated
+-- The triggers run AFTER the operation to ensure we can check across all related tables
+
+-- Trigger for first_aid_requests_replacement table
+CREATE TRIGGER ensure_one_relation_first_aid
+  AFTER INSERT OR UPDATE ON first_aid_requests_replacement
+  FOR EACH ROW
+  EXECUTE FUNCTION check_self_service_action_relations();
+
+-- Trigger for course_cancellations table
+CREATE TRIGGER ensure_one_relation_cancellation
+  AFTER INSERT OR UPDATE ON course_cancellations
+  FOR EACH ROW
+  EXECUTE FUNCTION check_self_service_action_relations();
+
+-- Trigger for course_reschedules table
+CREATE TRIGGER ensure_one_relation_reschedule
+  AFTER INSERT OR UPDATE ON course_reschedules
+  FOR EACH ROW
+  EXECUTE FUNCTION check_self_service_action_relations();
+```
+
+Then run `npx prisma migrate dev` to apply the migration.
+
+Once the function and triggers are applied, the following application code will throw an error as expected:
+
+```typescript:app/self-service-actions/utils.tsx {26-34} showLineNumbers
+export const createFirstAidCardReplacementRequest = async (
+  participantId: string,
+  courseId: string
+) => {
+  return await prismaClient.$transaction(async (tx) => {
+    const selfServiceAction = await tx.selfServiceAction.create({
+      data: {
+        participantId,
+        paidAmount: 0,
+        paidAt: new Date()
+      }
+    });
+
+    const firstAidCardReplacementRequest = await tx.firstAidCardReplacementRequest.create({
+      data: {
+        courseId,
+        selfServiceActionId: selfServiceAction.id
+      },
+      include: {
+        selfServiceAction: true
+      }
+    });
+
+    // this will raise an exception thanks to the check_self_service_action_relations() function.
+    // the exception is because the selfServiceAction.id above is already connected to the firstAidCardReplacementRequest.
+    await tx.courseCancellation.create({
+      data: {
+        courseId,
+        selfServiceActionId: selfServiceAction.id
+      },
+      include: {
+        selfServiceAction: true
+      }
+    });
+
+    const updatedSelfServiceAction = await tx.selfServiceAction.findFirst({
+      where: {
+        id: selfServiceAction.id
+      }
+    });
+
+    return {
+      updatedSelfServiceAction,
+      firstAidCardReplacementRequest
+    };
+  });
+};
+```
+
+The code throws an error when trying to create `courseCancellation` because the `selfServiceAction.id` is already connected to the `firstAidCardReplacementRequest`. This way, we eliminate the developer-error of assigning multiple relations to the same `selfServiceAction` record.
+
+## Final thoughts
+
+You might notice that we can also use this function-trigger approach to automatically insert a row into the `SelfServiceAction` table when a new row is inserted into the `FirstAidCardReplacementRequest` table or `CourseCancellation` table and connect them. That way we won't need to write code to create a `SelfServiceAction` record and connect it to the `FirstAidCardReplacementRequest` or `CourseCancellation` record.
+
+The reason I chose not to do that is because I wanted to avoid having too much "magic" in the system. Having a function that inserts or updates the database automatically should be avoided when possible. **This "invisible" operation could be a source of bugs and errors**. At the very least, it could confuse the developers. I prefer to have data mutation in the application code and let the database handle the logic of enforcing constraints.
+
+---
+
+By the way,
+
+- I created [Crossword Puzzle Creator](https://crossword-puzzle-creator.com) on the weekend. Check it out!
+- I also have a book about [Pull Requests Best Practices. Check it out](https://pr.nico.fyi)!
