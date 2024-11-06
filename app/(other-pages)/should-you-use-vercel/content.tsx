@@ -168,7 +168,10 @@ const DecisionNodeComponent = ({ node, onSelect }: { node: DecisionNode; onSelec
 
 const md = `
 graph TD
-    using-framework{"Are you using a framework like <a target="_blank" href="https://nextjs.org/">Next.js</a>, <a target="_blank" href="https://nuxt.com">Nuxt</a>, <a target="_blank" href="https://kit.svelte.dev">SvelteKit</a>, <a target="_blank" href="https://vuejs.org">Vue</a>, <a target="_blank" href="https://remix.run/">Remix</a>, or any of <a target="_blank" href="https://vercel.com/docs/frameworks/more-frameworks">these frameworks</a> ?"} -->|Yes| brand-new-project{"Is it a brand new web project?"}
+    support-trump{"Are you supporting Trump? Or would you congratulate him for being the president again?"} -->|Yes| using-framework{"Are you using a framework like <a target="_blank" href="https://nextjs.org/">Next.js</a>, <a target="_blank" href="https://nuxt.com">Nuxt</a>, <a target="_blank" href="https://kit.svelte.dev">SvelteKit</a>, <a target="_blank" href="https://vuejs.org">Vue</a>, <a target="_blank" href="https://remix.run/">Remix</a>, or any of <a target="_blank" href="https://vercel.com/docs/frameworks/more-frameworks">these frameworks</a>?"}  
+    support-trump -->|No| dont-use-vercel-guillermo-support-him["Don't use Vercel<br/>Apparently the CEO of Vercel, Guillermo Rauch, thought <a target="_blank" href="https://x.com/rauchg/status/1854206133776388461">it's okay to congratulate a convicted felon</a> as the president of the USA <em>again</em> which is disappointing to hear from someone who looks so smart.<br/><br/>If he had voted for him, then it's understandable. Otherwise, it's safe to assume he just wanted to score some points, a.k.a. to kiss his ass🤮.<br/><br/>If you want to self-host, I recommend using Coolify.io. I wrote some articles about <a href="https://www.nico.fyi/tags/coolify" target="_blank">using coolify.io in this blog.</a>"] 
+    
+    using-framework -->|Yes| brand-new-project{"Is it a brand new web project?"}
     using-framework -->|No| dont-use-vercel-no-framework["Don't use Vercel<br/>Why are you even thinking about using Vercel?"]
 
     brand-new-project -->|Yes| traffic-scale{"From the scale 0-10, how sure are you with your project getting lots of traffic?"}
