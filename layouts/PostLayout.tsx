@@ -10,6 +10,7 @@ import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import CenteredAnimatedText from '@/components/animated-text'
 
 const editUrl = (path: string) => `${siteMetadata.siteRepo}/blob/main/data/${path}`
 const discussUrl = (path: string) =>
@@ -95,6 +96,16 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
             </dl>
             <div className="divide-y divide-gray-200 dark:divide-gray-700 xl:col-span-3 xl:row-span-2 xl:pb-0">
               <div className="prose max-w-none pb-8 pt-10 dark:prose-invert [&_div.remark-code-title]:-mb-7 ">
+                <div>
+                  <a
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-700 hover:text-blue-900 hover:underline"
+                    href="https://bsky.app/profile/nico.fyi"
+                  >
+                    <CenteredAnimatedText text={`Follow me on Bluesky`} />
+                  </a>
+                </div>
                 {children}
               </div>
               <div className="pb-6 pt-6 text-sm text-gray-700 dark:text-gray-300">
