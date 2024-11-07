@@ -161,6 +161,7 @@
     "@vercel/speed-insights",
     "bun",
     "contentlayer2",
+    "core-js",
     "esbuild",
     "msw",
     "protobufjs",

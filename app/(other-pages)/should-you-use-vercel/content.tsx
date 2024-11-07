@@ -425,6 +425,9 @@ export function parseMermaidToDecisionNode(markdown: string): DecisionNode | nul
 
   // Determine the root node (a node that's not a child of any node)
   const rootNodeId = rootCandidates.values().next().value
+  if (!rootNodeId) {
+    return null
+  }
   const rootNode = nodes.get(rootNodeId) || null
   return rootNode
 }
