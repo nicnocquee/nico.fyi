@@ -9,8 +9,7 @@ import Image from '@/components/Image'
 import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import CenteredAnimatedText from '@/components/animated-text'
+import { BlueSkyFlutter } from '@/components/ui/bluesky-flutter'
 
 const editUrl = (path: string) => `${siteMetadata.siteRepo}/blob/main/data/${path}`
 const discussUrl = (path: string) =>
@@ -84,7 +83,7 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                               href={author.bluesky}
                               className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
                             >
-                              Follow me on Bluesky 🦋
+                              Follow me on Bluesky
                             </Link>
                           )}
                         </dd>
@@ -97,14 +96,13 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
             <div className="divide-y divide-gray-200 dark:divide-gray-700 xl:col-span-3 xl:row-span-2 xl:pb-0">
               <div className="prose max-w-none pb-8 pt-10 dark:prose-invert [&_div.remark-code-title]:-mb-7 ">
                 <div>
-                  <a
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-700 hover:text-blue-900 hover:underline"
-                    href="https://bsky.app/profile/nico.fyi"
-                  >
-                    <CenteredAnimatedText text={`Follow me on Bluesky`} />
-                  </a>
+                  <div className="mx-auto flex items-center justify-center">
+                    <BlueSkyFlutter
+                      className="text-primary-600"
+                      href="https://bsky.app/profile/nico.fyi"
+                      text="NEW: I'm on Bluesky now!"
+                    />
+                  </div>
                 </div>
                 {children}
               </div>
@@ -123,23 +121,6 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                   <Comments slug={slug} />
                 </div>
               )}
-              {/* <Card className="bg-slate-100">
-                <CardHeader>
-                  <CardTitle>Did you like this post?</CardTitle>
-                </CardHeader>
-                <CardContent className="overflow-hidden">
-                  <div className="flex flex-col space-y-4">
-                    <p>
-                      I'm looking for a job as full stack developer. If you're interested, you can
-                      read more about me{' '}
-                      <Link className=" text-primary-500 underline" href="/about">
-                        here
-                      </Link>
-                      .
-                    </p>
-                  </div>
-                </CardContent>
-              </Card> */}
             </div>
             <footer>
               <div className="divide-gray-200 text-sm font-medium leading-5 dark:divide-gray-700 xl:col-start-1 xl:row-start-2 xl:divide-y">

@@ -11,7 +11,7 @@ export default {
     './layouts/**/*.{js,ts,tsx}',
     './data/**/*.mdx',
   ],
-  darkMode: 'class',
+  darkMode: ['class'],
   prefix: '',
   theme: {
     container: {
@@ -23,22 +23,22 @@ export default {
     },
     extend: {
       transitionTimingFunction: {
-        'spring-1': `var(--ease-spring-1)`,
-        'spring-2': `var(--ease-spring-2)`,
-        'spring-3': `var(--ease-spring-3)`,
-        'spring-4': `var(--ease-spring-4)`,
-        'spring-5': `var(--ease-spring-5)`,
-        'elastic-in-out-1': `var(--ease-elastic-in-out-1)`,
-        'elastic-in-out-2': `var(--ease-elastic-in-out-2)`,
-        'elastic-in-out-3': `var(--ease-elastic-in-out-3)`,
-        'elastic-in-out-4': `var(--ease-elastic-in-out-4)`,
-        'elastic-in-out-5': `var(--ease-elastic-in-out-5)`,
+        'spring-1': '`var(--ease-spring-1)`',
+        'spring-2': '`var(--ease-spring-2)`',
+        'spring-3': '`var(--ease-spring-3)`',
+        'spring-4': '`var(--ease-spring-4)`',
+        'spring-5': '`var(--ease-spring-5)`',
+        'elastic-in-out-1': '`var(--ease-elastic-in-out-1)`',
+        'elastic-in-out-2': '`var(--ease-elastic-in-out-2)`',
+        'elastic-in-out-3': '`var(--ease-elastic-in-out-3)`',
+        'elastic-in-out-4': '`var(--ease-elastic-in-out-4)`',
+        'elastic-in-out-5': '`var(--ease-elastic-in-out-5)`',
       },
       lineHeight: {
-        11: '2.75rem',
-        12: '3rem',
-        13: '3.25rem',
-        14: '3.5rem',
+        '11': '2.75rem',
+        '12': '3rem',
+        '13': '3.25rem',
+        '14': '3.5rem',
       },
       fontFamily: {
         sans: ['var(--font-space-grotesk)', ...fontFamily.sans],
@@ -55,10 +55,6 @@ export default {
         ring: 'hsl(var(--ring))',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
-        // primary: {
-        //   DEFAULT: "hsl(var(--primary))",
-        //   foreground: "hsl(var(--primary-foreground))",
-        // },
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
           foreground: 'hsl(var(--secondary-foreground))',
@@ -91,17 +87,67 @@ export default {
       },
       keyframes: {
         'accordion-down': {
-          from: { height: '0' },
-          to: { height: 'var(--radix-accordion-content-height)' },
+          from: {
+            height: '0',
+          },
+          to: {
+            height: 'var(--radix-accordion-content-height)',
+          },
         },
         'accordion-up': {
-          from: { height: 'var(--radix-accordion-content-height)' },
-          to: { height: '0' },
+          from: {
+            height: 'var(--radix-accordion-content-height)',
+          },
+          to: {
+            height: '0',
+          },
+        },
+        'flutter-left': {
+          '10%': {
+            transform: 'scale(1, 0.9)',
+          },
+          '20%': {
+            transform: 'scale(0.5, 1)',
+          },
+          '40%': {
+            transform: 'scale(0.9, 0.95)',
+          },
+          '60%': {
+            transform: 'scale(0.3, 1)',
+          },
+          '80%': {
+            transform: 'scale(0.9, 0.95)',
+          },
+          '100%': {
+            transform: 'scale(1, 1)',
+          },
+        },
+        'flutter-right': {
+          '10%': {
+            transform: 'scale(-1, 0.9)',
+          },
+          '20%': {
+            transform: 'scale(-0.5, 1)',
+          },
+          '40%': {
+            transform: 'scale(-0.9, 0.95)',
+          },
+          '60%': {
+            transform: 'scale(-0.3, 1)',
+          },
+          '80%': {
+            transform: 'scale(-0.9, 0.95)',
+          },
+          '100%': {
+            transform: 'scale(-1, 1)',
+          },
         },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'flutter-left': 'flutter-left 430ms ease-in-out',
+        'flutter-right': 'flutter-right 500ms ease-in-out',
       },
       typography: ({ theme }: { theme: (path: string) => string }) => ({
         DEFAULT: {
