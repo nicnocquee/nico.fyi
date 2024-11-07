@@ -64,6 +64,8 @@ export function Mastodon(svgProps: SVGProps<SVGSVGElement>) {
   )
 }
 
-export function Bluesky() {
-  return <Image src={BlueSkyIcon} className="object-cover" alt="Bluesky" width={24} height={24} />
+export function Bluesky({ width = 24, height = 24 }: { width?: number; height?: number }) {
+  return (
+    <Image src={BlueSkyIcon} className="object-cover" alt="Bluesky" width={width} height={height} />
+  )
 }

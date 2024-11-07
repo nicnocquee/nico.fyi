@@ -79,12 +79,12 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                         <dd className="text-gray-900 dark:text-gray-100">{author.name}</dd>
                         <dt className="sr-only">Twitter</dt>
                         <dd>
-                          {author.twitter && (
+                          {author.bluesky && (
                             <Link
-                              href={author.twitter}
+                              href={author.bluesky}
                               className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
                             >
-                              Follow me: {author.twitter.replace('https://twitter.com/', '@')}
+                              Follow me on Bluesky 🦋
                             </Link>
                           )}
                         </dd>
