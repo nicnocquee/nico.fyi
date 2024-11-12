@@ -1,0 +1,38 @@
+---
+title: 'Bluesky later: Schedule Bluesky post in the future for FREE'
+date: '2024-11-12'
+commentary: 'I made this scheduler'
+summary: 'Learn how to schedule your Bluesky posts for free using Bluesky Later, an open-source web app with browser-based and self-hosted options. Perfect for managing your social media presence without flooding your followers. No paid subscriptions required - just a simple, effective way to plan your Bluesky content in advance.'
+tags: ['dev', 'bluesky', 'open-source']
+---
+
+Unless you have been living under a rock for the past few days, you surely have heard about the US election. Thanks to the result, many people I follow on Twitter have moved to [Bluesky](https://bsky.app) because of reasons I implore you to find out yourselves, it's not that hard to understand.
+
+While I have created an account on Bluesky a while back, I haven't been really active on it. Not only because there were not so many people there, but it also lacked some features like GIF! But it is no longer the case. And since I have been thinking of leaving Twitter thanks to the annoying billionaire, I decided to hang out more on Bluesky and cancelled my Twitter Pro account.
+
+So far it has been a nice experience. These are the features I like the most:
+
+- I can use my domain nico.fyi as my handle! 🤯
+- The starter pack created by the community is really helpful to get started. ❤️
+- No ads! 🎉
+- API is free! 😋
+
+But there's one thing I'm missing. I want to schedule a post in the future because I don't want to flood my followers with too many posts in a short period of time. And since it's not available yet and the API is free, I decided to create a scheduler to do that.
+
+Introducing [Bluesky Later](https://github.com/nicnocquee/bluesky-later). An open source web app that allows you to schedule posts in the future on Bluesky. It has two modes: **Browser mode** and **Self hosted mode**.
+
+## Browser mode
+
+The browser mode is the easiest way to use Bluesky Later. You can use it immediately [here](https://bskylater.nico.fyi) for free. It's a single page app that runs entirely in your browser. The credentials and the scheduled posts are stored in the browser's IndexDB. **The only caveat is that the scheduled posts are posted on the scheduled time as long as the browser tab is open and you are connected to the internet.**
+
+If you want, you can deploy it yourself to your own GitHub Pages by cloning the repository and set the repository variables. Read more about it [here](https://github.com/nicnocquee/bluesky-later?tab=readme-ov-file#browser-mode).
+
+## Self hosted mode
+
+Unlike the browser mode, the self hosted mode is a bit more complicated. You need a server to host the API server and the front end. **But you don't need to keep the browser tab open to post the scheduled posts.** The API server will be running in the background and will post the scheduled posts when the time comes.
+
+I have created a [docker-compose.yml file](https://github.com/nicnocquee/bluesky-later/blob/main/docker-compose.yml) so that you can easily deploy it to your own server. Read more about it [here](https://github.com/nicnocquee/bluesky-later?tab=readme-ov-file#self-hosted-mode).
+
+## Cloud version
+
+I am hesitant to make a cloud version of Bluesky Later because I believe this feature is much better suited for the official app. I'm not 100% sure but I think the team is working on it. But if you don't want to host it yourself or to keep the browser tab open, hit me up on [Bluesky](https://bsky.app/profile/nico.fyi). If there is enough interest, I might consider making a cloud version.
