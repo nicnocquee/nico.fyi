@@ -5,7 +5,7 @@ commentary: "Dont't make the same mistake as I did"
 tags: ['dev', 'react']
 ---
 
-Few articles ago I wrote about using [useSyncExternalStore to write, read, and react to changes in the local storage](https://www.nico.fyi/blog/ssr-friendly-local-storage-react-custom-hook). I even created my own useLocalStorage hook in the same article. But the hook has one flaw. You can only read and write string values because local storage only stores strings.
+A few articles ago I wrote about using [useSyncExternalStore to write, read, and react to changes in the local storage](https://www.nico.fyi/blog/ssr-friendly-local-storage-react-custom-hook). I even created my own useLocalStorage hook in the same article. But the hook has one flaw. You can only read and write string values because local storage only stores strings.
 
 So I gave it a try to store an object in local storage. My first attempt was like this.
 
@@ -27,9 +27,9 @@ const useLocalStorage = <T,>(key: string, initialValue: T) => {
 };
 ```
 
-But to my surprise, this code caused infinite render loop. This happened because the `useSyncExternalStore` hook "informs" React to re-render the component where it's called whenever the `getSnapshot` function returns a new value that is different from the previous one.
+But to my surprise, this code caused an infinite render loop. This happened because the `useSyncExternalStore` hook "informs" React to re-render the component where it's called whenever the `getSnapshot` function returns a new value that is different from the previous one.
 
-And here's the problem. When the returned value is non-primitive, React **awalys** considers the new value as different from the previous one. This is the result of `useSyncExternalStore` using [Object.is](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is) to compare the values. Even a simple code like this would cause the infinite loop.
+And here's the problem. When the returned value is non-primitive, React **always** considers the new value as different from the previous one. This is the result of `useSyncExternalStore` using [Object.is](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is) to compare the values. Even a simple code like this would cause the infinite loop.
 
 ```typescript {4-6} showLineNumbers
 const Component = () => {
@@ -49,7 +49,7 @@ const Component = () => {
 }
 ```
 
-So I tried several ways to make the returned value "stable" with no avail. I ended up giving up and serializing the object to JSON and then deserializing it back to an object outside of the `getSnapshot` function.
+So I tried several ways to make the returned value "stable" to no avail. I ended up giving up and serializing the object to JSON and then deserializing it back to an object outside of the `getSnapshot` function.
 
 ```typescript:app/use-local-storage.ts {50-77} showLineNumbers
 import { useSyncExternalStore, useCallback, useMemo } from "react";
@@ -149,7 +149,7 @@ export const useLocalStorage = <T>(key: string, initialValue?: T) => {
 
 I also wrapped the stored value in a wrapper object to make it possible to differentiate between the cleared state and the initial state. When the hook is called, if there has never been a value stored in local storage, it will return the initial value as shown in line 55-61 of the code above. But if the `clearData` function is called, it will return `undefined` as shown in line 57 of the code above.
 
-I also added a migration function to the code above to handle the legacy data. This is useful when you already have some data stored in local storage and you want to use the hook. This is the complete code.
+Finally, I added a migration function to the code above to handle the legacy data. This is useful when you already have some data stored in local storage and you want to use the hook. This is the complete code.
 
 ```typescript:app/use-local-storage.ts showLineNumbers
 import { useSyncExternalStore, useCallback, useMemo } from "react";
@@ -276,7 +276,6 @@ export const useLocalStorage = <T>(key: string, initialValue?: T) => {
     [data, setData, clearData]
   );
 };
-
 ```
 
 ---
