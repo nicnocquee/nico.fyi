@@ -1,0 +1,286 @@
+---
+title: 'Be careful with useSyncExternalStore'
+date: '2024-11-17'
+commentary: "Dont't make the same mistake as I did"
+tags: ['dev', 'react']
+---
+
+Few articles ago I wrote about using [useSyncExternalStore to write, read, and react to changes in the local storage](https://www.nico.fyi/blog/ssr-friendly-local-storage-react-custom-hook). I even created my own useLocalStorage hook in the same article. But the hook has one flaw. You can only read and write string values because local storage only stores strings.
+
+So I gave it a try to store an object in local storage. My first attempt was like this.
+
+```typescript:app/use-local-storage.ts showLineNumbers
+const useLocalStorage = <T,>(key: string, initialValue: T) => {
+  const data = useSyncExternalStore(
+    (onChange) => {
+      window.addEventListener("storage", onChange);
+      return () => {
+        window.removeEventListener("storage", onChange);
+      };
+    },
+    () => {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : initialValue;
+    },
+    () => initialValue
+  );
+};
+```
+
+But to my surprise, this code caused infinite render loop. This happened because the `useSyncExternalStore` hook "informs" React to re-render the component where it's called whenever the `getSnapshot` function returns a new value that is different from the previous one.
+
+And here's the problem. When the returned value is non-primitive, React **awalys** considers the new value as different from the previous one. This is the result of `useSyncExternalStore` using [Object.is](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is) to compare the values. Even a simple code like this would cause the infinite loop.
+
+```typescript {4-6} showLineNumbers
+const Component = () => {
+  const data = useSyncExternalStore(
+    () => () => {},
+    () => {
+      return { name: "John" };
+    },
+    () => null
+  );
+
+  return (
+    <div>
+      {data && <p>{data}</p>}
+    </div>
+  );
+}
+```
+
+So I tried several ways to make the returned value "stable" with no avail. I ended up giving up and serializing the object to JSON and then deserializing it back to an object outside of the `getSnapshot` function.
+
+```typescript:app/use-local-storage.ts {50-77} showLineNumbers
+import { useSyncExternalStore, useCallback, useMemo } from "react";
+import superjson from "superjson";
+
+export type StorageWrapper<T> =
+  | {
+      type: "value";
+      value: T;
+    }
+  | {
+      type: "cleared";
+    };
+
+export const useLocalStorage = <T>(key: string, initialValue?: T) => {
+  const getSnapshot = useCallback(() => {
+    return localStorage.getItem(key);
+  }, [key]);
+
+  const getServerSnapshot = useCallback(() => null, []);
+
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      const onStorageEvent = (e: Event) => {
+        const customEvent = e as CustomEvent;
+        if (customEvent.detail.key === key) {
+          onChange();
+        }
+      };
+      window.addEventListener("storage", onChange);
+      window.addEventListener(
+        "local-storage-change",
+        onStorageEvent as EventListener
+      );
+      return () => {
+        window.removeEventListener("storage", onChange);
+        window.removeEventListener(
+          "local-storage-change",
+          onStorageEvent as EventListener
+        );
+      };
+    },
+    [key]
+  );
+
+  const rawData = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot
+  );
+
+  const data = useMemo(() => {
+    if (!rawData) {
+      return initialValue;
+    }
+    try {
+      const parsed = superjson.parse(rawData) as StorageWrapper<T>;
+      if (parsed.type === "cleared") {
+        return undefined;
+      }
+      return parsed.value;
+    } catch {
+      return initialValue;
+    }
+  }, [rawData, initialValue]);
+
+  const setData = useCallback(
+    (value: T) => {
+      const wrapper: StorageWrapper<T> = {
+        type: "value",
+        value,
+      };
+      localStorage.setItem(key, superjson.stringify(wrapper));
+      window.dispatchEvent(
+        new CustomEvent("local-storage-change", { detail: { key } })
+      );
+    },
+    [key]
+  );
+
+  const clearData = useCallback(() => {
+    const wrapper: StorageWrapper<T> = {
+      type: "cleared",
+    };
+    localStorage.setItem(key, superjson.stringify(wrapper));
+    window.dispatchEvent(
+      new CustomEvent("local-storage-change", { detail: { key } })
+    );
+  }, [key]);
+
+  return useMemo(
+    () => [data, setData, clearData] as const,
+    [data, setData, clearData]
+  );
+};
+```
+
+I also wrapped the stored value in a wrapper object to make it possible to differentiate between the cleared state and the initial state. When the hook is called, if there has never been a value stored in local storage, it will return the initial value as shown in line 55-61 of the code above. But if the `clearData` function is called, it will return `undefined` as shown in line 57 of the code above.
+
+I also added a migration function to the code above to handle the legacy data. This is useful when you already have some data stored in local storage and you want to use the hook. This is the complete code.
+
+```typescript:app/use-local-storage.ts showLineNumbers
+import { useSyncExternalStore, useCallback, useMemo } from "react";
+import superjson from "superjson";
+
+export type StorageWrapper<T> =
+  | {
+      type: "value";
+      value: T;
+    }
+  | {
+      type: "cleared";
+    };
+
+export const useLocalStorage = <T>(key: string, initialValue?: T) => {
+  // One-time migration of legacy data
+  const migrateData = useCallback(() => {
+    const data = localStorage.getItem(key);
+    if (!data) return;
+
+    try {
+      // Try parsing as superjson first
+      const parsed = superjson.parse(data);
+      // Skip if already in wrapper format
+      if (parsed && typeof parsed === "object" && "type" in parsed) {
+        return;
+      }
+      // Migrate legacy data to wrapper format
+      const wrapper: StorageWrapper<T> = {
+        type: "value",
+        value: parsed as T,
+      };
+      localStorage.setItem(key, superjson.stringify(wrapper));
+    } catch {
+      // If can't parse as superjson, try as plain value
+      const wrapper: StorageWrapper<T> = {
+        type: "value",
+        value: data as T,
+      };
+      localStorage.setItem(key, superjson.stringify(wrapper));
+    }
+  }, [key]);
+
+  // Run migration once when hook is initialized
+  migrateData();
+
+  const getSnapshot = useCallback(() => {
+    return localStorage.getItem(key);
+  }, [key]);
+
+  const getServerSnapshot = useCallback(() => null, []);
+
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      const onStorageEvent = (e: Event) => {
+        const customEvent = e as CustomEvent;
+        if (customEvent.detail.key === key) {
+          onChange();
+        }
+      };
+      window.addEventListener("storage", onChange);
+      window.addEventListener(
+        "local-storage-change",
+        onStorageEvent as EventListener
+      );
+      return () => {
+        window.removeEventListener("storage", onChange);
+        window.removeEventListener(
+          "local-storage-change",
+          onStorageEvent as EventListener
+        );
+      };
+    },
+    [key]
+  );
+
+  const rawData = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot
+  );
+
+  const data = useMemo(() => {
+    if (!rawData) {
+      return initialValue;
+    }
+    try {
+      const parsed = superjson.parse(rawData) as StorageWrapper<T>;
+      if (parsed.type === "cleared") {
+        return undefined;
+      }
+      return parsed.value;
+    } catch {
+      return initialValue;
+    }
+  }, [rawData, initialValue]);
+
+  const setData = useCallback(
+    (value: T) => {
+      const wrapper: StorageWrapper<T> = {
+        type: "value",
+        value,
+      };
+      localStorage.setItem(key, superjson.stringify(wrapper));
+      window.dispatchEvent(
+        new CustomEvent("local-storage-change", { detail: { key } })
+      );
+    },
+    [key]
+  );
+
+  const clearData = useCallback(() => {
+    const wrapper: StorageWrapper<T> = {
+      type: "cleared",
+    };
+    localStorage.setItem(key, superjson.stringify(wrapper));
+    window.dispatchEvent(
+      new CustomEvent("local-storage-change", { detail: { key } })
+    );
+  }, [key]);
+
+  return useMemo(
+    () => [data, setData, clearData] as const,
+    [data, setData, clearData]
+  );
+};
+
+```
+
+---
+
+Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi)!
+
+![](/static/images/articles/pull-request-best-practices.png)
