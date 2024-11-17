@@ -102,5 +102,8 @@ ENV GOOGLE_PRIVATE_KEY=${GOOGLE_PRIVATE_KEY}
 # ENV NEXT_TELEMETRY_DISABLED 1
 
 # Note: Don't expose ports here, Compose will handle that for us
+EXPOSE 3000
+ENV PORT 3000
 
+ENV HOSTNAME "0.0.0.0"
 CMD ["node", "server.js"]
