@@ -79,6 +79,7 @@ export default () => {
     images: {
       domains: ['picsum.photos', 'avatars.githubusercontent.com', 'www.gravatar.com'],
     },
+    output: 'standalone',
     async redirects() {
       return [
         {
