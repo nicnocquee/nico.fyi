@@ -279,6 +279,10 @@ export const useLocalStorage = <T>(key: string, initialValue?: T) => {
 };
 ```
 
+I also need to mention that the custom hook now uses [superjson](https://github.com/flightcontrolhq/superjson) to serialize and deserialize the data. This library is needed because serializing and deserializing objects using `JSON.stringify` and `JSON.parse` is not type-safe and they don't handle non-primitive values well. For example, if you try to stringify a `Date` object, it will convert it into a string like `2024-11-17T00:00:00.000Z`. But when you try to deserialize it back, it will not return a `Date` object but a string. Superjson handles this.
+
+Give it a try and let me know if you find any issues with the code.
+
 ---
 
 Are you working in a team environment and your pull request process slows your team down? Then you have to grab a copy of my book, [Pull Request Best Practices](https://pr.nico.fyi)!
