@@ -1,5 +1,4 @@
-FROM node:20-alpine AS base
-RUN apk add --no-cache libc6-compat
+FROM node:20-slim AS base
 
 # Step 1. Rebuild the source code only when needed
 FROM base AS builder
