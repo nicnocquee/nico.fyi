@@ -13,7 +13,7 @@ import { BlueSkyFlutter } from '@/components/ui/bluesky-flutter'
 
 const editUrl = (path: string) => `${siteMetadata.siteRepo}/blob/main/data/${path}`
 const discussUrl = (path: string) =>
-  `https://bsky.app/intent/compose?text=${encodeURIComponent(`${siteMetadata.siteUrl}/${path}`)}`
+  `https://bsky.app/intent/compose?text=${encodeURIComponent(`Just read post by @nico.fyi ${siteMetadata.siteUrl}/${path}`)}`
 
 const postDateTemplate: Intl.DateTimeFormatOptions = {
   weekday: 'long',
@@ -106,11 +106,11 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                 </div>
                 {children}
               </div>
-              <div className="pb-6 pt-6 text-sm text-gray-700 dark:text-gray-300">
+              <div className="space-x-2 pb-6 pt-6 text-sm text-gray-700 dark:text-gray-300">
                 <Link href={discussUrl(path)} rel="nofollow">
-                  Discuss on Bluesky
+                  Discuss/share on Bluesky
                 </Link>
-                {` • `}
+                <span>{` • `}</span>
                 <Link href={editUrl(filePath)}>View on GitHub</Link>
               </div>
               {siteMetadata.comments && siteMetadata.comments.provider && (
