@@ -89,7 +89,7 @@ export default () => {
         },
         {
           source: '/mycats',
-          destination: 'https://www.tiktok.com/@yakisobanekotachi',
+          destination: '/static/images/pages/me-and-miso-udon-yaki.webp',
           permanent: false,
         },
       ]
