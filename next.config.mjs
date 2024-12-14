@@ -87,6 +87,11 @@ export default () => {
           destination: '/blog/:path*',
           permanent: true,
         },
+        {
+          source: '/mycats',
+          destination: 'https://www.tiktok.com/@yakisobanekotachi',
+          permanent: false,
+        },
       ]
     },
     async headers() {

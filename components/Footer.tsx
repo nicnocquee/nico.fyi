@@ -30,7 +30,7 @@ export default function Footer() {
           <div>{` • `}</div>
           <div>{`© ${new Date().getFullYear()}`}</div>
           <div>{` • `}</div>
-          <Link href="/">{siteMetadata.title}</Link>
+          <Link href="https://www.tiktok.com/@yakisobanekotachi">{`My cats`}</Link>
         </div>
       </div>
     </footer>
