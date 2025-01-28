@@ -1,0 +1,57 @@
+---
+title: 'Send E-mail after Creating a New Release in GitHub'
+date: '2025-01-28'
+summary: 'Learn how to automatically send email notifications to team members when a new GitHub release is created using GitHub Actions workflows and FastMail SMTP integration. A practical guide with complete configuration example.'
+commentary: 'Just a note for my future self'
+tags: ['dev', 'github']
+---
+
+In the company I work for, there are some team members who wanted to be notified when a new release is deployed to production. Since we use GitHub, I can easily set up a step in our GitHub Actions workflow to send an e-mail to the team member when a new release is created.
+
+```yml:deploy.yml {20-43} showLineNumbers
+name: Deploy to production websites
+on:
+  workflow_dispatch:
+  release:
+    types: [created]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.1
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Updating release
+        run: |
+          echo "Release the new version"
+          # Do something like push to Vercel
+      - name: Send email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.fastmail.com
+          server_port: 465
+          username: ${{ secrets.FASTMAIL_EMAIL }}
+          password: ${{ secrets.FASTMAIL_PASSWORD }}
+          subject: New Release of Our Awesome project
+          html_body: |
+            A new release has been published!
+
+            Release: ${{ github.event.release.name }}
+            Version: ${{ github.event.release.tag_name }}
+            Link: ${{ github.event.release.html_url }}
+
+            Description:
+
+            ${{ github.event.release.body }}
+
+            The Markdown in this email will be automatically converted to HTML.
+
+          to: member1@example.com,member2@example.com,myemail@example.com
+          from: myemail@example.com
+          convert_markdown: true
+```
+
+We use [Fastmail](https://www.fastmail.com) in the company so I can just create a new App Password and add it to GitHub Secrets (`FASTMAIL_EMAIL` and `FASTMAIL_PASSWORD`) which is used by the "Send email" step above.
