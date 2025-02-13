@@ -1,0 +1,47 @@
+---
+title: 'How to automatically update GitHub project on new release'
+date: '2025-02-13'
+summary: 'Learn how to automate GitHub Projects updates when publishing new releases using a custom GitHub Action. This solution automatically moves issues to "Deployed to Production" status when included in release notes.'
+commentary: 'Wish GitHub had this feature'
+tags: ['dev', 'github', 'cli', 'open source']
+---
+
+## Back story
+
+In the company I work for, we use [GitHub Projects](https://docs.github.com/en/issues/planning-and-tracking-with-projects/learning-about-projects/about-projects) to track our work. It's very simple and easy to use and has great integration with GitHub repositories and Issues. But it lacks a feature that would be really useful: **automatically update the project when a new release is published**. In our team, we create a new release every time we publish a new version of our software. When a release is created, it automatically creates a new commit in a release branch which triggers a production deployment in Vercel.
+
+When creating a new release, I usually simply set the new tag and use the "Generate release notes" feature to automatically get the release notes from the diff between the previous release and the new one. The generated release notes include the links to pull requests and their authors.
+
+This is great because everyone in the company can see what has been deployed. But unfortunately, it doesn't update the GitHub Project. I want the items in the project, which are the resolved issues, to be updated automatically when a new release is created. I needed to manually move the issues that were included in the release to the "Deployed to Production" column in the GitHub Project (I renamed the default "Done" column to "Deployed to Production" to make it clearer).
+
+## The solution
+
+So I created a GitHub action that would do this automatically: [Release Notes to Project Action](https://github.com/marketplace/actions/release-notes-to-project-action). This action does the following:
+
+1. Reads the release notes from the GitHub release
+2. Parses the pull requests included in the release notes
+3. Finds the issues that are associated with the pull requests
+4. Finds the items in the GitHub Project that are associated with the issues
+5. Moves the items to the desired column in the GitHub Project
+
+Step 3 is executed because the generated release notes only include the links to pull requests. Step 4 is executed because the items in the GitHub Project are not the same as the issues.
+
+You can provide the release notes to the action in several ways:
+
+- by providing the release notes in the action input called `release-notes`
+- by providing the URL to the release notes in the action input called `release-url`
+- or by running the action when a release is created. The action will automatically get the release notes from the release event.
+
+You can read more about the action in the [README of the repository](https://github.com/nicnocquee/release-to-project-action/tree/v1.0.5?tab=readme-ov-file#release-notes-to-project-action).
+
+## Lessons learned
+
+I think this was my first GitHub action and I learned a few things along the way:
+
+- The code that will be executed in the action must be in the `dist` folder of the repository. So before assigning the latest tag, I need to make sure that the code is built and the output is in the `dist` folder. And **I also need to make sure that the `dist` folder is committed to the repository**.
+- GitHub action's workflow doesn't automatically use the latest version of the action when the action is used using the major version. For example, I initially only released the `v1.0.1` version of the action. But if I used the `v1` version of the action in a workflow, it wouldn't use the latest `v1.0.1` version. The workflow will just fail with an error message saying that the version of the action doesn't exist. So I needed to create [a script to automatically update the major version to the latest version](https://github.com/nicnocquee/release-to-project-action/blob/425301c5ce917679b152141d217712220a029594/scripts/create-release.sh#L131).
+- While it's convenient to automatically get the required input of the action from the event's payload, **it's helpful to allow the users of the action to provide the input manually via the action's input**. In my case, the main input that the action needs is the [release notes which can be retrieved from the payload of the release event](https://github.com/nicnocquee/release-to-project-action/blob/425301c5ce917679b152141d217712220a029594/src/index.ts#L33). But it's a pain in the ass for the user of the action to actually create a release first before they can try the action. So I added a new input called `release-url` which allows the user to provide the URL to the release notes, or alternatively, they can also provide the content of the release notes in the `release-notes` input directly.
+
+## Conclusion
+
+Give the action a try and let me know what you think. I'm happy to hear your feedback and suggestions on [Bluesky](https://bsky.app/profile/nico.fyi).
