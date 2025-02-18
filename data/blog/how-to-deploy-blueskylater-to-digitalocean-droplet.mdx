@@ -1,0 +1,83 @@
+---
+title: 'How to deploy Bluesky Later to DigitalOcean Droplet'
+date: '2025-02-18'
+summary: 'Learn how to deploy Bluesky Later scheduling tool on a DigitalOcean Droplet using Docker and docker-compose. Step-by-step guide to set up your own Bluesky post scheduler with PostgreSQL database in just a few minutes.'
+commentary: 'Start scheduling in a few minutes'
+tags: ['dev', 'docker', 'bluesky']
+---
+
+A few days ago I wrote about how to [deploy Bluesky Later on your own server using Coolify](/blog/how-to-deploy-blueskylater-using-coolify). While I recommend it to start using Bluesky Later in your own server, it is possible to run it without Coolify. In this post, I will show you how to run Bluesky Later on a DigitalOcean Droplet using Docker.
+
+First, you need to have a DigitalOcean account. If you don't have one, you can create one [here](https://m.do.co/c/1a4db88dc63c). Then create a new Droplet using the [Docker image](https://marketplace.digitalocean.com/apps/docker) which you can find in the DigitalOcean Marketplace. For the Droplet size and type, I recommend using the "Basic" type with "Regular (Disk type: SSD)" CPU option, and the lowest price spec ($6/month).
+
+Once the Droplet is created, enter the server using SSH. Then you need to install docker-compose first:
+
+```bash
+apt install docker-compose
+```
+
+Next, create a `docker-compose.yml` file in the root directory of the server with the following content:
+
+```yml
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-blueskylater}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-blueskylater}
+      POSTGRES_DB: ${POSTGRES_DB:-blueskylater_scheduler}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${POSTGRES_USER:-blueskylater} -d ${POSTGRES_DB:-blueskylater_scheduler}',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  app:
+    image: nicnocquee/bluesky-later:latest
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://blueskylater:blueskylater@postgres:5432/blueskylater_scheduler}
+      CRON_SECRET: ${CRON_SECRET:-your-secret-here}
+    ports:
+      - '80:8080'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+```
+
+After that, create a hidden file called `.env` in the root directory of the server with the following content:
+
+```env
+DATABASE_URL=postgresql://REPLACE_WITH_USERNAME:REPLACE_WITH_SECURE_PASSWORD@postgres:5432/REPLACE_WITH_DATABASE_NAME
+POSTGRES_USER=REPLACE_WITH_USERNAME
+POSTGRES_PASSWORD=REPLACE_WITH_SECURE_PASSWORD
+POSTGRES_DB=REPLACE_WITH_DATABASE_NAME
+```
+
+Replace the `REPLACE_WITH_USERNAME`, `REPLACE_WITH_SECURE_PASSWORD`, and `REPLACE_WITH_DATABASE_NAME` with the values you want to use for the Postgres database. You can use any username, password, and database name you want.
+
+Then run the following command to start the app:
+
+```bash
+docker-compose --env-file .env up -d
+```
+
+Once the app is up and running, you can access it at `http://your-server-ip-address`. You will be greeted with the initial setup page. Follow the instructions to secure the Bluesky Later instance.
+
+Happy scheduling and [say hi to me on Bluesky](https://bsky.app/profile/nico.fyi)! 🦋
