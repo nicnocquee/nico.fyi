@@ -34,7 +34,10 @@ yarn
 ## Generating OG images
 
 ```bash
-npx og-screenshots -u https://www.nico.fyi/blog/how-to-clone-only-specific-folder-in-git-repo -o /path/to/repo/public/static/screenshots
+# single page
+npx og-screenshots -u https://www.nico.fyi/blog/how-to-clone-only-specific-folder-in-git-repo -o ./public/static/screenshots
+# all pages from sitemap
+npx og-screenshots -u https://www.nico.fyi/sitemap.xml -o ./public/static/screenshots
 ```
 
 ## Development
