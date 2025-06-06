@@ -1,0 +1,47 @@
+---
+title: 'How to handle date and time correctly in your fullstack JS web app'
+date: '2025-06-07'
+summary: 'Learn the best practices for handling date and time in fullstack JavaScript web apps, avoid common timezone bugs, and ensure accurate date-time display for users worldwide using TypeScript and Next.js.'
+commentary: 'Or is it a mistake?'
+tags: ['dev', 'nextjs', 'typescript']
+---
+
+Handling date and time correctly in your fullstack JS web app is pretty tricky and can cause a subtle bug.
+
+## The problem
+
+This just happened to me. I got a report from my team mate that our website displayed the wrong date and time. In our backend, the admin who resides in the Switzerland entered June 18th, 2025 and time 22:00 from our dashboard. But on the website where the date was displayed, it was displayed as May 19th, 2025.
+
+The bug was in the API end point where the date and time was stored in the database in UTC, i.e., 2025-06-18T22:00:00Z. Which is wrong because the admin intended to enter June 18th, 2025 at 22:00 in the local time of Switzerland. When another API end point was called to get the date and time, it was displayed and formatted using the user's browser's timezone. This is why the date was displayed as May 19th, 2025 when the user is in Switzerland.
+
+## The solution
+
+There are two ways to handle this. I can either convert the date and time to UTC in the user's browser then send it to the backend. Or **I can send both the date and time and also the desired timezone to the backend**. I prefer the second option because it is more flexible. Imagine if the user wants to enter a date and time in Switzerland time but they are in the US or somewhere else in the world. Using the first option, we'll hit the bug again.
+
+## The code
+
+In the server, I use this function to create a UTC date based on the received date, time, and timezone.
+
+```typescript
+import { fromZonedTime } from 'date-fns-tz'
+
+export const getUtcDate = (dateStr: string, timeStr: string, timezone: string): Date => {
+  try {
+    // Combine date and time strings as local time (no Z)
+    const dateTimeStr = `${dateStr}T${timeStr}`
+
+    // Parse as zoned time using a library like date-fns-tz
+    const zonedTime = fromZonedTime(dateTimeStr, timezone)
+
+    return zonedTime
+  } catch (error: any) {
+    throw new Error(`Failed to convert to UTC: ${error.message}`)
+  }
+}
+```
+
+Make sure to install the `date-fns-tz` library.
+
+## It's so subtle
+
+This bug was found out only after one of our admins entered the problematic date and time. That's the problem with date and time handling. 90% of the time, it works fine. But 10% of the time, it will cause a subtle bug. Check your code and make sure you're handling date and time correctly.
