@@ -1,0 +1,104 @@
+---
+title: 'Use Async Local Storage to prevent props drilling in Next.js Route handlers'
+date: '2025-06-09'
+summary: 'Learn how to use Async Local Storage to prevent props drilling in your Next.js Route handlers.'
+commentary: "It's like React Context but for Node.js functions."
+keywords: ['async local storage', 'props drilling', 'typescript', 'nodejs']
+tags: ['dev', 'nextjs', 'typescript']
+---
+
+When a private API endpoint is called, the handler should check if the request came from an authorized user before doing anything else. Usually the function that checks the request returns a user object if the request is authorized. Then this user object can be used by other functions in the handler.
+
+When there are multiple functions in the handler, passing the user object as a parameter to each function is tedious. Not to mention when there are nested functions that need to access the user object. This props drilling is already cumbersome with just single object. Imagine when there are multiple objects that need to be passed around.
+
+This is where [Async Local Storage](https://nodejs.org/api/async_context.html) comes in. It's like React Context but for Node.js functions. It allows you to store data in a "store" that is accessible to all functions, callbacks, and promise chains within the same execution context.
+
+It's relatively easy to use. First we create a new Async Local Storage instance.
+
+```typescript:user-context.ts showLineNumbers
+import { AsyncLocalStorage } from 'async_hooks'
+import { User } from './auth'
+
+export const userContext = new AsyncLocalStorage<{
+  user: User
+}>()
+
+export const getUserContext = () => {
+  const store = userContext.getStore()
+  if (!store) {
+    throw new Error(
+      'User context not found. The calling function must be wrapped in a userContext.run() block.'
+    )
+  }
+  return store
+}
+```
+
+Then we can wrap the functions that need to access the user object in a `userContext.run()` block. For example, we have a Next.js's route handler like the following:
+
+```typescript:route.ts showLineNumbers
+import { auth } from './auth'
+import { getProfile } from './get-profile'
+import { userContext } from './user-context'
+
+export const GET = async () => {
+  const loggedInUser = await auth()
+
+  const data = await userContext.run({ user: loggedInUser }, () => {
+    return getProfile()
+  })
+
+  return Response.json(data)
+}
+```
+
+Before doing anything else, the end point calls the `auth` function to get the logged in user. Then it wraps the `getProfile` function in a `userContext.run()` block with the logged in user as the store.
+
+The `getProfile` function then can access the user object from the store using the `getUserContext` function. If another function is called in the `getProfile` function, it can also access the user object from the store using the `getUserContext` function. For example, we have a `getProfile` and `getTransactions` function that needs to access the user object:
+
+```typescript:get-profile.ts showLineNumbers
+import { getTransactions } from './get-transactions'
+import { getUserContext } from './user-context'
+
+export type Profile = {
+  id: string
+  name: string
+  email: string
+}
+
+export const getProfile = async () => {
+  const user = getUserContext()
+  return {
+    id: `${user.user.id}-profile`,
+    name: user.user.name,
+    email: user.user.email,
+    transactions: await getTransactions(),
+  }
+}
+```
+
+```typescript:get-transactions.ts showLineNumbers
+import { getUserContext } from './user-context'
+
+export type Transaction = {
+  id: string
+  amount: number
+  date: string
+}
+
+export const getTransactions = async () => {
+  const user = getUserContext()
+  // use the user id to get the transactions from the database
+  return [
+    {
+      id: '1',
+      amount: 100,
+      date: '2021-01-01',
+    },
+  ]
+}
+```
+
+When a function has many arguments, it gets harder to read and understand. As you can see, AsyncLocalStorage makes the function simple. And to prevent unintended function calls without the `userContext.run()` block, we make sure the `getUserContext` function throws an error if the user context is not found.
+
+I like this approach. But one thing that is missing is the linter to check if the `userContext.run()` block is missing. It'd be great if we can catch the error at compile time.
