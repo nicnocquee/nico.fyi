@@ -1,0 +1,113 @@
+---
+title: 'Multiple Async Local Storage'
+date: '2025-06-15'
+summary: 'Learn how to use multiple AsyncLocalStorage contexts in Next.js route handlers to avoid prop drilling and keep your code modular. This guide demonstrates how to manage user and request contexts, enabling seamless access to parameters and user data across your application, similar to React Context but for server-side logic.'
+commentary: 'Just like React Context, it can be nested too.'
+keywords: ['async local storage', 'prop drilling', 'typescript', 'nodejs']
+tags: ['dev', 'nextjs', 'typescript']
+---
+
+In the last post, I wrote about [Async Local Storage](/blog/async-local-storage-to-prevent-props-drilling) and how it can be used to prevent prop drilling in Next.js Route Handlers because it acts like context in React. In React, you can have multiple contexts to keep the code modular instead of having a single huge context. With a little bit of a trick, it can also be done in async local storage.
+
+Let's say we have a route handler that can accept a `sort` query parameter and an `id` path parameter. These `sort` and `id` parameters are used in some functions to fetch data from a database. In Next.js, the search parameters and path parameters are only exposed in the route handler. Using async local storage, we can create a context for the search parameters and path parameters, and make it available to any functions that need them.
+
+In the previous post, we already created a context for the user. Now, we will create a context for the request, which is very similar to the user context.
+
+```typescript:request-context.ts
+import { AsyncLocalStorage } from 'async_hooks'
+
+export const requestContext = new AsyncLocalStorage<{
+  searchParams: Record<string, string>
+  params: Record<string, string>
+  body: Record<string, any>
+}>()
+
+export const getRequestContext = () => {
+  const store = requestContext.getStore()
+  if (!store) {
+    throw new Error(
+      'Request context not found. The calling function must be wrapped in a requestContext.run() block.'
+    )
+  }
+  return store
+}
+```
+
+Next, we create a function that "wraps" the main function with multiple contexts.
+
+```typescript:multiple-async-contexts.ts
+export const runWithMultipleContexts = async <T>(
+  contexts: Array<[InstanceType<typeof AsyncLocalStorage<any>>, any]>,
+  mainFunc: () => Promise<T>,
+  index: number = 0
+): Promise<T> => {
+  if (index >= contexts.length) {
+    return mainFunc()
+  }
+  const [storage, store] = contexts[index]
+  return storage.run(store, () => runWithMultipleContexts(contexts, mainFunc, index + 1))
+}
+```
+
+And finally, in the route handler, we can use the `runWithMultipleContexts` function to wrap the main function with multiple contexts.
+
+```typescript:app/someroute/[id]/route.ts showLineNumbers {24-30}
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '../auth'
+import { userContext } from '../user-context'
+import { requestContext } from '../request-context'
+import { getData } from './data'
+import { runWithMultipleContexts } from '../multiple-async-contexts'
+
+export const GET = async (
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) => {
+  const searchParams = Object.fromEntries(request.nextUrl.searchParams.entries())
+  const paramsObj = await params
+  const user = await auth()
+
+  const requestContextData = {
+    searchParams,
+    params: paramsObj,
+  }
+  const userContextData = {
+    user,
+  }
+
+  const result = await runWithMultipleContexts(
+    [
+      [userContext, userContextData],
+      [requestContext, requestContextData],
+    ],
+    () => getData()
+  )
+
+  return NextResponse.json(result)
+}
+```
+
+In the `getData` function, we can get the request context using the `getRequestContext` function and the user context using the `getUserContext` function.
+
+```typescript:app/someroute/[id]/data.ts showLineNumbers {5-6}
+import { getRequestContext } from '../request-context'
+import { getUserContext } from '../user-context'
+
+export const getData = async () => {
+  const requestStore = getRequestContext()
+  const userStore = getUserContext()
+
+  const { searchParams, params } = requestStore
+
+  const sort = searchParams.sort || 'asc'
+  const id = params.id
+  const user = userStore.user
+
+  // do something with the user, sort, and id, e.g., fetch data from a database
+  console.log(user, sort, id)
+
+  return { user, sort, id }
+}
+```
+
+And just like that, every function that needs the request context or user context can get it easily from the `getRequestContext` or `getUserContext` function. Using `runWithMultipleContexts`, we keep the code modular and easy to reason about.
