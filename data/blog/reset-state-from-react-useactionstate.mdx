@@ -128,12 +128,12 @@ export default function Form() {
 
 By "wrapping" the server action in line 6 to 16, we can reset the form by passing `null` as the payload to the `submit` function as shown in line 42.
 
-To make it less tedious, we can create a custom hook called `useResetableActionState` that does exactly that. Here's the code:
+To make it less tedious, we can create a custom hook called `useResettableActionState` that does exactly that. Here's the code:
 
-```typescript:app/products/use-resetable-action-state.tsx showLineNumbers
+```typescript:app/products/use-resettable-action-state.tsx showLineNumbers
 import { useActionState } from 'react';
 
-export function useResetableActionState<State, Payload>(
+export function useResettableActionState<State, Payload>(
   action: (state: Awaited<State>, payload: Payload) => State | Promise<State>,
   initialState: Awaited<State>,
   permalink?: string,
@@ -169,10 +169,10 @@ You can simply copy and paste the code above to your project and use it as shown
 'use client';
 import { useRef } from 'react';
 import { doSomething } from './actions'; // server action
-import { useResetableActionState } from './use-resetable-action-state';
+import { useResettableActionState } from './use-resettable-action-state';
 
 export default function Form() {
-  const [state, submit, isPending, reset] = useResetableActionState(
+  const [state, submit, isPending, reset] = useResettableActionState(
     doSomething,
     null, // this doesn't have to be null. It can be any initial state you want.
   );
@@ -213,7 +213,7 @@ export default function Form() {
 Or you can also install the package from npm:
 
 ```shell
-npm install use-resetable-action-state
+npm install use-resettable-action-state
 ```
 
 And then import it in your project:
@@ -221,10 +221,10 @@ And then import it in your project:
 ```typescript:app/products/page.tsx showLineNumbers
 'use client';
 
-import { useResetableActionState } from 'use-resetable-action-state';
+import { useResettableActionState } from 'use-resettable-action-state';
 ```
 
-You can try the demo [here](https://playground.nico.fyi/use-action-state/reset).
+You can try the demo [here](https://playground.nico.fyi/use-action-state/reset). And the code is [here](https://github.com/nicnocquee/use-resettable-action-state).
 
 ---
 
