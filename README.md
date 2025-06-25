@@ -2,7 +2,7 @@
 
 ### Installation
 
-Install [bun](https://bun.sh/) then run `bun install` to install dependencies. The preview branch in Vercel shows all posts including the future posts.
+`npm install`
 
 ### Development
 
