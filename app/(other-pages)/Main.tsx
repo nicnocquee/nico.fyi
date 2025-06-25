@@ -20,13 +20,18 @@ export default function Home({ posts }: { posts: CoreContent<Blog>[] }) {
         <Alert>
           <AlertTitle>Recent news</AlertTitle>
           <AlertDescription>
-            Have you checked out my new book?{' '}
-            <a
-              className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
-              href="https://pr.nico.fyi"
-            >
-              Pull Request Best Practices &rarr;
-            </a>
+            <div className="flex flex-col space-y-2 [&>a]:hover:text-primary-600 [&>a]:dark:hover:text-primary-400 [&_a]:mx-2 [&_a]:inline-block [&_a]:text-primary-500">
+              <ul className="list-disc pl-5">
+                <li>
+                  Bluesky later: Schedule Bluesky post in the future for FREE
+                  <a href="https://www.blueskylater.com">www.blueskylater.com</a>
+                </li>
+                <li>
+                  Have you checked out my new book?
+                  <a href="https://pr.nico.fyi">Pull Request Best Practices &rarr;</a>
+                </li>
+              </ul>
+            </div>
           </AlertDescription>
         </Alert>
       </div>
