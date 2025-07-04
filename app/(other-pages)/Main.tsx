@@ -23,6 +23,11 @@ export default function Home({ posts }: { posts: CoreContent<Blog>[] }) {
             <div className="flex flex-col space-y-2 [&>a]:hover:text-primary-600 [&>a]:dark:hover:text-primary-400 [&_a]:mx-2 [&_a]:inline-block [&_a]:text-primary-500">
               <ul className="list-disc pl-5">
                 <li>
+                  DataQueue.dev: a lightweight job queue for Node.js/TypeScript projects, backed by
+                  PostgreSQL.
+                  <a href="https://www.dataqueue.dev">www.dataqueue.dev</a>
+                </li>
+                <li>
                   Bluesky later: Schedule Bluesky post in the future for FREE
                   <a href="https://www.blueskylater.com">www.blueskylater.com</a>
                 </li>
