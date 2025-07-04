@@ -25,7 +25,7 @@ export default function Home({ posts }: { posts: CoreContent<Blog>[] }) {
                 <li>
                   DataQueue.dev: a lightweight job queue for Node.js/TypeScript projects, backed by
                   PostgreSQL.
-                  <a href="https://www.dataqueue.dev">www.dataqueue.dev</a>
+                  <a href="https://dataqueue.dev">dataqueue.dev</a>
                 </li>
                 <li>
                   Bluesky later: Schedule Bluesky post in the future for FREE
