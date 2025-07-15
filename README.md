@@ -38,7 +38,7 @@ yarn
 npx og-screenshots -u https://www.nico.fyi/blog/how-to-clone-only-specific-folder-in-git-repo -o ./public/static/screenshots
 # all pages from sitemap
 npx og-screenshots -u https://www.nico.fyi/sitemap.xml -o ./public/static/screenshots
-
+# Localhost
 npx og-screenshots -u http://localhost:3000/sitemap.xml -o ./public/static/screenshots/
 ```
 

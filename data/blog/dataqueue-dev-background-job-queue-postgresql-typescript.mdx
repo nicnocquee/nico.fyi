@@ -1,0 +1,93 @@
+---
+title: Introducing DataQueue
+date: '2025-07-15'
+summary: The background job queue for Node.js and PostgreSQL with first class type safety using TypeScript
+commentary: Handle background job easily in your modern Full Stack React projects
+tags: ['dev', 'nextjs', 'opensource', 'typescript']
+---
+
+There are so many ways to run a long-running process in the background when you use modern React frameworks like Next.js, Remix, etc. You can spin your own Redis and use BullMQ as shown in [this guest post](/blog/long-running-jobs-nextjs-redis-bull), or use a managed service like Trigger.dev. But that means adding additional technology stack to your project and, more often than not, you need to pay for the service. Even rolling your own Redis is not free because you need to pay for the storage.
+
+In my projects at the company where I work, we needed to defer a relatively long-running task to a background job to keep the user experience smooth. Since we already use PostgreSQL for our database, I decided to use it as the storage for the background job queue.
+
+So I made an open source library called [DataQueue](https://dataqueue.dev) to handle this. It's a background job queue for Node.js and PostgreSQL with type-safe support with TypeScript.
+
+![](https://docs.dataqueue.dev/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fdataqueue-overview.e15cffa2.png&w=1920&q=75)
+
+You can read more about DataQueue in the [documentation](https://docs.dataqueue.dev). But one of the cool things (I think, I'm biased 😂) is its first-class type safety. You can define what type of job you want to run and what type of data you want to pass to the job. **This ensures that you can't add a job with the wrong data to the queue, and the job handler will always receive the correct data**.
+
+For example, you can define two jobs `send_email` and `generate_report` with the following payload types:
+
+```typescript:@lib/types/job-payload-map.ts
+export type JobPayloadMap = {
+  send_email: {
+    to: string
+    subject: string
+    body: string
+  }
+  generate_report: {
+    reportId: string
+    userId: string
+  }
+}
+```
+
+Then you can define the job handlers like this:
+
+```typescript:@lib/job-handlers.ts
+import { sendEmail } from './services/email' // Function to send the email
+import { generateReport } from './services/generate-report' // Function to generate the report
+import { JobHandlers } from '@nicnocquee/dataqueue'
+
+export const jobHandlers: JobHandlers<JobPayloadMap> = {
+  send_email: async (payload) => {
+    // the payload is typed correctly
+    const { to, subject, body } = payload
+    await sendEmail(to, subject, body)
+  },
+  generate_report: async (payload) => {
+    // the payload is typed correctly
+    const { reportId, userId } = payload
+    await generateReport(reportId, userId)
+  },
+}
+```
+
+Then anywhere in your code, you can add a job to the queue with the following code:
+
+```typescript:@/app/actions/send-email.ts
+'use server'
+
+import { getJobQueue } from '@/lib/queue'
+import { revalidatePath } from 'next/cache'
+
+export const sendEmail = async ({ name, email }: { name: string; email: string }) => {
+  // Add a welcome email job
+  const jobQueue = getJobQueue()
+  try {
+    const runAt = new Date(Date.now() + 5 * 1000) // Run 5 seconds from now
+    const job = await jobQueue.addJob({
+      jobType: 'send_email',
+      payload: {
+        // the payload is typed correctly; you cannot add a `send_email` job with the wrong data
+        to: email,
+        subject: 'Welcome to our platform!',
+        body: `Hi ${name}, welcome to our platform!`,
+      },
+      priority: 10, // Higher number = higher priority
+      runAt,
+      tags: ['welcome', 'user'], // Add tags for grouping/searching
+    })
+
+    revalidatePath('/')
+    return { job }
+  } catch (error) {
+    console.error('Error adding job:', error)
+    throw error
+  }
+}
+```
+
+The job handler will run when the job is processed by the worker. You can read more about the [job processing](https://docs.dataqueue.dev/usage/process-jobs) in the documentation. Generally speaking, in a serverless environment like Vercel, you can use a cron job to periodically process jobs.
+
+There are more features in DataQueue that I haven't mentioned here, such as adding tags to jobs, retries, delays, and more. You can read more about DataQueue in the [documentation](https://docs.dataqueue.dev). Give it a try and let me know what you think!
