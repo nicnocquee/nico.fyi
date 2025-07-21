@@ -17,6 +17,7 @@ import { routes } from '../routes'
 import { PopularBlogs } from '../../components/popular'
 import { Promo } from './promo'
 import { env } from '@/env'
+import { Alert } from '@/components/ui/alert'
 
 export const revalidate = 60
 export const dynamicParams = true
@@ -142,6 +143,14 @@ export default async function Page(props: { params: Promise<typeof routes.blogPa
       <Promo />
       <Layout content={mainContent} authorDetails={authorDetails} next={next} prev={prev}>
         <MDXLayoutRenderer code={post.body.code} components={components} toc={post.toc} />
+        <Alert className="duration-1000 animate-in fade-in-0">
+          <span className="inline-block animate-bounce text-2xl">🥳</span> Thank you for reading
+          until the end! Can I bother you to check my latest project{' '}
+          <a href="https://dataqueue.dev" target="_blank" rel="noopener noreferrer">
+            DataQueue.dev
+          </a>
+          ? Greatly appreciate it!
+        </Alert>
       </Layout>
       <PopularBlogs />
     </>
