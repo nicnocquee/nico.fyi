@@ -1,0 +1,250 @@
+---
+title: 'How to use multiple Prisma schemas in a Next.js monorepo'
+date: '2025-07-21'
+summary: 'In this post, I will share how to use multiple Prisma schemas in a Next.js app in a monorepo with Turborepo.'
+commentary: "Don't worry, it's not as complicated as it sounds."
+keywords: ['prisma', 'monorepo', 'typescript', 'nodejs', 'nextjs']
+tags: ['dev', 'nextjs', 'typescript', 'prisma']
+---
+
+Monorepos have come a long way since the days of Lerna. When I tried them before, it was painful. Lots of things were not working as expected. But now, it's a lot better. I've been using [Turborepo](https://turborepo.com) for a while now and it's been great. It got me to the point where I always want to start a new project with it.
+
+However, there are still some things that don't just work. One of those things is having [Prisma as a shared package in a monorepo](https://www.prisma.io/docs/guides/turborepo#1-create-your-monorepo-using-turborepo). When a Next.js app in the monorepo uses the shared Prisma package, you'll run into runtime errors when deployed to serverless environments like Vercel or Netlify.
+
+![Netlify Prisma Monorepo Next Error](/static/images/articles/netlify-prisma-monorepo-next-error.png)
+
+```
+This is likely caused by a bundler that has not copied
+"libquery_engine-rhel-openss1-3.0.x.so.node" next to the resulting bundle.
+Ensure that "libquery_engine-rhel-openss1-3.0.x.so.node" has been copied next to the bundle or in "generated/client".
+```
+
+This happens because the Next.js compiler does not copy all the files from the prisma-generated-client directory to the output directory of the Next.js app. This is a known issue and can be fixed by using the [@prisma/nextjs-monorepo-workaround-plugin](https://www.npmjs.com/package/@prisma/nextjs-monorepo-workaround-plugin). After installing the npm package, update the `next.config.mjs` file to include the plugin.
+
+```tsx:next.config.mjs
+const { PrismaPlugin } = require('@prisma/nextjs-monorepo-workaround-plugin')
+
+module.exports = {
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.plugins = [...config.plugins, new PrismaPlugin()]
+    }
+
+    return config
+  },
+}
+```
+
+This has worked wonderfully for me in my projects. **Until I started using multiple Prisma schemas in the same monorepo**. In my project, I added another package to the monorepo that contains another Prisma schema which connects to a different database. I did this because the data in the second database is completely unrelated to the first one. So, in the spirit of separation of concerns, I decided to keep them in separate packages.
+
+But when the Next.js app uses both Prisma packages, I hit the same error as before despite having the plugin installed. After reading the code of the plugin, I found that it basically just copies the files from the prisma-generated-client directory to the output directory of the Next.js app. But it doesn't handle the case where there are multiple Prisma schemas and prisma-generated-client directories. So all I had to do was modify the plugin to handle this case. And here's the modified plugin. It's a bit long, so you can just copy and paste it into your project.
+
+```js:prisma-monorepo-workaround-plugin.js
+import path from "path";
+import fs from "fs/promises";
+// Use require for webpack types to avoid breaking if types are not installed
+let CompilationType, SourcesType;
+try {
+  const webpack = require("webpack");
+  CompilationType = webpack.Compilation;
+  SourcesType = webpack.sources;
+} catch {
+  CompilationType = undefined;
+  SourcesType = undefined;
+}
+
+// when client is bundled this gets its output path
+// regex works both on escaped and non-escaped code
+const prismaDirRegex =
+  /\\?"?output\\?"?:\s*{(?:\\n?|\s)*\\?"?value\\?"?:(?:\\n?|\s)*\\?"(.*?)\\?",(?:\\n?|\s)*\\?"?fromEnvVar\\?"?/g;
+
+async function getPrismaDir(from) {
+  // if we can find schema.prisma in the path, we are done
+  if (await fs.stat(path.join(from, "schema.prisma")).catch(() => false)) {
+    return from;
+  }
+
+  // otherwise we need to find the generated prisma client
+  return path.dirname(require.resolve(".prisma/client", { paths: [from] }));
+}
+
+// get all required prisma files (schema + engine)
+async function getPrismaFiles(from) {
+  const prismaDir = await getPrismaDir(from);
+  const filterRegex = /schema\.prisma|engine/;
+  const prismaFiles = await fs.readdir(prismaDir);
+
+  return prismaFiles.filter((file) => file.match(filterRegex));
+}
+
+class MultiPrismaPlugin {
+  constructor(options = {}) {
+    this.options = options;
+    this.schemaCount = 0;
+    this.fromDestPrismaMap = {}; // { [from]: dest }
+  }
+
+  /**
+   * @param compiler
+   */
+  apply(compiler) {
+    // fallback to any if types are not available
+    const webpack = compiler.webpack || {};
+    const Compilation = webpack.Compilation || CompilationType;
+    const sources = webpack.sources || SourcesType;
+
+    // read bundles to find which prisma files to copy (for all users)
+    compiler.hooks.compilation.tap("MultiPrismaPlugin", (compilation) => {
+      compilation.hooks.processAssets.tapPromise(
+        {
+          name: "MultiPrismaPlugin",
+          stage: Compilation.PROCESS_ASSETS_STAGE_ANALYSE,
+        },
+        async (assets) => {
+          const jsAssetNames = Object.keys(assets).filter((k) =>
+            k.endsWith(".js"),
+          );
+          const jsAsyncActions = jsAssetNames.map(async (assetName) => {
+            // prepare paths
+            const outputDir = compiler.outputPath;
+            const assetPath = path.resolve(outputDir, assetName);
+            const assetDir = path.dirname(assetPath);
+
+            // get sources
+            const oldSourceAsset = compilation.getAsset(assetName);
+            if (!oldSourceAsset) {
+              // eslint-disable-next-line no-console
+              console.warn(`Asset ${assetName} not found`);
+              return;
+            }
+            const oldSourceContents = oldSourceAsset.source.source() + "";
+
+            // update sources
+            for (const match of oldSourceContents.matchAll(prismaDirRegex)) {
+              const prismaDir = await getPrismaDir(match[1]);
+              const prismaFiles = await getPrismaFiles(match[1]);
+
+              prismaFiles.forEach((file) => {
+                let f = file;
+                const from = path.join(prismaDir, f);
+
+                // if we have multiple schema.prisma files, we need to rename them
+                if (
+                  f === "schema.prisma" &&
+                  this.fromDestPrismaMap[from] === undefined
+                ) {
+                  f += ++this.schemaCount;
+                }
+
+                // if we already have renamed it, we need to get its "renamed" name
+                if (
+                  f.includes("schema.prisma") &&
+                  this.fromDestPrismaMap[from] !== undefined
+                ) {
+                  f = path.basename(this.fromDestPrismaMap[from]);
+                }
+
+                if (f.includes("schema.prisma")) {
+                  // update "schema.prisma" to "schema.prisma{number}" in the sources
+                  const newSourceString = oldSourceContents.replace(
+                    /schema\.prisma/g,
+                    f,
+                  );
+                  const newRawSource = new sources.RawSource(newSourceString);
+                  compilation.updateAsset(assetName, newRawSource);
+                }
+
+                // update copy map
+                this.fromDestPrismaMap[from] = path.join(assetDir, f);
+              });
+            }
+          });
+
+          await Promise.all(jsAsyncActions);
+        },
+      );
+    });
+
+    // update nft.json files to include prisma files (only for next.js)
+    compiler.hooks.compilation.tap("MultiPrismaPlugin", (compilation) => {
+      compilation.hooks.processAssets.tapPromise(
+        {
+          name: "MultiPrismaPlugin",
+          stage: Compilation.PROCESS_ASSETS_STAGE_ANALYSE,
+        },
+        async (assets) => {
+          const nftAssetNames = Object.keys(assets).filter((k) =>
+            k.endsWith(".nft.json"),
+          );
+          const nftAsyncActions = nftAssetNames.map((assetName) => {
+            // prepare paths
+            const outputDir = compiler.outputPath;
+            const assetPath = path.resolve(outputDir, assetName);
+            const assetDir = path.dirname(assetPath);
+
+            // get sources
+            const oldSourceAsset = compilation.getAsset(assetName);
+            if (!oldSourceAsset) {
+              // eslint-disable-next-line no-console
+              console.warn(`NFT Asset ${assetName} not found`);
+              return;
+            }
+            const oldSourceContents = oldSourceAsset.source.source() + "";
+            const ntfLoadedAsJson = JSON.parse(oldSourceContents);
+
+            // update sources
+            Object.entries(this.fromDestPrismaMap).forEach(([_from, dest]) => {
+              ntfLoadedAsJson.files.push(path.relative(assetDir, dest));
+            });
+
+            // persist sources
+            const newSourceString = JSON.stringify(ntfLoadedAsJson);
+            const newRawSource = new sources.RawSource(newSourceString);
+            compilation.updateAsset(assetName, newRawSource);
+          });
+
+          await Promise.all(nftAsyncActions);
+        },
+      );
+    });
+
+    // copy prisma files to output as the final step (for all users)
+    compiler.hooks.done.tapPromise("MultiPrismaPlugin", async () => {
+      const asyncActions = Object.entries(this.fromDestPrismaMap).map(
+        async ([from, dest]) => {
+          // only copy if file doesn't exist, necessary for watch mode
+          if ((await fs.access(dest).catch(() => false)) === false) {
+            return fs.copyFile(from, dest);
+          }
+        },
+      );
+
+      await Promise.all(asyncActions);
+    });
+  }
+}
+
+export { MultiPrismaPlugin };
+```
+
+Put that in a file called `prisma-monorepo-workaround-plugin.js` somewhere in your Next.js app. Then update the `next.config.mjs` file to use the plugin.
+
+```tsx:next.config.mjs
+const { MultiPrismaPlugin } = require('./prisma-monorepo-workaround-plugin')
+
+module.exports = {
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.plugins = [...config.plugins, new MultiPrismaPlugin()]
+```
+
+Then you can try to build the Next.js app and see if it works by checking the output directory. If it works, you will see multiple schema files and the `libquery_engine-*.node` file in the output directory. Try running the following command to see if it works:
+
+```bash
+find apps/your-next-js-app/.next -name 'schema.prisma*'
+find apps/your-next-js-app/.next -name '*.node'
+```
+
+If you see multiple schema files and the `libquery_engine-*.node` file, then you're good to go.
+
+I might publish this plugin to npm so you can use it in your projects. But for now, you can use the code above in your projects.
