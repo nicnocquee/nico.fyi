@@ -6,6 +6,7 @@ const headerNavLinks = [
   { href: '/works', title: 'Works' },
   { href: '/about', title: 'About' },
   { href: '/insights', title: 'Insights' },
+  { href: '/feed.xml', title: 'RSS Feed' },
 ]
 
 export default headerNavLinks
