@@ -1,0 +1,177 @@
+---
+title: 'Taming React Component'
+date: '2025-08-17'
+commentary: How to make your React component clean
+summary: Some tips to make your React component clean, readable, maintainable, and testable
+tags: ['dev', 'react']
+---
+
+As a project grows, the codebase inevitably becomes more complex. This is where the concept of clean code comes in. Clean code is a set of principles and practices that help developers write code that is easy to understand, maintain, and extend.
+
+In React, the complexity of a component is often caused by these factors: the number of props, the number of states, and the number of effects. In this post, I'll focus on the issue of states and effects.
+
+## React's Two Towers
+
+I'm pretty sure this is not a new concept, but I've come to realize that a React component can be seen as having two parts: **the user interface and the business logic**. Consider the following simple component:
+
+```tsx:component.tsx showLineNumbers {4-13, 16-21}
+import { useState, useEffect } from 'react'
+
+const Component = () => {
+  const [count, setCount] = useState(0)
+  const [name, setName] = useState('')
+
+  useEffect(() => {
+    console.log('count', count)
+  }, [count])
+
+  useEffect(() => {
+    console.log('name', name)
+  }, [name])
+
+  return (
+    <div>
+      <h1>Hello {name}</h1>
+      <p>Count: {count}</p>
+      <button onClick={() => setCount(count => count + 1)}>Increment</button>
+      <button onClick={() => setName('John')}>Change Name</button>
+    </div>
+  )
+}
+```
+
+In the example above,
+
+1. the HTML components returned by the function is the user interface (line 16-21).
+2. The code from the beginning of the function up to before the return statement is the business logic (line 4-13).
+
+It may not seem like a big deal in this simple example, but as the component grows, the business logic will become more and more complex. You might end up with a component with hundreds of lines of logic and hundreds of lines of UI. Trust me, I've experienced this firsthand.
+
+I don't know about you, but I want to be able to read the UI code first so that I can visualize the component. When there are hundreds of lines of logic code before the return statement, it's hard to read and understand the component.
+
+## Custom hooks to the rescue
+
+The solution is simple: custom hooks. Using custom hooks, we can encapsulate the logic and if needed, use it in other components. Here's how we can refactor the component above:
+
+```tsx:component.tsx showLineNumbers {4}
+import { useCount } from './use-count'
+
+const Component = () => {
+  const { count, setCount, name, setName } = useCount()
+
+  return (
+    <div>
+      <h1>Hello {name}</h1>
+      <p>Count: {count}</p>
+      <button onClick={() => setCount(count => count + 1)}>Increment</button>
+      <button onClick={() => setName('John')}>Change Name</button>
+    </div>
+  )
+}
+```
+
+```tsx:use-count.ts showLineNumbers
+import { useState, useEffect, useMemo } from 'react'
+
+export const useCount = () => {
+  const [count, setCount] = useState(0)
+  const [name, setName] = useState('')
+
+  useEffect(() => {
+    console.log('count', count)
+  }, [count])
+
+  useEffect(() => {
+    console.log('name', name)
+  }, [name])
+
+  return useMemo(() => ({
+    count,
+    setCount,
+    name,
+    setName,
+  }), [count, name])
+}
+```
+
+As you can see, now the `Component` is cleaner. The business logic is now encapsulated in the `useCount` hook. And not only we get a more readable component, but we also get a reusable hook that can be used in other components and **tested independently**.
+
+Again, it may not seem like a big deal in this simple example like the one above, but as the component grows, the benefits of using custom hooks become more and more apparent.
+
+## Stop polluting the component
+
+Another pet peeve that I've seen developers doing is _polluting_ the component even more by having a helper renderer function inside the component. A renderer function is a function that returns a React element. For example,
+
+```tsx:component.tsx showLineNumbers {7-17}
+import { useState, useEffect } from 'react'
+
+const Component = () => {
+  const [count, setCount] = useState(0)
+  const [name, setName] = useState('')
+
+  const renderCount = (count) => {
+    if (count > 10) {
+      return <p>Count is greater than 10</p>
+    }
+
+    return (
+      <div>
+        <p>Count: {count}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <h1>Hello {name}</h1>
+      {renderCount()}
+      <button onClick={() => setCount(count => count + 1)}>Increment</button>
+      <button onClick={() => setName('John')}>Change Name</button>
+    </div>
+  )
+}
+```
+
+My problem with this is that now the component has two renderers which makes it harder to read and understand. Imagine having multiple helper renderer functions inside the component. Or even a single renderer function that has tons of lines of code. It takes more time and effort to find the main return statement.
+
+Instead of having a helper renderer function, just create a new component for it.
+
+```tsx:component.tsx showLineNumbers
+import { useState, useEffect } from 'react'
+
+const Component = () => {
+  const [count, setCount] = useState(0)
+  const [name, setName] = useState('')
+
+  return (
+    <div>
+      <h1>Hello {name}</h1>
+      <Count count={count} />
+      <button onClick={() => setCount(count => count + 1)}>Increment</button>
+      <button onClick={() => setName('John')}>Change Name</button>
+    </div>
+  )
+}
+
+const Count = ({ count }) => {
+  if (count > 10) {
+    return <p>Count is greater than 10</p>
+  }
+
+  return (
+    <div>
+      <p>Count: {count}</p>
+    </div>
+  )
+}
+```
+
+Not only is the component cleaner, but we can also test the `Count` component by itself.
+
+## Conclusion
+
+Keep in mind the following when writing React components:
+
+- Use custom hooks to encapsulate the logic.
+- Don't pollute the component with helper functions.
+- Keep the component small and focused.
