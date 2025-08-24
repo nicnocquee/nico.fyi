@@ -7,11 +7,11 @@ keywords: ['react', 'nextjs', 'typescript']
 tags: ['dev', 'nextjs', 'typescript', 'open source']
 ---
 
-Just updated my open source react hook [useResettableActionState](https://github.com/nicnocquee/use-resettable-action-state). At the beginning, I made it to allow me to [reset the state after submitting the form using useActionState](/blog/reset-state-from-react-useactionstate). Now it also allows you to cancel the action or modify the payload before calling the server action.
+Just updated my open source React hook [useResettableActionState](https://github.com/nicnocquee/use-resettable-action-state). At the beginning, I made it to allow me to [reset the state after submitting the form using useActionState](/blog/reset-state-from-react-useactionstate). Now it also allows you to cancel the action or modify the payload before calling the server action.
 
 ## Cancelling the action
 
-Before submitting a form, you may want to cancel the action if the entered values are not valid. For example, when updating user's password, you may want to cancel the action if the user fails to repeat the new password correctly. In this case, you can provide a function to the new `beforeAction` argument. Code example:
+Before submitting a form, you may want to cancel the action if the entered values are not valid. For example, when updating a user's password, you may want to cancel the action if the user fails to repeat the new password correctly. In this case, you can provide a function to the new `beforeAction` argument. Code example:
 
 ```tsx:app/page.tsx showLineNumbers {10-15}
 'use client';
@@ -63,9 +63,9 @@ As you can see from the code example above, the `beforeAction` function receives
 
 ## Modifying the payload before calling the server action
 
-There may be cases where you want to modify the payload before calling the server action. For example, you may want to acquire a Google Recaptcha token and submit it along with the form data. The token has an expiration time, so it's better to acquire it before calling the server action instead of when the page is loaded. The user might take a while to complete the form, and the token might expire before the user submits the form.
+There may be cases where you want to modify the payload before calling the server action. For example, you may want to acquire a Google reCAPTCHA token and submit it along with the form data. The token has an expiration time, so it's better to acquire it before calling the server action instead of when the page is loaded. The user might take a while to complete the form, and the token might expire before the user submits the form.
 
-In the example below, I'm using [the react recaptcha v3 library](https://github.com/wojtekmaj/react-recaptcha-v3#readme) to acquire the token. This library has `useGoogleReCaptcha` hook that returns a function to acquire the token, `executeRecaptcha`. Then I use the `beforeAction` function to acquire the token and modify the payload.
+In the example below, I'm using [the React reCAPTCHA v3 library](https://github.com/wojtekmaj/react-recaptcha-v3#readme) to acquire the token. This library has a `useGoogleReCaptcha` hook that returns a function to acquire the token, `executeRecaptcha`. Then I use the `beforeAction` function to acquire the token and modify the payload.
 
 ```tsx:app/page.tsx showLineNumbers {8-17}
 export default function Form() {
@@ -138,6 +138,6 @@ You can check out the demo [here](https://playground.nico.fyi/use-action-state/r
 
 ## Conclusion
 
-`beforeAction` is a convenient function to cancel the action or modify the payload before calling the server action. Thanks to it, you won't need to use `useEffect` or `useState` to manage the submission of your form.
+The `beforeAction` function is a convenient way to cancel the action or modify the payload before calling the server action. Thanks to it, you won't need to use `useEffect` or `useState` to manage the submission of your form.
 
 Additionally, the library is now 100% covered by tests as shown [here](https://github.com/nicnocquee/use-resettable-action-state/actions/runs/17187991759/job/48759677433#step:5:85)! 🥳
