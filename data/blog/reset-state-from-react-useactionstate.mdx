@@ -130,7 +130,7 @@ By "wrapping" the server action in line 6 to 16, we can reset the form by passin
 
 To make it less tedious, we can create a custom hook called `useResettableActionState` that does exactly that. Here's the code:
 
-```typescript:app/products/use-resetable-action-state.tsx showLineNumbers
+```typescript:app/products/use-resettable-action-state.tsx showLineNumbers
 import { useActionState, startTransition } from 'react';
 
 export function useResettableActionState<State, Payload>(
