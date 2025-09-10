@@ -1,0 +1,137 @@
+---
+title: 'Stop mocking Prisma in tests - Part 1'
+date: '2025-06-16'
+summary: 'There are several reasons why mocking Prisma in tests is a bad idea. In this post, I will share my opinion on why mocking Prisma in tests is a bad idea.'
+commentary: 'Or any ORM for that matter'
+keywords: ['async local storage', 'props drilling', 'typescript', 'nodejs', 'prisma', 'testing']
+tags: ['dev', 'nextjs', 'typescript']
+---
+
+One of my pet peeves with testing in web development is mocking. So many devs tend to be purists who insist that the unit under test should be the only thing being tested, and that's why they mock everything. In projects that use Prisma or any other ORM, developers mock the ORM client when the function under test needs database access.
+
+Let's take a look at a simple example: a login process. We may have a function like this:
+
+```typescript:login.ts
+export const login = async (email: string, password: string) => {
+  const user = await prisma.user.findUnique({
+    where: { email },
+  })
+
+  if (!user) {
+    throw new Error('User not found')
+  }
+
+  // In real life, we would compare the stored hashed password with the provided password's hash
+  if (user.password !== password) {
+    throw new Error('Invalid password')
+  }
+
+  return user
+}
+```
+
+A test for this function might look like this:
+
+```typescript:login.test.ts showLineNumbers {6-15, 34, 40-42}
+// src/auth/login.test.ts
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { login } from './login' // adjust the import path based on your project structure
+
+// Mock the Prisma client
+vi.mock('@prisma/client', () => {
+  const mockPrismaClient = {
+    user: {
+      findUnique: vi.fn()
+    }
+  }
+  return {
+    PrismaClient: vi.fn(() => mockPrismaClient)
+  }
+})
+
+// Get a reference to the mocked prisma client
+const prisma = new (await import('@prisma/client')).PrismaClient()
+
+describe('login function', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should return user when credentials are valid', async () => {
+    // Arrange
+    const mockUser = {
+      id: 1,
+      email: 'test@example.com',
+      password: 'password123',
+      name: 'Test User'
+    }
+
+    prisma.user.findUnique.mockResolvedValue(mockUser)
+
+    // Act
+    const result = await login('test@example.com', 'password123')
+
+    // Assert
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      where: { email: 'test@example.com' }
+    })
+    expect(result).toEqual(mockUser)
+  })
+
+  // some more tests
+})
+```
+
+The test mocks the prisma's `findUnique` method (lines 6-15) because the `login` function uses it. Then it asserts that the `findUnique` method was called with the correct arguments (lines 40-42).
+
+Now I'll share my opinion on why this test is bad and borderline useless.
+
+## The test is extremely tightly coupled to the implementation
+
+Since the test mocks the `findUnique` method, it will definitely break if the `login` function doesn't use it anymore. For example, someone may decide to use `findFirst` or even use `prismaClient.$queryRaw` to execute a raw SQL query.
+
+## The test is testing the wrong thing
+
+When testing, we write one or more assertions. An assertion is a way to verify that the code under test is working as expected. But more often than not, developers tend to write assertions that are not very useful.
+
+In this case, asserting that the `findUnique` method was called with the correct arguments is useless. There's no need for us to know that. What we have to be certain of is that the `login` function returns the correct user when the credentials are valid.
+
+## The test trusts the third-party library too much
+
+The argument I often hear is that, since the third-party library is not our code, we should mock it and let the third party ensure that it works as advertised. I'd agree if the third-party library connected to external services. But in this case, Prisma or any other ORM is used to connect to a database that we own and control. I argue that we should also make sure the third-party library works as expected, at least within the scope of the function under test.
+
+Imagine if we update the Prisma client to a newer version, and somehow there's a bug in the `findUnique` method. The test will pass because the mock will return the correct user, but at runtime, the `login` function will fail because the `findUnique` method is not working as expected. A good test should be able to catch this kind of bug. The above test is misleading.
+
+## The test becomes burdensome the more things are happening in the function
+
+That login example is pretty simple, but what if the function does more than just fetch a user? Maybe the function also writes the login time back to the database.
+
+```typescript:login.ts
+export const login = async (email: string, password: string) => {
+  const user = await prisma.user.findUnique({
+    where: { email },
+  })
+
+  if (!user) {
+    throw new Error('User not found')
+  }
+
+  // In real life, we would compare the stored hashed password with the provided password's hash
+  if (user.password !== password) {
+    throw new Error('Invalid password')
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { lastLoginAt: new Date() },
+  })
+
+  return user
+}
+```
+
+Now we need to also mock the `update` method. Then someone could add more code to write to the database, and we would need to mock more methods. Writing tests will become more and more burdensome, even though all we want to ensure is that the `login` function returns the correct user when the credentials are valid.
+
+# My solution
+
+In my projects, I don't mock the Prisma client. In my tests, I create a test database that my code can run against. In my next post, I'll show you how to do that.

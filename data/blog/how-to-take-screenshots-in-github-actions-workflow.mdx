@@ -1,0 +1,252 @@
+---
+title: 'How to take screenshots of your statically exported Next.js site in GitHub Actions workflow'
+date: '2025-06-17'
+summary: 'Learn how to automatically take full-page screenshots of your statically exported Next.js site using GitHub Actions and Puppeteer. This step-by-step guide covers setting up a workflow to capture visual previews for every pull request, making code reviews easier even without preview deployments. Perfect for teams using GitHub Pages or static hosting!'
+commentary: "The trick when you don't have preview deployments"
+keywords: ['testing', 'github actions', 'screenshots', 'puppeteer', 'nextjs']
+tags: ['dev', 'nextjs', 'typescript', 'github']
+---
+
+Our [company's website](https://hyperjump.tech) is hosted in [GitHub pages](https://github.com/hyperjumptech/hyperjump.tech). It is a statically exported Next.js app. We still do pull requests and code reviews. But the problem is we don't have the luxury of having preview deployments like when we use Vercel or Netlify. Nevertheless, we still want to be able to see how the website looks like before merging a pull request.
+
+So I added a GitHub Actions workflow to take screenshots of the website. It is a simple workflow that runs on every pull request.
+
+First we need a script to find all pages after the Next.js app is built, then we use [Puppeteer](https://pptr.dev) to take screenshots of each page.
+
+```javascript:take-screenshots.js showLineNumbers {18, 51-69, 108}
+const puppeteer = require("puppeteer");
+const fs = require("fs");
+const path = require("path");
+
+const OUT_DIR = path.join(process.cwd(), "screenshots");
+const SERVER_URL = "http://localhost:3000"; // Use the server URL instead of file paths
+const SITE_DIR = path.join(process.cwd(), "out"); // Next.js export directory
+
+// Create screenshots directory if it doesn't exist
+if (!fs.existsSync(OUT_DIR)) {
+  fs.mkdirSync(OUT_DIR, { recursive: true });
+}
+
+// Helper function for delay
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Improved function to find all HTML pages in the Next.js export directory
+function findAllPages(dir, baseDir = dir, result = []) {
+  const files = fs.readdirSync(dir);
+
+  for (const file of files) {
+    const fullPath = path.join(dir, file);
+    const stat = fs.statSync(fullPath);
+
+    if (stat.isDirectory()) {
+      // Recursively search directories
+      findAllPages(fullPath, baseDir, result);
+    } else if (file.endsWith(".html")) {
+      // Found an HTML file, this is a page
+      const relativePath = path.relative(baseDir, dir);
+      const pagePath = relativePath
+        ? path.join(
+            relativePath,
+            file === "index.html" ? "" : file.replace(".html", "")
+          )
+        : file === "index.html"
+          ? ""
+          : file.replace(".html", "");
+
+      // Skip duplicate routes (e.g., /index.html and /)
+      if (!result.includes(pagePath)) {
+        result.push(pagePath);
+      }
+    }
+  }
+
+  return result;
+}
+
+// Function to scroll the page to load lazy images
+async function autoScroll(page) {
+  await page.evaluate(async () => {
+    await new Promise((resolve) => {
+      let totalHeight = 0;
+      const distance = 100;
+      const timer = setInterval(() => {
+        const scrollHeight = document.body.scrollHeight;
+        window.scrollBy(0, distance);
+        totalHeight += distance;
+
+        if (totalHeight >= scrollHeight) {
+          clearInterval(timer);
+          window.scrollTo(0, 0); // Scroll back to top
+          resolve();
+        }
+      }, 100);
+    });
+  });
+}
+
+// Function to force load all images
+async function forceImagesLoad(page) {
+  await page.evaluate(async () => {
+    // Find all image elements
+    const images = Array.from(document.querySelectorAll("img"));
+
+    // Force load all images by setting their loading attribute to eager
+    images.forEach((img) => {
+      img.loading = "eager";
+
+      // If the image has data-src attribute (common in lazy loading libraries)
+      if (img.dataset.src) {
+        img.src = img.dataset.src;
+      }
+    });
+
+    // Wait for all images to load
+    await Promise.all(
+      images.map((img) => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve; // Also resolve on error to avoid hanging
+        });
+      })
+    );
+  });
+}
+
+(async () => {
+  console.log("Starting screenshot process...");
+
+  // Launch with no-sandbox flag for GitHub Actions
+  const browser = await puppeteer.launch({
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-animations", // Disable CSS animations
+      "--disable-extensions" // Disable extensions that might interfere
+    ],
+    defaultViewport: { width: 1280, height: 800 }
+  });
+  const page = await browser.newPage();
+  await page.emulateMediaFeatures([
+    { name: "prefers-reduced-motion", value: "reduce" }
+  ]);
+
+  // Find all pages in the export directory
+  console.log(`Looking for pages in ${SITE_DIR}...`);
+  const pages = findAllPages(SITE_DIR);
+  console.log(`Found ${pages.length} pages: ${pages.join(", ")}`);
+
+  // Add the home page if it's not already in the list
+  if (!pages.includes("")) {
+    pages.unshift("");
+  }
+
+  for (const pagePath of pages) {
+    // Create URL for the server
+    const pageUrl = pagePath ? `${SERVER_URL}/${pagePath}` : SERVER_URL;
+    // Create a safe filename for the screenshot
+    const pageName = pagePath.replace(/\//g, "-") || "home";
+
+    console.log(`Processing page: ${pageName} (${pageUrl})`);
+
+    try {
+      // Navigate to the page on the local server
+      console.log(`Navigating to ${pageUrl}...`);
+      await page.goto(pageUrl, {
+        waitUntil: "networkidle0",
+        timeout: 30000 // Increase timeout to 30 seconds
+      });
+
+      // Scroll through the page to load lazy images
+      console.log(`Scrolling page to load lazy content...`);
+      await autoScroll(page);
+
+      // Force load all images
+      console.log(`Forcing all images to load...`);
+      await forceImagesLoad(page);
+
+      // Wait for additional time to ensure images are loaded
+      console.log(`Waiting for all content to load...`);
+      await delay(2000);
+
+      // Take screenshot
+      const screenshotPath = path.join(OUT_DIR, `${pageName}.png`);
+      console.log(`Taking screenshot: ${screenshotPath}`);
+      await page.screenshot({ path: screenshotPath, fullPage: true });
+
+      console.log(`Screenshot taken for ${pageName}`);
+    } catch (error) {
+      console.error(`Error taking screenshot for ${pageName}:`, error);
+    }
+  }
+
+  await browser.close();
+  console.log("Screenshot process completed.");
+})();
+```
+
+The script above assumes the Next.js app is built in the `out` directory. Adjust it if you're using a different directory. The script will scroll each page to load lazy images and force load all images so they are visible in the screenshot (line 51-69). In some pages, we use [framer motion](https://motion.dev) to animate the content, so we disable animations (line 108). You might want to set the viewport's `once` option to `true` if you're using framer motion.
+
+```typescript showLineNumbers {2}
+<motion.div
+  viewport={{ once: true, amount: 0.3 }}
+  initial={{ opacity: 0, y: 20 }}
+  whileInView={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.2, duration: 0.6 }}
+  >
+</motion.div>
+```
+
+Then we add a workflow to build the Next.js app, run a static server to serve the app, and run the script to take screenshots.
+
+```yaml:pr.yml showLineNumbers
+name: PR
+
+on:
+  workflow_dispatch: null
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.12.1
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Install Puppeteer and serve
+        run: bun install puppeteer serve
+
+      - name: Build and export
+        run: bun run build
+
+      - name: Start static server and take screenshots
+        id: screenshots
+        run: |
+          # Start the server in the background
+          npx serve out -p 3000 &
+          # Wait longer for server to start
+          sleep 10
+          # Take screenshots
+          node .github/scripts/take-screenshots.js
+          # Kill the server
+          kill $(lsof -t -i:3000)
+          echo "screenshot_path=screenshots" >> $GITHUB_OUTPUT
+
+      - name: Upload screenshots as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-screenshots
+          path: screenshots/
+```
+
+The screenshots are uploaded as artifacts and can be viewed in the GitHub Actions UI.

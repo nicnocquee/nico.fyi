@@ -6,7 +6,7 @@ summary: 'Learn how to avoid infinite render loops when using useSyncExternalSto
 tags: ['dev', 'react']
 ---
 
-A few articles ago I wrote about using [useSyncExternalStore to write, read, and react to changes in the local storage](https://www.nico.fyi/blog/ssr-friendly-local-storage-react-custom-hook). I even created my own useLocalStorage hook in the same article. But the hook has one flaw. You can only read and write string values because local storage only stores strings.
+A few articles ago I wrote about using [useSyncExternalStore to write, read, and react to changes in the local storage](/blog/ssr-friendly-local-storage-react-custom-hook). I even created my own useLocalStorage hook in the same article. But the hook has one flaw. You can only read and write string values because local storage only stores strings.
 
 So I gave it a try to store an object in local storage. My first attempt was like this.
 
@@ -150,7 +150,7 @@ export const useLocalStorage = <T>(key: string, initialValue?: T) => {
 
 I also wrapped the stored value in a wrapper object to make it possible to differentiate between the cleared state and the initial state. When the hook is called, if there has never been a value stored in local storage, it will return the initial value as shown in line 55-61 of the code above. But if the `clearData` function is called, it will return `undefined` as shown in line 57 of the code above.
 
-Finally, I added a migration function to the code above to handle the legacy data. This is useful when you already have some data stored in local storage and you want to use the hook. This is the complete code.
+Finally, I added a migration function to the code above to handle the legacy data. This is useful when you already have some data stored in local storage and you want to use the hook. This is the complete code:
 
 ```typescript:app/use-local-storage.ts showLineNumbers
 import { useSyncExternalStore, useCallback, useMemo } from "react";
@@ -277,6 +277,12 @@ export const useLocalStorage = <T>(key: string, initialValue?: T) => {
     [data, setData, clearData]
   );
 };
+```
+
+Or you can install it from npm:
+
+```bash
+npm install @nicnocquee/use-local-storage-hook superjson
 ```
 
 I also need to mention that the custom hook now uses [superjson](https://github.com/flightcontrolhq/superjson) to serialize and deserialize the data. This library is needed because serializing and deserializing objects using `JSON.stringify` and `JSON.parse` is not type-safe and they don't handle non-primitive values well. For example, if you try to stringify a `Date` object, it will convert it into a string like `2024-11-17T00:00:00.000Z`. But when you try to deserialize it back, it will not return a `Date` object but a string. Superjson handles this.

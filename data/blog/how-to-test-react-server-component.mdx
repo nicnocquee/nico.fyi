@@ -1,0 +1,128 @@
+---
+title: 'How to test React Server Component'
+date: '2025-07-06'
+summary: 'This is a tutorial on how to test React Server Component in Next.js'
+commentary: "It's hacky, but it works"
+keywords: ['react server component', 'testing', 'react', 'nextjs']
+tags: ['dev', 'nextjs', 'react']
+---
+
+Ever since Next.js supported React Server Components, I've been using them in my projects. I really enjoy using them because it just makes sense. Every component that needs data from the server doesn't need to fetch the data from the browser. Less code, less complexity, fewer bugs.
+
+But even after years of being released to the public, neither the Next.js team nor the React team has provided a way to test React Server Components. Not even LLMs know how to do it, which is understandable because they cannot actually think. But luckily, Next.js and React are open source, and I wasn't the only one who wanted to test React Server Components.
+
+I found this [single gist](https://gist.github.com/sroebert/a04ca6e0232a4a60bc50d7f164f101f6) by [Steven Robert](https://gist.github.com/sroebert) that can be used to test React Server Components. It's basically this:
+
+```typescript
+// From https://gist.github.com/sroebert/a04ca6e0232a4a60bc50d7f164f101f6
+
+import type { PropsWithChildren, ReactElement, ReactNode } from 'react'
+import React, { Children, cloneElement, isValidElement } from 'react'
+
+import { render } from '@testing-library/react'
+
+function setFakeReactDispatcher<T>(action: () => T): T {
+  /**
+   * We use some internals from React to avoid a lot of warnings in our tests when faking
+   * to render server components. If the structure of React changes, this function should still work,
+   * but the tests will again print warnings.
+   *
+   * If this is the case, this function can also simply be removed and all tests should still function.
+   */
+
+  if (!('__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE' in React)) {
+    return action()
+  }
+
+  const secret = React.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE
+  if (!secret || typeof secret !== 'object' || !('H' in secret)) {
+    return action()
+  }
+
+  const previousDispatcher = secret.H
+  try {
+    secret.H = new Proxy(
+      {},
+      {
+        get() {
+          throw new Error('This is a client component')
+        },
+      }
+    )
+  } catch {
+    return action()
+  }
+
+  const result = action()
+
+  secret.H = previousDispatcher
+
+  return result
+}
+
+async function evaluateServerComponent(node: ReactElement): Promise<ReactElement> {
+  if (node && node.type?.constructor?.name === 'AsyncFunction') {
+    // Handle async server nodes by calling await.
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    const evaluatedNode: ReactElement = await node.type({ ...node.props })
+    return evaluateServerComponent(evaluatedNode)
+  }
+
+  if (node && node.type?.constructor?.name === 'Function') {
+    try {
+      return setFakeReactDispatcher(() => {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
+        const evaluatedNode: ReactElement = node.type({ ...node.props })
+        return evaluateServerComponent(evaluatedNode)
+      })
+    } catch {
+      // If evaluating fails with a function node, it might be because of using client side hooks.
+      // In that case, simply return the node, it will be handled by the react testing library render function.
+      return node
+    }
+  }
+
+  return node
+}
+
+async function evaluateServerComponentAndChildren(node: ReactElement) {
+  const evaluatedNode = (await evaluateServerComponent(node)) as ReactElement<PropsWithChildren>
+
+  if (!evaluatedNode?.props.children) {
+    return evaluatedNode
+  }
+
+  const children = Children.toArray(evaluatedNode.props.children)
+  for (let i = 0; i < children.length; i += 1) {
+    const child = children[i]
+    if (!isValidElement(child)) {
+      continue
+    }
+
+    children[i] = await evaluateServerComponentAndChildren(child)
+  }
+
+  return cloneElement(evaluatedNode, {}, ...children)
+}
+
+// Follow <https://github.com/testing-library/react-testing-library/issues/1209>
+// for the latest updates on React Testing Library support for React Server
+// Components (RSC)
+export async function renderServerComponent(nodeOrPromise: ReactNode | Promise<ReactNode>) {
+  const node = await nodeOrPromise
+
+  if (isValidElement(node)) {
+    const evaluatedNode = await evaluateServerComponentAndChildren(node)
+    return render(evaluatedNode)
+  }
+
+  return render(node)
+}
+```
+
+Create a new file in your project, then fill it up with the code above. Then you just need to call the `renderServerComponent` function to render the React Server Component. You can find an example project that uses this gist [here](https://github.com/nicnocquee/rsc-testing).
+
+Hopefully, there will be an official way to test React Server Components in the future. For now, this is the best way to test React Server Components.

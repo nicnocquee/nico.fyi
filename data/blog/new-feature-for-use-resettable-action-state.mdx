@@ -1,0 +1,143 @@
+---
+title: 'Cancel action or modify payload before useActionState'
+date: '2025-08-24'
+summary: 'Cancel action or modify the payload before calling the server action using useResettableActionState, the enhanced useActionState hook'
+commentary: 'New features for useResettableActionState, the enhanced useActionState'
+keywords: ['react', 'nextjs', 'typescript']
+tags: ['dev', 'nextjs', 'typescript', 'open source']
+---
+
+Just updated my open source React hook [useResettableActionState](https://github.com/nicnocquee/use-resettable-action-state). At the beginning, I made it to allow me to [reset the state after submitting the form using useActionState](/blog/reset-state-from-react-useactionstate). Now it also allows you to cancel the action or modify the payload before calling the server action.
+
+## Cancelling the action
+
+Before submitting a form, you may want to cancel the action if the entered values are not valid. For example, when updating a user's password, you may want to cancel the action if the user fails to repeat the new password correctly. In this case, you can provide a function to the new `beforeAction` argument. Code example:
+
+```tsx:app/page.tsx showLineNumbers {10-15}
+'use client';
+import { doSomething } from './actions';
+import { useResettableActionState } from 'use-resettable-action-state';
+
+export default function Form({ initialState }: { initialState: { password: string | null, error: string | null } }) {
+  const [state, submit, isPending, reset, payload] = useResettableActionState(
+    doSomething,
+    initialState,
+    undefined,
+    async (payload, abortController) => {
+      if (payload?.get('password') !== payload?.get('repeat-password')) {
+        abortController.abort({
+          error: 'Passwords do not match',
+        });
+      }
+      return payload;
+    },
+  );
+
+  return (
+    <form action={submit}>
+      {state && !state.error && <p>Success!</p>}
+      {state && state.error && <p className="bg-red-500 text-white p-4">{state.error}</p>}
+      <input
+        type="password"
+        name="password"
+        id="password"
+        placeholder="Enter new password"
+      />
+      <input
+        type="password"
+        name="repeat-password"
+        id="repeat-password"
+        placeholder="Repeat the new password"
+      />
+      <p>{state && state.data?.message}</p>
+
+      <button disabled={isPending} type="submit">
+        {isPending ? 'Loading...' : 'Submit'}
+      </button>
+    </form>
+  );
+}
+```
+
+As you can see from the code example above, the `beforeAction` function receives the payload and the abort controller. You can use the abort controller to cancel the action.
+
+## Modifying the payload before calling the server action
+
+There may be cases where you want to modify the payload before calling the server action. For example, you may want to acquire a Google reCAPTCHA token and submit it along with the form data. The token has an expiration time, so it's better to acquire it before calling the server action instead of when the page is loaded. The user might take a while to complete the form, and the token might expire before the user submits the form.
+
+In the example below, I'm using [the React reCAPTCHA v3 library](https://github.com/wojtekmaj/react-recaptcha-v3#readme) to acquire the token. This library has a `useGoogleReCaptcha` hook that returns a function to acquire the token, `executeRecaptcha`. Then I use the `beforeAction` function to acquire the token and modify the payload.
+
+```tsx:app/page.tsx showLineNumbers {8-17}
+export default function Form() {
+  const { executeRecaptcha } = useGoogleReCaptcha();
+
+  const [state, submit, isPending, reset, payload] = useResettableActionState(
+    doSomething,
+    null,
+    undefined,
+    async (payload, abortController) => {
+      const token = await executeRecaptcha?.("doSomething");
+      if (!token) {
+        abortController.abort({
+          error: "reCAPTCHA verification failed",
+        });
+        return payload;
+      }
+      payload?.set("token", token);
+      return payload;
+    }
+  );
+  const formRef = useRef<HTMLFormElement>(null);
+
+  return (
+    <form
+      id="theform"
+      ref={formRef}
+      className="flex flex-col items-center justify-start space-y-4 text-center p-4 w-full max-w-md bg-slate-50"
+      action={submit}
+    >
+      {!isPending && state && state.error && (
+        <p className="bg-red-500 text-white p-4">{state.error}</p>
+      )}
+      <pre className="text-sm text-muted-foreground text-left">
+        {!isPending &&
+          state &&
+          JSON.stringify(state.data?.recaptchaResponse, null, 2)}
+      </pre>
+      <input
+        required
+        disabled={isPending}
+        type="text"
+        name="name"
+        id="name"
+        placeholder="Enter your name"
+        defaultValue={(payload?.get("name") as string) || ""}
+      />
+
+      <div className="flex flex-row justify-between items-center w-full">
+        <button
+          form="theform"
+          disabled={isPending}
+          className="bg-primary text-primary-foreground hover:bg-primary/80 py-2 px-4 rounded-md disabled:bg-muted-foreground"
+          type="submit"
+        >
+          {isPending ? "Loading..." : "Submit"}
+        </button>
+      </div>
+      {isPending && (
+        <p className="text-sm text-muted-foreground">
+          (3s delay in doSomething action)
+        </p>
+      )}
+    </form>
+  );
+}
+```
+
+You can check out the demo [here](https://playground.nico.fyi/use-action-state/recaptcha-v3).
+
+## Conclusion
+
+The `beforeAction` function is a convenient way to cancel the action or modify the payload before calling the server action. Thanks to it, you won't need to use `useEffect` or `useState` to manage the submission of your form.
+
+Additionally, the library is now 100% covered by tests as shown [here](https://github.com/nicnocquee/use-resettable-action-state/actions/runs/17187991759/job/48759677433#step:5:85)! 🥳

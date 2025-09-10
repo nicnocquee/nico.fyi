@@ -14,9 +14,9 @@ const siteMetadata = {
   mastodon: '',
   email: 'hi@nico.fyi',
   github: 'https://github.com/nicnocquee',
-  twitter: 'https://twitter.com/2co_p',
   locale: 'en-US',
   bluesky: 'https://bsky.app/profile/nico.fyi',
+  linkedin: 'https://www.linkedin.com/in/nico-prananta-884750200/',
   search: {
     provider: 'kbar', // kbar or algolia
     kbarConfig: {

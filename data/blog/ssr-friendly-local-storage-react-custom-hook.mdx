@@ -7,6 +7,13 @@ keywords: ['react', 'nextjs']
 tags: ['dev', 'nextjs', 'react']
 ---
 
+import { Alert } from '@/components/ui/alert'
+
+<Alert className="mt-8">
+  Update: Use my [useLocalStorage hook](https://github.com/nicnocquee/use-local-storage) for
+  convenience.
+</Alert>
+
 There are hundreds of [custom React hooks to access the local storage](https://www.npmjs.com/search?q=use-local-storage) out there. But I was tempted to create my own using [useSyncExternalStore](/blog/use-sync-external-store-in-react) since I figured it's the proper hooks for this kind of use case. Now I'm sure there are already a package that does exactly what I want, but I wanted to create it by myself, for the sake of learning.
 
 This was my first attempt.
