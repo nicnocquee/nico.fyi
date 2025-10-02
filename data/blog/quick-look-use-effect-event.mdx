@@ -1,0 +1,186 @@
+---
+title: 'Quick look into the useEffectEvent'
+date: '2025-10-02'
+commentary: 'The new hook in React 19.2'
+summary: 'Learn how to use the new useEffectEvent hook in React 19.2'
+tags: ['dev', 'react']
+---
+
+React just released the new version 19.2.0 which brings several new features including the new [useEffectEvent](https://react.dev/reference/react/useEffectEvent) hook. The doc says that it is a React Hook that lets you extract non-reactive logic from your Effects into a reusable function called an Effect Event.
+
+Thanks to a quick chat with [Dan Abramov](https://bsky.app/profile/nico.fyi/post/3m27vhlzno22y), I got to realize that my understanding of the hook was initially incorrect.
+
+At first I thought it's a way to create a "stable" function that always "sees" the latest state and props. But Dan explained that it actually creates an "unstable" function. It is basically a way to create a function that
+
+- always "sees" the latest state and props
+- doesn't cause an Effect that contains the function to re-run even though the function is "unstable"
+
+Let's take a look at this example below which I adopted from the React doc. We have a `notify` function (line 32-34) that is created by wrapping the `showNotification` function with `useEffectEvent`. The `notify` function is always "unstable" because it always uses the latest `theme` value. And even though it's used inside the `useEffect` hook (line 38), **it doesn't cause the `useEffect` to re-run even though the `notify` function always changes** whenever the `theme` value changes. And thanks to the new eslint rule, the `notify` function doesn't need to be included in the dependency array of the `useEffect` hook (line 44).
+
+```tsx:page.tsx showLineNumbers {32-34, 38, 44}
+'use client'
+
+import { useEffect, useState, useEffectEvent } from 'react'
+
+const createConnection = (serverUrl: string, roomId: string) => {
+  return {
+    on: (eventName: string, callback: () => void) => {
+      console.log(`Event ${eventName} occurred: ${serverUrl} and roomId: ${roomId}`)
+      callback()
+    },
+    connect: () => {
+      console.log(`Connected to server: ${serverUrl} and roomId: ${roomId}`)
+    },
+    disconnect: () => {
+      console.log(`Disconnected from server: ${serverUrl} and roomId: ${roomId}`)
+    },
+  }
+}
+
+const serverUrl = 'wss://example.com'
+const roomIds = ['123', '456', '789']
+const themes = ['light', 'dark']
+
+const showNotification = (message: string, theme: string) => {
+  console.log(`Notification: ${message} with theme: ${theme}`)
+}
+
+export default function Page() {
+  const [theme, setTheme] = useState<string>(themes[0] || '')
+  const [roomId, setRoomId] = useState<string>(roomIds[0] || '')
+
+  const notify = useEffectEvent((message: string) => {
+    showNotification(message, theme)
+  })
+
+  useEffect(() => {
+    const connection = createConnection(serverUrl, roomId)
+    connection.on('connected', () => notify('Connected!'))
+    connection.connect()
+
+    return () => {
+      connection.disconnect()
+    }
+  }, [roomId])
+
+  return (
+    <div className="flex min-h-svh flex-col items-center justify-center">
+      <select value={theme} onChange={(e) => setTheme(e.target.value)}>
+        {themes.map((theme) => (
+          <option key={theme} value={theme}>
+            {theme}
+          </option>
+        ))}
+      </select>
+      <select value={roomId} onChange={(e) => setRoomId(e.target.value)}>
+        {roomIds.map((roomId) => (
+          <option key={roomId} value={roomId}>
+            {roomId}
+          </option>
+        ))}
+      </select>
+      {/* <ChatRoom serverUrl={serverUrl} roomId={roomId} theme={theme} /> */}
+      {`ChatRoom: ${serverUrl} and roomId: ${roomId} and theme: ${theme}`}
+    </div>
+  )
+}
+```
+
+This example made me think that this could be achieved without the `useEffectEvent` hook by simply creating the `notify` function outside of the `useEffect` hook and not including it in the dependency array of the `useEffect` hook. Granted that the eslint will complain about the missing dependency, but I thought I could just ignore it.
+
+```tsx:page.tsx showLineNumbers {6-8, 19}
+export default function Page() {
+  const [theme, setTheme] = useState<string>(themes[0] || "");
+  const [roomId, setRoomId] = useState<string>(roomIds[0] || "");
+
+
+  const notify = (message: string = "Connected!") => {
+    showNotification(message, theme);
+  };
+
+  useEffect(() => {
+    const connection = createConnection(serverUrl, roomId);
+    connection.on("connected", () => notify("Connected!"));
+    connection.connect();
+
+
+    return () => {
+      connection.disconnect();
+    };
+  }, [roomId]);
+
+  return (
+    // ...same as above
+  );
+}
+```
+
+And I was partially right. Say initially the `theme` is `light` then I changed it to `dark`. As expected, the connection didn't reconnect. When I selected different `roomId` values, the connection reconnected and the `notify` function was called, and the notification was shown with the `dark` value. That's how it should be.
+
+But Dan then pointed out that while that example works as it should be, the `notify` function doesn't see the latest `theme` value. To prove this, he told me to call the `notify` function after the `theme` value is changed. So I made the following changes which calls the `notify` function periodically after the connection is established (line 15-17).
+
+```tsx:page.tsx showLineNumbers {15-17}
+export default function Page() {
+  const [theme, setTheme] = useState<string>(themes[0] || "");
+  const [roomId, setRoomId] = useState<string>(roomIds[0] || "");
+
+
+  const notify = (message: string = "Connected!") => {
+    showNotification(message, theme);
+  };
+
+  useEffect(() => {
+    const connection = createConnection(serverUrl, roomId);
+    connection.on("connected", () => notify("Connected!"));
+    connection.connect();
+
+    const timer = setInterval(() => {
+      notify("Timer");
+    }, 5000);
+
+    return () => {
+      connection.disconnect();
+      clearInterval(timer);
+    };
+  }, [roomId]);
+
+  return (
+    // ...same as above
+  );
+}
+```
+
+As Dan explained, the `notify` function inside the Effect doesn't change which means it never sees the latest `theme` value. **When I changed the `theme` value to `dark`, the `notify` function inside the Effect still sees the `light` value**. This is a bug and it can be fixed by simply wrapping the `notify` function with `useEffectEvent` hook.
+
+```tsx:page.tsx showLineNumbers {6-8}
+export default function Page() {
+  const [theme, setTheme] = useState<string>(themes[0] || "");
+  const [roomId, setRoomId] = useState<string>(roomIds[0] || "");
+
+
+  const notify = useEffectEvent((message: string = "Connected!") => {
+    showNotification(message, theme);
+  };
+
+  useEffect(() => {
+    const connection = createConnection(serverUrl, roomId);
+    connection.on("connected", () => notify("Connected!"));
+    connection.connect();
+
+    const timer = setInterval(() => {
+      notify("Timer");
+    }, 5000);
+
+    return () => {
+      connection.disconnect();
+      clearInterval(timer);
+    };
+  }, [roomId]);
+
+  return (
+    // ...same as above
+  );
+}
+```
+
+This is cool because now we can use a function that always "sees" the latest state and props without causing an Effect that contains the function to re-run. I'm looking forward to seeing how I and others will use this hook in the future.
