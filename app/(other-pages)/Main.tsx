@@ -23,6 +23,10 @@ export default function Home({ posts }: { posts: CoreContent<Blog>[] }) {
             <div className="flex flex-col space-y-2 [&>a]:hover:text-primary-600 [&>a]:dark:hover:text-primary-400 [&_a]:mx-2 [&_a]:inline-block [&_a]:text-primary-500">
               <ul className="list-disc pl-5">
                 <li>
+                  Speed Docs: A CLI to create online documentation quickly and easily.
+                  <a href="https://speed-docs.dev">speed-docs.dev</a>
+                </li>
+                <li>
                   DataQueue.dev: a lightweight job queue for Node.js/TypeScript projects, backed by
                   PostgreSQL.
                   <a href="https://dataqueue.dev">dataqueue.dev</a>
