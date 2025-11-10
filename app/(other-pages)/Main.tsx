@@ -11,39 +11,58 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 const MAX_DISPLAY = 5
 
+const recentNews = [
+  {
+    title: 'zod-request: A library to validate HTTP request with Zod',
+    href: 'https://github.com/nicnocquee/zod-request',
+  },
+  {
+    title: 'Speed Docs: A CLI to create online documentation quickly and easily.',
+    href: 'https://speed-docs.dev',
+  },
+  {
+    title:
+      'DataQueue.dev: a lightweight job queue for Node.js/TypeScript projects, backed by PostgreSQL.',
+    href: 'https://dataqueue.dev',
+  },
+  {
+    title: 'Bluesky later: Schedule Bluesky post in the future for FREE',
+    href: 'https://www.blueskylater.com',
+  },
+  {
+    title: 'Pull Request Best Practices &rarr;',
+    href: 'https://pr.nico.fyi',
+  },
+]
+
+const RecentNewsComponent = () => {
+  return (
+    <div className="divide-y divide-gray-200 py-8 dark:divide-gray-700">
+      <Alert>
+        <AlertTitle>Recent news</AlertTitle>
+        <AlertDescription>
+          <div className="flex flex-col space-y-2 [&>a]:hover:text-primary-600 [&>a]:dark:hover:text-primary-400 [&_a]:mx-2 [&_a]:inline-block [&_a]:text-primary-500">
+            <ul className="list-disc pl-5">
+              {recentNews.map((news) => (
+                <li key={news.title}>
+                  {news.title}
+                  <a href={news.href}>{news.href}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </AlertDescription>
+      </Alert>
+    </div>
+  )
+}
+
 export default function Home({ posts }: { posts: CoreContent<Blog>[] }) {
   return (
     <div className="flex flex-col space-y-4">
       <PopularBlogs />
 
-      <div className="divide-y divide-gray-200 py-8 dark:divide-gray-700">
-        <Alert>
-          <AlertTitle>Recent news</AlertTitle>
-          <AlertDescription>
-            <div className="flex flex-col space-y-2 [&>a]:hover:text-primary-600 [&>a]:dark:hover:text-primary-400 [&_a]:mx-2 [&_a]:inline-block [&_a]:text-primary-500">
-              <ul className="list-disc pl-5">
-                <li>
-                  Speed Docs: A CLI to create online documentation quickly and easily.
-                  <a href="https://speed-docs.dev">speed-docs.dev</a>
-                </li>
-                <li>
-                  DataQueue.dev: a lightweight job queue for Node.js/TypeScript projects, backed by
-                  PostgreSQL.
-                  <a href="https://dataqueue.dev">dataqueue.dev</a>
-                </li>
-                <li>
-                  Bluesky later: Schedule Bluesky post in the future for FREE
-                  <a href="https://www.blueskylater.com">www.blueskylater.com</a>
-                </li>
-                <li>
-                  Have you checked out my new book?
-                  <a href="https://pr.nico.fyi">Pull Request Best Practices &rarr;</a>
-                </li>
-              </ul>
-            </div>
-          </AlertDescription>
-        </Alert>
-      </div>
+      <RecentNewsComponent />
 
       <div className="divide-y divide-gray-200 dark:divide-gray-700">
         <div className="space-y-2 pb-8 pt-6 md:space-y-5">

@@ -1,0 +1,75 @@
+---
+title: 'Validate HTTP request with Zod'
+date: '2025-11-10'
+summary: 'Learn how to validate HTTP request with Zod'
+tags: ['dev', 'typescript', 'zod']
+---
+
+I got tired of writing if-else statements to validate the HTTP request like this:
+
+```tsx:route.ts showLineNumbers
+export const GET = async (request: Request) => {
+  const { searchParams } = new URL(request.url)
+  const name = searchParams.get('name')
+  if (!name) {
+    return NextResponse.json({ error: 'Name is required' }, { status: 400 })
+  }
+  return NextResponse.json({ name })
+}
+```
+
+It got annoying fast when there are more parameters, headers, and body to validate. Multiply that by the number of routes and you'll end up with a lot of repetitive code.
+
+So I made [zod-request](https://github.com/nicnocquee/zod-request), a library that allows you to validate the HTTP request with Zod.
+
+Here's an example of how to use it in a Next.js Route handler:
+
+```tsx:route.ts showLineNumbers
+import { z } from "zod";
+import {
+  requestSchema,
+  searchParamsSchema,
+  bodySchema,
+  headersSchema,
+  httpMethodSchema,
+} from "@nicnocquee/zod-request";
+
+// Create the schema for the request
+const schema = requestSchema({
+  // Create the schema for the search params
+  searchParams: searchParamsSchema(
+    z.object({
+      filter: z.string(),
+    })
+  ),
+  // Create the schema for the body
+  body: bodySchema({
+    json: z.object({
+      name: z.string(),
+      age: z.number(),
+    }),
+  }),
+  // Create the schema for the headers
+  headers: headersSchema(
+    z.object({
+      authorization: z.string(),
+    })
+  ),
+});
+
+export async function POST(request: Request) {
+  try {
+    const validatedRequest = await schema.parseAsync(request);
+
+    // By this point, all validated data is now type-safe
+    const filter = validatedRequest.searchParamsObject.filter;
+    const name = validatedRequest.bodyObject.name;
+    const auth = validatedRequest.headersObj.authorization;
+    const method = validatedRequest.method; // "POST"
+  } catch (error) {
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+  }
+}
+```
+
+Check out the [documentation](https://nicnocquee.github.io/zod-request/) for more details. I hope it helps you write cleaner code!
