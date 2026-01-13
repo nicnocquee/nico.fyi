@@ -6,7 +6,7 @@ commentary: Sometimes all you need is just CSS and HTML. No JavaScript needed.
 tags: ['dev', 'nextjs', 'react', 'tailwind']
 ---
 
-Recently I was tasked with updating a minor change in [Hyperjump Technology's website](https://hyperjump.tech). But I thought it was a good chance to completely rewrite the website from scratch using Next.js because previously it was just a bunch of HTML and CSS files (I was lazy 😂). The good thing was we already used Tailwind CSS for the styling. So I simply just needed to copy the HTML to the new Next.js-powered website.
+Recently I was tasked with updating a minor change in [Hyperjump Technology's website](https://hyperjump.tech/en?utm_source=nico.fyi&utm_medium=blog). But I thought it was a good chance to completely rewrite the website from scratch using Next.js because previously it was just a bunch of HTML and CSS files (I was lazy 😂). The good thing was we already used Tailwind CSS for the styling. So I simply just needed to copy the HTML to the new Next.js-powered website.
 
 In the old website, there is a sticky navigation bar on the top of the page which has transparent background when the scoll position is at the top. But when user scrolls down, the background becomes white. It was implemented as follows:
 
@@ -233,7 +233,7 @@ function Logo() {
 }
 ```
 
-In that `Logo` component, there are actually two images which are shown depending on the `data-scroll` attribute. Unfortunately I couldn't find a way to use a single `Image` component in this case. If you know how to do that, please let me know. You can check out the code in the GitHub repository [here](https://github.com/hyperjumptech/hyperjump.tech) and the [live website here](https://hyperjump.tech).
+In that `Logo` component, there are actually two images which are shown depending on the `data-scroll` attribute. Unfortunately I couldn't find a way to use a single `Image` component in this case. If you know how to do that, please let me know. You can check out the code in the GitHub repository [here](https://github.com/hyperjumptech/hyperjump.tech) and the [live website here](https://hyperjump.tech/en?utm_source=nico.fyi&utm_medium=blog).
 
 ## Closing thoughts
 
